@@ -1,86 +1,160 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import csv
+import matplotlib.ticker as ticker
 
-# 结果字符串
-result_str = (
-    "Serial: total=279.8277s, avg_task=0.1749s, throughput=5.72 req/s, gpu_util=38.9%, mem_util=17.9%, mem_used=14631.7 MiB | "
-    "Streams: total=210.4488s, avg_task=0.1315s, throughput=7.60 req/s, gpu_util=43.2%, mem_util=21.4%, mem_used=17549.4 MiB | "
-    "BigBatch: total=146.9647s, avg_task=0.0919s, throughput=10.89 req/s, gpu_util=40.9%, mem_util=21.9%, mem_used=17911.0 MiB"
-)
-
-# 提取数值
-modes = []
-totals = []
-avg_tasks = []
-throughputs = []
-gpu_utils = []
-mem_utils = []
-
-sections = result_str.split(' | ')
-for section in sections:
-    if not section.strip():
-        continue
-    # 分割模式名和键值对
-    mode, data_str = section.split(':', 1)
-    mode = mode.strip()
-    modes.append(mode)
+def generate_batch_size_plot(results, output_path):
+    """Generate batch size performance plot with all metrics"""
+    fig, axs = plt.subplots(4, 2, figsize=(15, 24))  # 4x2布局
+    fig.suptitle('Performance by Batch Size', fontsize=16)
     
-    # 分割键值对
-    data_parts = [p.strip() for p in data_str.split(',')]
+    batch_sizes = results['batch_sizes']
     
-    # 解析每个键值对
-    total = float(data_parts[0].split('=')[1].split('s')[0])
-    avg_task = float(data_parts[1].split('=')[1].split('s')[0])
-    throughput = float(data_parts[2].split('=')[1].split()[0])
-    gpu_util = float(data_parts[3].split('=')[1].split('%')[0])
-    mem_util = float(data_parts[4].split('=')[1].split('%')[0])
+    # 统一设置x轴刻度
+    def set_batch_size_xticks(ax):
+        ax.set_xticks(batch_sizes)
+        ax.set_xticklabels(batch_sizes)
+        ax.set_xscale('log', base=2)
+        ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f'{int(x)}'))
     
-    totals.append(total)
-    avg_tasks.append(avg_task)
-    throughputs.append(throughput)
-    gpu_utils.append(gpu_util)
-    mem_utils.append(mem_util)
+    # 1. Total Completion Time
+    axs[0, 0].plot(batch_sizes, results['serial_total_times'], 'o-', color='skyblue', label='Serial')
+    axs[0, 0].plot(batch_sizes, results['parallel_total_times'], 'o-', color='orange', label='Parallel')
+    axs[0, 0].set_title('Total Completion Time')
+    axs[0, 0].set_xlabel('Batch Size')
+    axs[0, 0].set_ylabel('Time (seconds)')
+    axs[0, 0].grid(True, which="both", ls="--")
+    axs[0, 0].legend()
+    set_batch_size_xticks(axs[0, 0])
+    
+    # 2. Average Request Time
+    axs[0, 1].plot(batch_sizes, results['serial_avg_request_times'], 'o-', color='skyblue', label='Serial')
+    axs[0, 1].plot(batch_sizes, results['parallel_avg_request_times'], 'o-', color='orange', label='Parallel')
+    axs[0, 1].set_title('Average Request Time')
+    axs[0, 1].set_xlabel('Batch Size')
+    axs[0, 1].set_ylabel('Time (seconds)')
+    axs[0, 1].grid(True, which="both", ls="--")
+    axs[0, 1].legend()
+    set_batch_size_xticks(axs[0, 1])
+    
+    # 3. Throughput
+    axs[1, 0].plot(batch_sizes, results['serial_throughputs'], 'o-', color='skyblue', label='Serial')
+    axs[1, 0].plot(batch_sizes, results['parallel_throughputs'], 'o-', color='orange', label='Parallel')
+    axs[1, 0].set_title('Throughput')
+    axs[1, 0].set_xlabel('Batch Size')
+    axs[1, 0].set_ylabel('Samples per second')
+    axs[1, 0].grid(True, which="both", ls="--")
+    axs[1, 0].legend()
+    set_batch_size_xticks(axs[1, 0])
+    
+    # 4. GPU Utilization (if available)
+    if results['serial_gpu_utils']:
+        axs[1, 1].plot(batch_sizes, results['serial_gpu_utils'], 'o-', color='skyblue', label='Serial')
+        axs[1, 1].plot(batch_sizes, results['parallel_gpu_utils'], 'o-', color='orange', label='Parallel')
+        axs[1, 1].set_title('GPU Utilization')
+        axs[1, 1].set_xlabel('Batch Size')
+        axs[1, 1].set_ylabel('Utilization (%)')
+        axs[1, 1].set_ylim(0, 100)
+        axs[1, 1].grid(True, which="both", ls="--")
+        axs[1, 1].legend()
+        set_batch_size_xticks(axs[1, 1])
+    else:
+        axs[1, 1].text(0.5, 0.5, 'No GPU Data Available', ha='center', va='center')
+        axs[1, 1].axis('off')
+    
+    # 5. Memory Utilization (if available)
+    if results['serial_mem_utils']:
+        axs[2, 0].plot(batch_sizes, results['serial_mem_utils'], 'o-', color='skyblue', label='Serial')
+        axs[2, 0].plot(batch_sizes, results['parallel_mem_utils'], 'o-', color='orange', label='Parallel')
+        axs[2, 0].set_title('Memory Utilization')
+        axs[2, 0].set_xlabel('Batch Size')
+        axs[2, 0].set_ylabel('Utilization (%)')
+        axs[2, 0].set_ylim(0, 100)
+        axs[2, 0].grid(True, which="both", ls="--")
+        axs[2, 0].legend()
+        set_batch_size_xticks(axs[2, 0])
+    else:
+        axs[2, 0].text(0.5, 0.5, 'No Memory Data Available', ha='center', va='center')
+        axs[2, 0].axis('off')
+    
+    # 6. Memory Used (if available)
+    if results['serial_mem_used']:
+        axs[2, 1].plot(batch_sizes, results['serial_mem_used'], 'o-', color='skyblue', label='Serial')
+        axs[2, 1].plot(batch_sizes, results['parallel_mem_used'], 'o-', color='orange', label='Parallel')
+        axs[2, 1].set_title('Memory Used')
+        axs[2, 1].set_xlabel('Batch Size')
+        axs[2, 1].set_ylabel('Memory (MB)')
+        axs[2, 1].grid(True, which="both", ls="--")
+        axs[2, 1].legend()
+        set_batch_size_xticks(axs[2, 1])
+    else:
+        axs[2, 1].text(0.5, 0.5, 'No Memory Used Data Available', ha='center', va='center')
+        axs[2, 1].axis('off')
+    
+    # 7. Model Actual Execution Time (combined)
+    axs[3, 0].plot(batch_sizes, results['serial_model1_times'], 'o-', color='skyblue', label='Serial Model1')
+    axs[3, 0].plot(batch_sizes, results['parallel_model1_times'], 'o-', color='orange', label='Parallel Model1')
+    axs[3, 0].plot(batch_sizes, results['serial_model2_times'], 'o--', color='skyblue', label='Serial Model2')
+    axs[3, 0].plot(batch_sizes, results['parallel_model2_times'], 'o--', color='orange', label='Parallel Model2')
+    axs[3, 0].set_title('Model Actual Execution Time')
+    axs[3, 0].set_xlabel('Batch Size')
+    axs[3, 0].set_ylabel('Time (seconds)')
+    axs[3, 0].grid(True, which="both", ls="--")
+    axs[3, 0].legend()
+    set_batch_size_xticks(axs[3, 0])
+    
+    # Adjust layout and save
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    plt.savefig(output_path)
+    plt.close()
+    print(f"Batch size performance plot saved to: {output_path}")
 
-# 创建图形
-fig, ax = plt.subplots(1, 5, figsize=(25, 5))
+# Read CSV data
+csv_path = 'example/1-128/hf_two_models_dual_stream.csv'
+results = {
+    'batch_sizes': [],
+    'serial_total_times': [],
+    'parallel_total_times': [],
+    'serial_avg_request_times': [],
+    'parallel_avg_request_times': [],
+    'serial_throughputs': [],
+    'parallel_throughputs': [],
+    'serial_model1_times': [],
+    'parallel_model1_times': [],
+    'serial_model2_times': [],
+    'parallel_model2_times': [],
+    'serial_gpu_utils': [],
+    'parallel_gpu_utils': [],
+    'serial_mem_utils': [],
+    'parallel_mem_utils': [],
+    'serial_mem_used': [],
+    'parallel_mem_used': []
+}
 
-# Total Time
-ax[0].bar(modes, totals, color=['skyblue', 'orange', 'green'])
-ax[0].set_title('Total Time (s)')
-ax[0].set_ylabel('Seconds')
-for i, v in enumerate(totals):
-    ax[0].text(i, v + 5, f'{v:.1f}', ha='center', va='bottom')
+with open(csv_path, 'r') as f:
+    reader = csv.reader(f)
+    headers = next(reader)  # Skip header
+    for row in reader:
+        if row:  # Skip empty rows
+            results['batch_sizes'].append(int(row[0]))
+            results['serial_total_times'].append(float(row[1]))
+            results['parallel_total_times'].append(float(row[2]))
+            results['serial_avg_request_times'].append(float(row[3]))
+            results['parallel_avg_request_times'].append(float(row[4]))
+            results['serial_throughputs'].append(float(row[5]))
+            results['parallel_throughputs'].append(float(row[6]))
+            results['serial_model1_times'].append(float(row[7]))
+            results['parallel_model1_times'].append(float(row[8]))
+            results['serial_model2_times'].append(float(row[9]))
+            results['parallel_model2_times'].append(float(row[10]))
+            results['serial_gpu_utils'].append(float(row[11]))
+            results['parallel_gpu_utils'].append(float(row[12]))
+            results['serial_mem_utils'].append(float(row[13]))
+            results['parallel_mem_utils'].append(float(row[14]))
+            results['serial_mem_used'].append(float(row[15]))
+            results['parallel_mem_used'].append(float(row[16]))
 
-# Avg Task Time
-ax[1].bar(modes, avg_tasks, color=['skyblue', 'orange', 'green'])
-ax[1].set_title('Avg Task Time (s)')
-ax[1].set_ylabel('Seconds')
-for i, v in enumerate(avg_tasks):
-    ax[1].text(i, v + 0.01, f'{v:.4f}', ha='center', va='bottom')
-
-# Throughput
-ax[2].bar(modes, throughputs, color=['skyblue', 'orange', 'green'])
-ax[2].set_title('Throughput (req/s)')
-ax[2].set_ylabel('req/s')
-for i, v in enumerate(throughputs):
-    ax[2].text(i, v + 0.1, f'{v:.2f}', ha='center', va='bottom')
-
-# GPU Utilization
-ax[3].bar(modes, gpu_utils, color=['skyblue', 'orange', 'green'])
-ax[3].set_title('GPU Utilization (%)')
-ax[3].set_ylabel('%')
-for i, v in enumerate(gpu_utils):
-    ax[3].text(i, v + 1, f'{v:.1f}%', ha='center', va='bottom')
-
-# Memory Utilization
-ax[4].bar(modes, mem_utils, color=['skyblue', 'orange', 'green'])
-ax[4].set_title('Memory Utilization (%)')
-ax[4].set_ylabel('%')
-for i, v in enumerate(mem_utils):
-    ax[4].text(i, v + 1, f'{v:.1f}%', ha='center', va='bottom')
-
-plt.tight_layout()
-plt.savefig('hf_performance_comparison.png')
-plt.show()
-
-print("图表已保存为 hf_performance_comparison.png") 
+# Generate plot
+output_path = 'example/1-128/batch_performance_plot.png'
+generate_batch_size_plot(results, output_path)
+print("图表已保存为 " + output_path) 

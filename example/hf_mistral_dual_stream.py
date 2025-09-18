@@ -1,5 +1,12 @@
-import argparse
+'''
+python example/hf_mistral_dual_stream.py   --cuda_visible_devices 1 \
+    --dtype float16   --max_new_tokens 32   --temperature 0.0   --top_p 1.0 \
+    --repeats 100 --batch_size 8 --with_gpu_stats \
+    --log_file example/hf_mistral_dual_stream.log
+'''
 import os
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
+import argparse
 import sys
 import time
 from datetime import datetime
@@ -113,14 +120,14 @@ def get_torch_dtype(dtype_str: str):
 
 def load_model_and_tokenizer(model_id: str, dtype_str: str, device: torch.device):
     torch_dtype = get_torch_dtype(dtype_str)
-    tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained(model_id) # , trust_remote_code=True)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
         torch_dtype=torch_dtype,
         device_map=None,
-        trust_remote_code=True,
+        # trust_remote_code=True,
     )
     model.to(device)
     model.eval()

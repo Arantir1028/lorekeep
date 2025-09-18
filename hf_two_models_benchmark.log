@@ -1,0 +1,17 @@
+Using device: cuda:0
+Model 1: mistralai/Mistral-7B-Instruct-v0.2
+Model 2: tiiuae/falcon-7b-instruct
+Batch size: 4, Repeats: 20
+Loading model 1...
+Using device: cuda:0
+Model 1: mistralai/Mistral-7B-Instruct-v0.2
+Model 2: tiiuae/falcon-7b-instruct
+Batch size: 4, Repeats: 20
+Loading model 1...
+Loading model 2...
+Using device: cuda:0
+Model 1: mistralai/Mistral-7B-Instruct-v0.2
+Model 2: tiiuae/falcon-7b-instruct
+Batch size: 4, Repeats: 20
+Loading model 1...
+Loading model 2...

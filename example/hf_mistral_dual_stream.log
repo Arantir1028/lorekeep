@@ -78,3 +78,32 @@
 [2025-09-15 11:38:58] BigBatch avg mem util: 21.9%
 [2025-09-15 11:38:58] BigBatch avg mem used: 17911.0 MiB
 [2025-09-15 11:38:58] Serial: total=279.8277s, avg_task=0.1749s, throughput=5.72 req/s, gpu_util=38.9%, mem_util=17.9%, mem_used=14631.7 MiB | Streams: total=210.4488s, avg_task=0.1315s, throughput=7.60 req/s, gpu_util=43.2%, mem_util=21.4%, mem_used=17549.4 MiB | BigBatch: total=146.9647s, avg_task=0.0919s, throughput=10.89 req/s, gpu_util=40.9%, mem_util=21.9%, mem_used=17911.0 MiB | Streams Speedup vs Serial: 1.33x | BigBatch Speedup vs Serial: 1.90x
+[2025-09-15 16:43:01] Loading HF model: tiiuae/falcon-7b-instruct, dtype=float16, device=cuda:0, batch_size=8
+[2025-09-15 16:44:11] Loading HF model: tiiuae/falcon-7b-instruct, dtype=float16, device=cuda:0, batch_size=8
+[2025-09-15 16:46:07] Loading HF model: tiiuae/falcon-7b-instruct, dtype=float16, device=cuda:0, batch_size=8
+[2025-09-15 17:03:43] Loading HF model: mistralai/Mistral-7B-Instruct-v0.2, dtype=float16, device=cuda:0, batch_size=8
+[2025-09-15 17:04:09] Running warmup (serial & streams & big batch)...
+[2025-09-15 17:04:25] Loading HF model: tiiuae/falcon-7b-instruct, dtype=float16, device=cuda:0, batch_size=8
+[2025-09-15 17:09:08] Loading HF model: tiiuae/falcon-7b-instruct, dtype=float16, device=cuda:0, batch_size=8
+[2025-09-15 19:07:18] Running warmup (serial & streams & big batch)...
+[2025-09-15 19:16:29] Serial total time for 100 runs (2 batches/run, 8 req/batch): 249.8755 s
+[2025-09-15 19:16:29] Serial average per request: 0.1562 s
+[2025-09-15 19:16:29] Serial throughput: 6.40 req/s
+[2025-09-15 19:16:29] Serial avg GPU util: 14.2%
+[2025-09-15 19:16:29] Serial avg mem util: 17.0%
+[2025-09-15 19:16:29] Serial avg mem used: 13890.0 MiB
+[2025-09-15 19:16:29] Streams total time for 100 runs (2 batches/run, 8 req/batch): 165.6696 s
+[2025-09-15 19:16:29] Streams average per request: 0.1035 s
+[2025-09-15 19:16:29] Streams throughput: 9.66 req/s
+[2025-09-15 19:16:29] Streams avg GPU util: 49.1%
+[2025-09-15 19:16:29] Streams avg mem util: 18.9%
+[2025-09-15 19:16:29] Streams avg mem used: 15467.0 MiB
+[2025-09-15 19:16:29] BigBatch total time for 100 runs (1 batch/run, 2*8 req/batch): 128.4669 s
+[2025-09-15 19:16:29] BigBatch average per request: 0.0803 s
+[2025-09-15 19:16:29] BigBatch throughput: 12.45 req/s
+[2025-09-15 19:16:29] BigBatch avg GPU util: 38.6%
+[2025-09-15 19:16:29] BigBatch avg mem util: 19.5%
+[2025-09-15 19:16:29] BigBatch avg mem used: 15955.6 MiB
+[2025-09-15 19:16:29] Serial: total=249.8755s, avg_task=0.1562s, throughput=6.40 req/s, gpu_util=14.2%, mem_util=17.0%, mem_used=13890.0 MiB | Streams: total=165.6696s, avg_task=0.1035s, throughput=9.66 req/s, gpu_util=49.1%, mem_util=18.9%, mem_used=15467.0 MiB | BigBatch: total=128.4669s, avg_task=0.0803s, throughput=12.45 req/s, gpu_util=38.6%, mem_util=19.5%, mem_used=15955.6 MiB | Streams Speedup vs Serial: 1.51x | BigBatch Speedup vs Serial: 1.95x
+[2025-09-16 10:58:37] Loading HF model: mistralai/Mistral-7B-Instruct-v0.2, dtype=float16, device=cuda:0, batch_size=8
+[2025-09-16 10:59:21] Loading HF model: mistralai/Mistral-7B-Instruct-v0.2, dtype=float16, device=cuda:0, batch_size=8

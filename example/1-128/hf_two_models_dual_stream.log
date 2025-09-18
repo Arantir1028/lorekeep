@@ -1,0 +1,311 @@
+Loading models...
+
+========================================
+Testing with batch size: 1
+========================================
+Batch size 1 results:
+  Serial total time: 19.0414s
+  Parallel total time: 14.0530s
+  Serial avg request time (all requests in batch): 4.760359s
+  Parallel avg request time (all requests in batch): 3.513250s
+  Serial throughput: 0.21 samples/s
+  Parallel throughput: 0.28 samples/s
+  Serial model1 actual time: 5.2001s
+  Parallel model1 actual time: 7.0233s
+  Serial model2 actual time: 4.3206s
+  Parallel model2 actual time: 6.4778s
+  Serial GPU util: 37.55%
+  Parallel GPU util: 45.49%
+  Serial memory util: 23.23%
+  Parallel memory util: 31.03%
+  Serial memory used: 29128.79 MB
+  Parallel memory used: 29258.64 MB
+
+========================================
+Testing with batch size: 2
+========================================
+Batch size 2 results:
+  Serial total time: 17.9172s
+  Parallel total time: 14.2606s
+  Serial avg request time (all requests in batch): 2.239655s
+  Parallel avg request time (all requests in batch): 1.782569s
+  Serial throughput: 0.45 samples/s
+  Parallel throughput: 0.56 samples/s
+  Serial model1 actual time: 4.5225s
+  Parallel model1 actual time: 3.5647s
+  Serial model2 actual time: 4.4362s
+  Parallel model2 actual time: 3.4150s
+  Serial GPU util: 42.08%
+  Parallel GPU util: 46.50%
+  Serial memory util: 25.05%
+  Parallel memory util: 30.91%
+  Serial memory used: 29317.90 MB
+  Parallel memory used: 29434.92 MB
+
+Summary Table for All Batch Sizes:
+Batch Size | Serial Total Time (s) | Parallel Total Time (s) | Serial Avg Req Time (s) | Parallel Avg Req Time (s) | Serial Throughput (samples/s) | Parallel Throughput (samples/s) | Serial Model1 Time (s) | Parallel Model1 Time (s) | Serial Model2 Time (s) | Parallel Model2 Time (s) | Serial GPU Util (%) | Parallel GPU Util (%) | Serial Mem Util (%) | Parallel Mem Util (%) | Serial Mem Used (MB) | Parallel Mem Used (MB)
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+1          | 19.0414               | 14.0530                 | 4.760359                | 3.513250                  | 0.21                          | 0.28                            | 5.2001                 | 7.0233                   | 4.3206                 | 6.4778                   | 37.55               | 45.49                 | 23.23               | 31.03                 | 29128.79             | 29258.64              
+2          | 17.9172               | 14.2606                 | 2.239655                | 1.782569                  | 0.45                          | 0.56                            | 4.5225                 | 3.5647                   | 4.4362                 | 3.4150                   | 42.08               | 46.50                 | 25.05               | 30.91                 | 29317.90             | 29434.92              
+
+Summary table saved as CSV to: example/hf_two_models_dual_stream.csv
+Loading models...
+
+========================================
+Testing with batch size: 64
+========================================
+Batch size 64 results:
+  Serial total time: 21.8942s
+  Parallel total time: 17.9287s
+  Serial avg request time (all requests in batch): 0.085524s
+  Parallel avg request time (all requests in batch): 0.070034s
+  Serial throughput: 11.69 samples/s
+  Parallel throughput: 14.28 samples/s
+  Serial model1 actual time: 5.5838s
+  Parallel model1 actual time: 0.1873s
+  Serial model2 actual time: 5.3633s
+  Parallel model2 actual time: 0.1892s
+  Serial GPU util: 53.16%
+  Parallel GPU util: 58.10%
+  Serial memory util: 28.38%
+  Parallel memory util: 35.04%
+  Serial memory used: 29154.44 MB
+  Parallel memory used: 34709.15 MB
+
+========================================
+Testing with batch size: 128
+========================================
+Loading models...
+
+========================================
+Testing with batch size: 64
+========================================
+Batch size 64 results:
+  Serial total time: 23.9566s
+  Parallel total time: 17.7957s
+  Serial avg request time (all requests in batch): 0.093580s
+  Parallel avg request time (all requests in batch): 0.069514s
+  Serial throughput: 10.69 samples/s
+  Parallel throughput: 14.39 samples/s
+  Serial model1 actual time: 6.0974s
+  Parallel model1 actual time: 0.1880s
+  Serial model2 actual time: 5.8808s
+  Parallel model2 actual time: 0.1889s
+  Serial GPU util: 47.81%
+  Parallel GPU util: 57.99%
+  Serial memory util: 25.80%
+  Parallel memory util: 34.95%
+  Serial memory used: 29154.90 MB
+  Parallel memory used: 34759.68 MB
+
+========================================
+Testing with batch size: 128
+========================================
+Batch size 128 results:
+  Serial total time: 27.7776s
+  Parallel total time: 24.7534s
+  Serial avg request time (all requests in batch): 0.054253s
+  Parallel avg request time (all requests in batch): 0.048347s
+  Serial throughput: 18.43 samples/s
+  Parallel throughput: 20.68 samples/s
+  Serial model1 actual time: 7.0819s
+  Parallel model1 actual time: 0.1214s
+  Serial model2 actual time: 6.8069s
+  Parallel model2 actual time: 0.1238s
+  Serial GPU util: 68.93%
+  Parallel GPU util: 72.53%
+  Serial memory util: 33.57%
+  Parallel memory util: 38.09%
+  Serial memory used: 40101.60 MB
+  Parallel memory used: 54913.32 MB
+
+Summary Table for All Batch Sizes:
+Batch Size | Serial Total Time (s) | Parallel Total Time (s) | Serial Avg Req Time (s) | Parallel Avg Req Time (s) | Serial Throughput (samples/s) | Parallel Throughput (samples/s) | Serial Model1 Time (s) | Parallel Model1 Time (s) | Serial Model2 Time (s) | Parallel Model2 Time (s) | Serial GPU Util (%) | Parallel GPU Util (%) | Serial Mem Util (%) | Parallel Mem Util (%) | Serial Mem Used (MB) | Parallel Mem Used (MB)
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+64         | 23.9566               | 17.7957                 | 0.093580                | 0.069514                  | 10.69                         | 14.39                           | 6.0974                 | 0.1880                   | 5.8808                 | 0.1889                   | 47.81               | 57.99                 | 25.80               | 34.95                 | 29154.90             | 34759.68              
+128        | 27.7776               | 24.7534                 | 0.054253                | 0.048347                  | 18.43                         | 20.68                           | 7.0819                 | 0.1214                   | 6.8069                 | 0.1238                   | 68.93               | 72.53                 | 33.57               | 38.09                 | 40101.60             | 54913.32              
+
+Summary table saved as CSV to: example/hf_two_models_dual_stream.csv
+Loading models...
+
+========================================
+Testing with batch size: 1
+========================================
+Batch size 1 results:
+  Serial total time: 866.7885s
+  Parallel total time: 623.0708s
+  Serial avg request time (all requests in batch): 4.333943s
+  Parallel avg request time (all requests in batch): 3.115354s
+  Serial throughput: 0.23 samples/s
+  Parallel throughput: 0.32 samples/s
+  Serial model1 actual time: 4.3745s
+  Parallel model1 actual time: 6.2292s
+  Serial model2 actual time: 4.2934s
+  Parallel model2 actual time: 5.8646s
+  Serial GPU util: 41.62%
+  Parallel GPU util: 52.02%
+  Serial memory util: 25.69%
+  Parallel memory util: 35.61%
+  Serial memory used: 29133.87 MB
+  Parallel memory used: 30107.77 MB
+
+========================================
+Testing with batch size: 2
+========================================
+Batch size 2 results:
+  Serial total time: 905.9813s
+  Parallel total time: 635.1671s
+  Serial avg request time (all requests in batch): 2.264953s
+  Parallel avg request time (all requests in batch): 1.587918s
+  Serial throughput: 0.44 samples/s
+  Parallel throughput: 0.63 samples/s
+  Serial model1 actual time: 4.5286s
+  Parallel model1 actual time: 3.1752s
+  Serial model2 actual time: 4.5312s
+  Parallel model2 actual time: 3.0239s
+  Serial GPU util: 41.66%
+  Parallel GPU util: 53.29%
+  Serial memory util: 24.74%
+  Parallel memory util: 35.22%
+  Serial memory used: 30218.81 MB
+  Parallel memory used: 30917.63 MB
+
+========================================
+Testing with batch size: 4
+========================================
+Batch size 4 results:
+  Serial total time: 917.2820s
+  Parallel total time: 642.3813s
+  Serial avg request time (all requests in batch): 1.146602s
+  Parallel avg request time (all requests in batch): 0.802977s
+  Serial throughput: 0.87 samples/s
+  Parallel throughput: 1.25 samples/s
+  Serial model1 actual time: 4.6183s
+  Parallel model1 actual time: 1.6050s
+  Serial model2 actual time: 4.5545s
+  Parallel model2 actual time: 1.5198s
+  Serial GPU util: 42.25%
+  Parallel GPU util: 54.01%
+  Serial memory util: 24.67%
+  Parallel memory util: 35.13%
+  Serial memory used: 31011.34 MB
+  Parallel memory used: 32927.27 MB
+
+========================================
+Testing with batch size: 8
+========================================
+Batch size 8 results:
+  Serial total time: 921.9564s
+  Parallel total time: 641.4446s
+  Serial avg request time (all requests in batch): 0.576223s
+  Parallel avg request time (all requests in batch): 0.400903s
+  Serial throughput: 1.74 samples/s
+  Parallel throughput: 2.49 samples/s
+  Serial model1 actual time: 4.6727s
+  Parallel model1 actual time: 0.8563s
+  Serial model2 actual time: 4.5469s
+  Parallel model2 actual time: 0.8106s
+  Serial GPU util: 43.96%
+  Parallel GPU util: 56.68%
+  Serial memory util: 24.91%
+  Parallel memory util: 36.06%
+  Serial memory used: 33140.00 MB
+  Parallel memory used: 34101.46 MB
+
+========================================
+Testing with batch size: 16
+========================================
+Batch size 16 results:
+  Serial total time: 911.4172s
+  Parallel total time: 635.2560s
+  Serial avg request time (all requests in batch): 0.284818s
+  Parallel avg request time (all requests in batch): 0.198517s
+  Serial throughput: 3.51 samples/s
+  Parallel throughput: 5.04 samples/s
+  Serial model1 actual time: 4.6040s
+  Parallel model1 actual time: 0.5542s
+  Serial model2 actual time: 4.5102s
+  Parallel model2 actual time: 0.5286s
+  Serial GPU util: 48.09%
+  Parallel GPU util: 61.49%
+  Serial memory util: 26.43%
+  Parallel memory util: 38.41%
+  Serial memory used: 34276.00 MB
+  Parallel memory used: 41254.64 MB
+
+========================================
+Testing with batch size: 32
+========================================
+Batch size 32 results:
+  Serial total time: 932.5315s
+  Parallel total time: 648.0709s
+  Serial avg request time (all requests in batch): 0.145708s
+  Parallel avg request time (all requests in batch): 0.101261s
+  Serial throughput: 6.86 samples/s
+  Parallel throughput: 9.88 samples/s
+  Serial model1 actual time: 4.7233s
+  Parallel model1 actual time: 0.5346s
+  Serial model2 actual time: 4.6020s
+  Parallel model2 actual time: 0.5112s
+  Serial GPU util: 51.54%
+  Parallel GPU util: 66.64%
+  Serial memory util: 28.35%
+  Parallel memory util: 41.30%
+  Serial memory used: 42410.00 MB
+  Parallel memory used: 59086.14 MB
+
+========================================
+Testing with batch size: 64
+========================================
+Batch size 64 results:
+  Serial total time: 1005.9470s
+  Parallel total time: 888.5446s
+  Serial avg request time (all requests in batch): 0.078590s
+  Parallel avg request time (all requests in batch): 0.069418s
+  Serial throughput: 12.72 samples/s
+  Parallel throughput: 14.41 samples/s
+  Serial model1 actual time: 5.0560s
+  Parallel model1 actual time: 0.1852s
+  Serial model2 actual time: 5.0034s
+  Parallel model2 actual time: 0.1839s
+  Serial GPU util: 60.70%
+  Parallel GPU util: 63.15%
+  Serial memory util: 32.25%
+  Parallel memory util: 37.01%
+  Serial memory used: 60751.96 MB
+  Parallel memory used: 55787.90 MB
+
+========================================
+Testing with batch size: 128
+========================================
+Batch size 128 results:
+  Serial total time: 1293.0350s
+  Parallel total time: 1280.1946s
+  Serial avg request time (all requests in batch): 0.050509s
+  Parallel avg request time (all requests in batch): 0.050008s
+  Serial throughput: 19.80 samples/s
+  Parallel throughput: 20.00 samples/s
+  Serial model1 actual time: 6.2350s
+  Parallel model1 actual time: 0.1257s
+  Serial model2 actual time: 6.6953s
+  Parallel model2 actual time: 0.1279s
+  Serial GPU util: 77.03%
+  Parallel GPU util: 74.37%
+  Serial memory util: 36.25%
+  Parallel memory util: 38.07%
+  Serial memory used: 48046.89 MB
+  Parallel memory used: 56184.01 MB
+
+Summary Table for All Batch Sizes:
+Batch Size | Serial Total Time (s) | Parallel Total Time (s) | Serial Avg Req Time (s) | Parallel Avg Req Time (s) | Serial Throughput (samples/s) | Parallel Throughput (samples/s) | Serial Model1 Time (s) | Parallel Model1 Time (s) | Serial Model2 Time (s) | Parallel Model2 Time (s) | Serial GPU Util (%) | Parallel GPU Util (%) | Serial Mem Util (%) | Parallel Mem Util (%) | Serial Mem Used (MB) | Parallel Mem Used (MB)
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+1          | 866.7885              | 623.0708                | 4.333943                | 3.115354                  | 0.23                          | 0.32                            | 4.3745                 | 6.2292                   | 4.2934                 | 5.8646                   | 41.62               | 52.02                 | 25.69               | 35.61                 | 29133.87             | 30107.77              
+2          | 905.9813              | 635.1671                | 2.264953                | 1.587918                  | 0.44                          | 0.63                            | 4.5286                 | 3.1752                   | 4.5312                 | 3.0239                   | 41.66               | 53.29                 | 24.74               | 35.22                 | 30218.81             | 30917.63              
+4          | 917.2820              | 642.3813                | 1.146602                | 0.802977                  | 0.87                          | 1.25                            | 4.6183                 | 1.6050                   | 4.5545                 | 1.5198                   | 42.25               | 54.01                 | 24.67               | 35.13                 | 31011.34             | 32927.27              
+8          | 921.9564              | 641.4446                | 0.576223                | 0.400903                  | 1.74                          | 2.49                            | 4.6727                 | 0.8563                   | 4.5469                 | 0.8106                   | 43.96               | 56.68                 | 24.91               | 36.06                 | 33140.00             | 34101.46              
+16         | 911.4172              | 635.2560                | 0.284818                | 0.198517                  | 3.51                          | 5.04                            | 4.6040                 | 0.5542                   | 4.5102                 | 0.5286                   | 48.09               | 61.49                 | 26.43               | 38.41                 | 34276.00             | 41254.64              
+32         | 932.5315              | 648.0709                | 0.145708                | 0.101261                  | 6.86                          | 9.88                            | 4.7233                 | 0.5346                   | 4.6020                 | 0.5112                   | 51.54               | 66.64                 | 28.35               | 41.30                 | 42410.00             | 59086.14              
+64         | 1005.9470             | 888.5446                | 0.078590                | 0.069418                  | 12.72                         | 14.41                           | 5.0560                 | 0.1852                   | 5.0034                 | 0.1839                   | 60.70               | 63.15                 | 32.25               | 37.01                 | 60751.96             | 55787.90              
+128        | 1293.0350             | 1280.1946               | 0.050509                | 0.050008                  | 19.80                         | 20.00                           | 6.2350                 | 0.1257                   | 6.6953                 | 0.1279                   | 77.03               | 74.37                 | 36.25               | 38.07                 | 48046.89             | 56184.01              
+
+Summary table saved as CSV to: example/hf_two_models_dual_stream.csv

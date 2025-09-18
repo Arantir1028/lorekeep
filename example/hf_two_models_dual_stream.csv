@@ -1,0 +1,4 @@
+Batch Size,Serial Total Time (s),Parallel Total Time (s),Serial Avg Req Time (s),Parallel Avg Req Time (s),Serial Throughput (samples/s),Parallel Throughput (samples/s),Serial Model1 Time (s),Parallel Model1 Time (s),Serial Model2 Time (s),Parallel Model2 Time (s),Serial GPU Util (%),Parallel GPU Util (%),Serial Mem Util (%),Parallel Mem Util (%),Serial Mem Used (MB),Parallel Mem Used (MB)
+1,17.9014,12.3270,4.475358,3.081741,0.22,0.32,4.6403,6.1562,4.3104,5.9162,40.77,52.54,25.18,35.92,29129.94,29254.89
+2,18.1667,12.5071,2.270843,1.563391,0.44,0.64,4.5671,3.1265,4.5163,2.9485,41.41,54.26,24.62,36.02,29317.98,29434.35
+4,19.8154,13.0287,1.238464,0.814296,0.81,1.23,5.1136,1.6285,4.7941,1.5189,39.88,52.81,22.74,34.54,29522.64,29721.59
