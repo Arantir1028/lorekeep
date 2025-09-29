@@ -1,4 +1,5 @@
 '''
+# 请求同时到达，两个模型，并行执行
 python example/hf_two_models_dual_stream.py   --cuda_visible_devices 1     --max_new_tokens 32 --repeats 100 \
     --batch_size 0 --with_gpu_stats     --log_file example/hf_two_models_dual_stream.log --generate_plot
 '''

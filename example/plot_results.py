@@ -155,6 +155,6 @@ with open(csv_path, 'r') as f:
             results['parallel_mem_used'].append(float(row[16]))
 
 # Generate plot
-output_path = 'example/1-128/batch_performance_plot.png'
+output_path = 'example/1-128/batch_performance_plot.svg'
 generate_batch_size_plot(results, output_path)
 print("图表已保存为 " + output_path) 
