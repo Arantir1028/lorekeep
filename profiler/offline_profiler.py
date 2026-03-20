@@ -2,177 +2,228 @@
 
 import torch
 import torch.nn.functional as F
+from torch.nn.attention import sdpa_kernel, SDPBackend
 import json
-import itertools
 from tqdm import tqdm
 import sys
 import os
 
-# 引入配置
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import hw_config as cfg
 
-def measure_solo_time(Q, K, V, iters=50):
-    """测量极致纯净的独占执行时间 T_solo"""
-    # 预热
-    for _ in range(10): 
-        F.scaled_dot_product_attention(Q, K, V, is_causal=True)
-    torch.cuda.synchronize()
-    
-    start, end = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
-    start.record()
-    for _ in range(iters):
-        F.scaled_dot_product_attention(Q, K, V, is_causal=True)
-    end.record()
-    torch.cuda.synchronize()
-    return (start.elapsed_time(end) * 1000) / iters  # 转换为微秒 (us)
+# =====================================================================
+# 系统顶会级别基准测试常量
+# =====================================================================
+WARMUP_ITERS = 10
+ACTIVE_ITERS = 50
 
-def measure_concurrent_time(S_s, S_c, device, dtype, iters=30):
-    """测量存在物理争用的多流并发时间 T_conc (使用异步拓扑屏障，摒弃过度工程的 CUDA Graph)"""
-    Q_s = torch.randn(cfg.BATCH_SIZE, cfg.NUM_HEADS, S_s, cfg.HEAD_DIM, device=device, dtype=dtype)
-    K_s = torch.randn(cfg.BATCH_SIZE, cfg.NUM_HEADS, S_s, cfg.HEAD_DIM, device=device, dtype=dtype)
-    V_s = torch.randn(cfg.BATCH_SIZE, cfg.NUM_HEADS, S_s, cfg.HEAD_DIM, device=device, dtype=dtype)
-    
-    Q_c = torch.randn(cfg.BATCH_SIZE, cfg.NUM_HEADS, S_c, cfg.HEAD_DIM, device=device, dtype=dtype)
-    K_c = torch.randn(cfg.BATCH_SIZE, cfg.NUM_HEADS, S_c, cfg.HEAD_DIM, device=device, dtype=dtype)
-    V_c = torch.randn(cfg.BATCH_SIZE, cfg.NUM_HEADS, S_c, cfg.HEAD_DIM, device=device, dtype=dtype)
-
-    s_main = torch.cuda.current_stream()
-    s_short = torch.cuda.Stream(device=device, priority=-1)
-    s_long = torch.cuda.Stream(device=device, priority=0)
-
-    # 1. 深度预热 (确保 SDPA 后端启发式算法完全收敛，分配好所有必要的 Workspace)
-    for _ in range(5):
-        s_short.wait_stream(s_main)
-        s_long.wait_stream(s_main)
-        with torch.cuda.stream(s_short):
-            F.scaled_dot_product_attention(Q_s, K_s, V_s, is_causal=True)
-        with torch.cuda.stream(s_long):
-            F.scaled_dot_product_attention(Q_c, K_c, V_c, is_causal=True)
-        s_main.wait_stream(s_short)
-        s_main.wait_stream(s_long)
-    torch.cuda.synchronize()
-
-    # 2. 物理测量 (强制 1:1 并发对齐)
-    start, end = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
-    start.record()
-    
-    for _ in range(iters):
-        # Fork 屏障：确保本轮的长短任务同时起步
-        s_short.wait_stream(s_main)
-        s_long.wait_stream(s_main)
-        
-        with torch.cuda.stream(s_short):
-            F.scaled_dot_product_attention(Q_s, K_s, V_s, is_causal=True)
-        with torch.cuda.stream(s_long):
-            F.scaled_dot_product_attention(Q_c, K_c, V_c, is_causal=True)
-            
-        # Join 屏障：确保本轮双流计算结束，才允许主流进入下一轮 Fork。
-        # 注意：这里的 wait_stream 是异步的，不会阻塞 CPU，能将 GPU 压榨到极限。
-        s_main.wait_stream(s_short)
-        s_main.wait_stream(s_long)
-        
-    end.record()
-    torch.cuda.synchronize()
-    
-    return (start.elapsed_time(end) * 1000) / iters
-
-def measure_read_amp_sum(S_l, S_c, device, dtype, iters=30):
+def simulate_attention(Q, K, V, q_heads, kv_heads):
     """
-    【修正版】测量切分导致的历史 KV Cache 读放大总耗时。
-    采用连续时序模拟（Continuous Sequential Simulation），完美保留 L2 Cache 局部性与 Thrashing 现象。
+    动态兼容 MHA / GQA / MQA 的底层张量展开逻辑。
+    为获取最纯粹的物理访存极限，剥离 is_causal 掩码，强制硬件跑 Dense 矩阵乘。
     """
-    if S_c >= S_l:
-        return 0.0
-    
-    k = S_l // S_c
-    if S_l % S_c != 0:
-        k += 1 # 包含残差块
+    num_key_value_groups = q_heads // kv_heads
+    if num_key_value_groups > 1:
+        K_expanded = K.repeat_interleave(num_key_value_groups, dim=1)
+        V_expanded = V.repeat_interleave(num_key_value_groups, dim=1)
+        return F.scaled_dot_product_attention(Q, K_expanded, V_expanded, is_causal=False)
+    else:
+        return F.scaled_dot_product_attention(Q, K, V, is_causal=False)
+
+def flush_l2_cache(device):
+    """通过写入 80MB 的垃圾数据，强制冲刷 A100 (40MB L2) 的缓存残留"""
+    dummy = torch.empty(20 * 1024 * 1024, dtype=torch.float32, device=device)
+    dummy.zero_()
+
+class ModelProfiler:
+    def __init__(self, model_name: str, device: torch.device, dtype: torch.dtype):
+        self.model_name = model_name
+        self.params = cfg.SUPPORTED_MODELS[model_name]
+        self.device = device
+        self.dtype = dtype
+        self.paths = cfg.get_lut_paths(model_name)
         
-    # 全局 KV Cache (模拟 Base 阶段累积的 Cache)
-    K_full = torch.randn(cfg.BATCH_SIZE, cfg.NUM_HEADS, S_l, cfg.HEAD_DIM, device=device, dtype=dtype)
-    V_full = torch.randn(cfg.BATCH_SIZE, cfg.NUM_HEADS, S_l, cfg.HEAD_DIM, device=device, dtype=dtype)
-    
-    # 提前准备好每个 Chunk 的 Query，避免在测速循环内分配内存
-    q_chunks = []
-    history_lens = []
-    for i in range(1, k):
-        current_seq_len = min(S_c, S_l - i * S_c)
-        history_len = i * S_c + current_seq_len
-        q_chunks.append(torch.randn(cfg.BATCH_SIZE, cfg.NUM_HEADS, current_seq_len, cfg.HEAD_DIM, device=device, dtype=dtype))
-        history_lens.append(history_len)
+        self.q_heads = self.params["q_heads"]
+        self.kv_heads = self.params["kv_heads"]
+        self.head_dim = self.params["head_dim"]
+        self.d_model = self.params["d_model"]
 
-    s_main = torch.cuda.current_stream()
-    
-    # 1. 预热 (让 GPU 预分配好内部 Workspace)
-    for _ in range(3):
-        for i in range(k - 1):
-            F.scaled_dot_product_attention(q_chunks[i], K_full[:, :, :history_lens[i], :], V_full[:, :, :history_lens[i], :], is_causal=True)
-    torch.cuda.synchronize()
+        max_b = max(cfg.BUCKETS)
+        self.pool_Q = torch.randn(cfg.BATCH_SIZE, self.q_heads, max_b, self.head_dim, device=self.device, dtype=self.dtype)
+        self.pool_K = torch.randn(cfg.BATCH_SIZE, self.kv_heads, max_b, self.head_dim, device=self.device, dtype=self.dtype)
+        self.pool_V = torch.randn(cfg.BATCH_SIZE, self.kv_heads, max_b, self.head_dim, device=self.device, dtype=self.dtype)
+        self.pool_X = torch.randn(cfg.BATCH_SIZE, max_b, self.d_model, device=self.device, dtype=self.dtype)
+        self.pool_W_A = torch.randn(cfg.BATCH_SIZE, self.d_model, cfg.LORA_RANK, device=self.device, dtype=self.dtype)
+        self.pool_W_B = torch.randn(cfg.BATCH_SIZE, cfg.LORA_RANK, self.d_model, device=self.device, dtype=self.dtype)
+        self.pool_Out = torch.empty(cfg.BATCH_SIZE, max_b, self.d_model, device=self.device, dtype=self.dtype)
 
-    # 2. 连续物理执行测速 (核心：不要在内部 synchronize，让 Chunk 像流水线一样连续流过 L2 Cache)
-    start, end = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
-    start.record()
-    
-    for _ in range(iters):
-        for i in range(k - 1):
-            # 严格模拟真实推理时序：Chunk i 算完立刻算 Chunk i+1，L2 会自然缓存 K_full 和 V_full
-            F.scaled_dot_product_attention(q_chunks[i], K_full[:, :, :history_lens[i], :], V_full[:, :, :history_lens[i], :], is_causal=True)
+    def measure_solo_time(self, S: int) -> float:
+        Q, K, V = self.pool_Q[:, :, :S, :], self.pool_K[:, :, :S, :], self.pool_V[:, :, :S, :]
+        X_lora, Out_lora = self.pool_X[:, :S, :], self.pool_Out[:, :S, :]
+        W_A, W_B = self.pool_W_A, self.pool_W_B
+
+        with sdpa_kernel(backends=[SDPBackend.FLASH_ATTENTION]):
+            for _ in range(WARMUP_ITERS): 
+                simulate_attention(Q, K, V, self.q_heads, self.kv_heads)
+                torch.bmm(torch.bmm(X_lora, W_A), W_B, out=Out_lora)
+            torch.cuda.synchronize()
             
-    end.record()
-    torch.cuda.synchronize()
-    
-    # 减去理想状态下的纯计算时间 (因为我们要的仅仅是 "放大带来的额外惩罚")
-    total_continuous_time_us = (start.elapsed_time(end) * 1000) / iters
-    
-    # 理论上这 k-1 个 Chunk 的纯计算总时间近似等于 (S_l - S_c) 长度的 Solo 时间
-    # 这里通过提取 LUT 中的基准时间进行惩罚扣减
-    # 注意：在真实的 LUT_Generator 中，会直接用连续执行总时间与 T_solo 组合做减法。
-    # 这里探针直接返回串行执行这 k-1 个 chunk 的总微秒数。
-    return total_continuous_time_us
+            start, end = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
+            total_time_ms = 0.0
+            
+            for _ in range(ACTIVE_ITERS):
+                # 1. 物理隔离：清空缓存并等待清空动作绝对完成
+                flush_l2_cache(self.device)
+                torch.cuda.synchronize() 
+                
+                # 2. 纯粹算子测速
+                start.record()
+                simulate_attention(Q, K, V, self.q_heads, self.kv_heads)
+                torch.bmm(torch.bmm(X_lora, W_A), W_B, out=Out_lora)
+                end.record()
+                
+                # 3. 结果累加
+                torch.cuda.synchronize()
+                total_time_ms += start.elapsed_time(end)
+            
+        return (total_time_ms * 1000) / ACTIVE_ITERS
 
-def run_profiler():
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    dtype = torch.float16
-    print(f"=== Starting Wave-Slice Hardware Profiler on {torch.cuda.get_device_name(device)} ===")
-    
-    profile_data = {
-        "T_solo": {},       # {S: time}
-        "T_conc": {},       # {S_s: {S_c: time}}
-        "T_read_amp": {}    # {S_l: {S_c: time}}
-    }
+    def measure_concurrent_time(self, S_s: int, S_c: int) -> float:
+        Q_s, K_s, V_s = self.pool_Q[:, :, :S_s, :], self.pool_K[:, :, :S_s, :], self.pool_V[:, :, :S_s, :]
+        X_s, Out_s = self.pool_X[:, :S_s, :], self.pool_Out[:, :S_s, :]
+        Q_c, K_c, V_c = self.pool_Q[:, :, :S_c, :], self.pool_K[:, :, :S_c, :], self.pool_V[:, :, :S_c, :]
+        X_c, Out_c = self.pool_X[:, :S_c, :], self.pool_Out[:, :S_c, :]
+        W_A, W_B = self.pool_W_A, self.pool_W_B
 
-    # 1. 采集 T_solo
-    print("\n[1/3] Profiling T_solo (Ideal Baseline)...")
-    for b in tqdm(cfg.BUCKETS):
-        Q = torch.randn(cfg.BATCH_SIZE, cfg.NUM_HEADS, b, cfg.HEAD_DIM, device=device, dtype=dtype)
-        K = torch.randn(cfg.BATCH_SIZE, cfg.NUM_HEADS, b, cfg.HEAD_DIM, device=device, dtype=dtype)
-        V = torch.randn(cfg.BATCH_SIZE, cfg.NUM_HEADS, b, cfg.HEAD_DIM, device=device, dtype=dtype)
-        profile_data["T_solo"][b] = measure_solo_time(Q, K, V)
+        s_main = torch.cuda.current_stream()
+        s_short = torch.cuda.Stream(device=self.device, priority=-1)
+        s_long = torch.cuda.Stream(device=self.device, priority=0)
 
-    # 2. 采集 T_conc (物理争用)
-    print("\n[2/3] Profiling T_conc (Multi-Stream Contention)...")
-    for s_s in tqdm(cfg.BUCKETS):
-        profile_data["T_conc"][s_s] = {}
-        for s_c in cfg.BUCKETS:
-            # 物理限制：Chunk 必须大于等于短任务，否则切分无意义
-            if s_c >= s_s:
-                profile_data["T_conc"][s_s][s_c] = measure_concurrent_time(s_s, s_c, device, dtype)
+        with sdpa_kernel(backends=[SDPBackend.FLASH_ATTENTION]):
+            for _ in range(WARMUP_ITERS):
+                s_short.wait_stream(s_main)
+                s_long.wait_stream(s_main)
+                with torch.cuda.stream(s_short):
+                    simulate_attention(Q_s, K_s, V_s, self.q_heads, self.kv_heads)
+                    torch.bmm(torch.bmm(X_s, W_A), W_B, out=Out_s)
+                with torch.cuda.stream(s_long):
+                    simulate_attention(Q_c, K_c, V_c, self.q_heads, self.kv_heads)
+                    torch.bmm(torch.bmm(X_c, W_A), W_B, out=Out_c)
+                s_main.wait_stream(s_short)
+                s_main.wait_stream(s_long)
+            torch.cuda.synchronize()
 
-    # 3. 采集 T_read_amp (读放大惩罚)
-    print("\n[3/3] Profiling T_read_amp (KV Cache Read Amplification)...")
-    for s_l in tqdm(cfg.BUCKETS):
-        profile_data["T_read_amp"][s_l] = {}
-        for s_c in cfg.BUCKETS:
-            if s_c < s_l:
-                profile_data["T_read_amp"][s_l][s_c] = measure_read_amp_sum(s_l, s_c, device, dtype)
-            else:
-                profile_data["T_read_amp"][s_l][s_c] = 0.0
+            start = torch.cuda.Event(enable_timing=True)
+            end_short = torch.cuda.Event(enable_timing=True)
+            total_time_ms = 0.0
+            
+            for _ in range(ACTIVE_ITERS):
+                # 物理隔离
+                flush_l2_cache(self.device)
+                torch.cuda.synchronize()
+                
+                start.record(s_main) # 记录起跑线
+                
+                s_short.wait_stream(s_main)
+                s_long.wait_stream(s_main)
+                
+                with torch.cuda.stream(s_short):
+                    simulate_attention(Q_s, K_s, V_s, self.q_heads, self.kv_heads)
+                    torch.bmm(torch.bmm(X_s, W_A), W_B, out=Out_s)
+                    end_short.record(s_short) # 记录短任务独立冲线时间
+                        
+                with torch.cuda.stream(s_long):
+                    simulate_attention(Q_c, K_c, V_c, self.q_heads, self.kv_heads)
+                    torch.bmm(torch.bmm(X_c, W_A), W_B, out=Out_c)
+                    
+                s_main.wait_stream(s_short)
+                s_main.wait_stream(s_long)
+                
+                # 等待这一轮所有计算收敛，再累加短任务的时间
+                torch.cuda.synchronize()
+                total_time_ms += start.elapsed_time(end_short)
+            
+        return (total_time_ms * 1000) / ACTIVE_ITERS
 
-    # 写入 JSON
-    with open(cfg.RAW_PROFILE_PATH, "w") as f:
-        json.dump(profile_data, f, indent=4)
-    print(f"\n✅ Raw profile data saved to {cfg.RAW_PROFILE_PATH}")
+    def measure_read_amp_sum(self, S_l: int, S_c: int) -> float:
+        if S_c >= S_l: return 0.0
+        k = S_l // S_c + (1 if S_l % S_c != 0 else 0)
+        
+        K_full = self.pool_K[:, :, :S_l, :]
+        V_full = self.pool_V[:, :, :S_l, :]
+        
+        q_chunks = []
+        history_lens = []
+        for i in range(1, k):
+            curr_len = min(S_c, S_l - i * S_c)
+            history_lens.append(i * S_c + curr_len)
+            q_chunks.append(self.pool_Q[:, :, :curr_len, :])
+
+        with sdpa_kernel(backends=[SDPBackend.FLASH_ATTENTION]):
+            for _ in range(WARMUP_ITERS):
+                for i in range(k - 1):
+                    simulate_attention(q_chunks[i], K_full[:, :, :history_lens[i], :], V_full[:, :, :history_lens[i], :], self.q_heads, self.kv_heads)
+            torch.cuda.synchronize()
+
+            start, end = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
+            total_time_ms = 0.0
+            
+            for _ in range(ACTIVE_ITERS):
+                # 物理隔离
+                flush_l2_cache(self.device)
+                torch.cuda.synchronize()
+                
+                # 记录这 k-1 个 Chunk 连续执行的总时间
+                start.record()
+                for i in range(k - 1):
+                    simulate_attention(q_chunks[i], K_full[:, :, :history_lens[i], :], V_full[:, :, :history_lens[i], :], self.q_heads, self.kv_heads)
+                end.record()
+                
+                torch.cuda.synchronize()
+                total_time_ms += start.elapsed_time(end)
+            
+        return (total_time_ms * 1000) / ACTIVE_ITERS
+
+    def run(self):
+        print(f"\n{'='*70}")
+        print(f"=== Profiling {self.model_name} ({self.params['attn_type']}) on {torch.cuda.get_device_name(self.device)} ===")
+        print(f"Arch: Q_Heads={self.q_heads} | KV_Heads={self.kv_heads} | D_Model={self.d_model}")
+        print(f"{'='*70}")
+        
+        profile_data = {"T_solo": {}, "T_conc": {}, "T_read_amp": {}}
+
+        print("[1/3] 基线执行时间测定 (T_solo)...")
+        for b in tqdm(cfg.BUCKETS, desc="T_solo"):
+            profile_data["T_solo"][b] = self.measure_solo_time(b)
+
+        print("[2/3] 短任务物理争用逃逸时间测定 (T_conc_s)...")
+        for s_s in tqdm(cfg.BUCKETS, desc="T_conc"):
+            profile_data["T_conc"][s_s] = {}
+            for s_c in cfg.BUCKETS:
+                if s_c >= s_s:
+                    profile_data["T_conc"][s_s][s_c] = self.measure_concurrent_time(s_s, s_c)
+
+        print("[3/3] L2 Cache 溢出边界与读放大耗时测定 (T_read_amp)...")
+        for s_l in tqdm(cfg.BUCKETS, desc="T_read_amp"):
+            profile_data["T_read_amp"][s_l] = {}
+            for s_c in cfg.BUCKETS:
+                profile_data["T_read_amp"][s_l][s_c] = self.measure_read_amp_sum(s_l, s_c) if s_c < s_l else 0.0
+
+        with open(self.paths["raw"], "w") as f:
+            json.dump(profile_data, f, indent=4)
+        print(f"✅ [{self.model_name}] 原始物理数据已保存至: {self.paths['raw']}")
 
 if __name__ == "__main__":
-    run_profiler()
+    if not torch.cuda.is_available():
+        print("Fatal Error: 本脚本强依赖 NVIDIA GPU 环境，当前检测为 CPU。")
+        sys.exit(1)
+        
+    device = torch.device("cuda:0")
+    dtype = torch.float16
+    torch.cuda.empty_cache()
+    
+    for model_name in cfg.SUPPORTED_MODELS.keys():
+        profiler = ModelProfiler(model_name, device, dtype)
+        profiler.run()
+        
+    print("\n🎉 所有模型架构的物理底座采集完毕！")
