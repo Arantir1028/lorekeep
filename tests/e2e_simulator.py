@@ -33,18 +33,13 @@ class Simulator:
         self.short_queue = deque()
         self.long_queue = deque()
         self.completed_requests = []
-        self.sum_inv_tsolo = 0.0
 
     def add_to_queue(self, req: Request):
         if req.is_short: self.short_queue.append(req)
         else: self.long_queue.append(req)
-        self.sum_inv_tsolo += 1.0 / max(1.0, req.t_solo)
 
     def pop_from_queue(self, is_short: bool) -> Request:
-        req = self.short_queue.popleft() if is_short else self.long_queue.popleft()
-        self.sum_inv_tsolo -= 1.0 / max(1.0, req.t_solo)
-        if self.sum_inv_tsolo < 1e-9: self.sum_inv_tsolo = 0.0
-        return req
+        return self.short_queue.popleft() if is_short else self.long_queue.popleft()
 
     def _get_static_penalty(self, seq_len: int) -> float:
         """获取 SOTA 静态切分带来的不可避免的物理惩罚"""
@@ -89,7 +84,20 @@ class Simulator:
                     self.current_time += (req_l.t_solo + t_penalty)
 
                 elif self.mode == "wave-slice":
-                    S_c = self.scheduler.schedule(req_s.seq_len, req_l.seq_len, req_s.t_solo, req_l.t_solo, self.sum_inv_tsolo)
+                    # 计算短任务当前承受的饥饿等待时间
+                    t_wait_s = self.current_time - req_s.arrival_time
+                    
+                    # 动态估算瞬时系统拥塞度 rho
+                    # 根据排队论 M/M/1 稳态分布推导：N = rho / (1 - rho) => rho = N / (N + 1)
+                    num_pending = len(self.short_queue) + len(self.long_queue)
+                    rho_est = num_pending / (num_pending + 1.0)
+                    
+                    S_c = self.scheduler.schedule(
+                        req_s.seq_len, req_l.seq_len, 
+                        req_s.t_solo, req_l.t_solo, 
+                        t_wait_s, rho_est
+                    )
+                    
                     if S_c == req_l.seq_len: # 动态熔断，回归 Baseline
                         exec_time = req_l.t_solo
                         req_s.finish_time = req_l.finish_time = self.current_time + exec_time
@@ -125,7 +133,7 @@ def run_evaluation_for_model(model_name: str):
         print(f"⚠️ 跳过 {model_name}: 缺少底层探针数据。")
         return
 
-    scheduler = WaveScheduler(model_name)
+    scheduler = WaveScheduler(model_name, gamma=2.0)
     t_solo_long = t_solo_real[2048]
     max_lambda = 1.0 / t_solo_long 
     
