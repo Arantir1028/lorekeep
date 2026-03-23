@@ -3,23 +3,20 @@ import time
 from vllm.engine.arg_utils import EngineArgs
 from vllm.engine.llm_engine import LLMEngine
 from vllm.sampling_params import SamplingParams
-
 from engine.vllm_hijacker import inject_wave_slice
 
 def main():
-    # 1. 分离完整的 HuggingFace 路径与 Wave-Slice 内部标识名
     hf_model_path = "mistralai/Mistral-7B-v0.1"
-    wave_model_name = hf_model_path.split("/")[-1]  # 提取出 "Mistral-7B-v0.1"
+    wave_model_name = hf_model_path.split("/")[-1] 
     
-    # 2. 在引擎启动前，传入纯净的模型名称以加载对应的 LUT 表
     inject_wave_slice(wave_model_name)
     
-    # 3. 正常初始化 vLLM 时，仍需使用完整的 HF 路径以下载/加载权重
     engine_args = EngineArgs(
         model=hf_model_path, 
         enable_lora=False,
         max_lora_rank=64,
-        max_num_batched_tokens=8192,
+        # 故意调小系统静态总预算，逼迫长任务必须多步执行
+        max_num_batched_tokens=2048, 
         enable_chunked_prefill=True, 
         disable_sliding_window=True,
         enforce_eager=True  
@@ -28,8 +25,8 @@ def main():
 
     metrics = {}
     
-    # 3. 构造 3000 Token 真实超长负载
-    prompt_long = "The quick brown fox jumps over the lazy dog. " * 300
+    # 构造约 5000 Token 的长序列
+    prompt_long = "The quick brown fox jumps over the lazy dog. " * 1500
     sampling_params_long = SamplingParams(max_tokens=1) 
     
     print("\n[+] 注入长序列背景任务 (Titan)")
@@ -42,22 +39,22 @@ def main():
     
     while engine.has_unfinished_requests():
         step_counter += 1
+        print(f"\n[Tick {step_counter}] 步进执行...")
         
-        # 4. 在步进过程中，模拟并发异构任务到达
-        if step_counter == 2 or step_counter == 5:
+        # 在第 1 帧和第 3 帧时，强行向拥挤的 GPU 注入短任务
+        if step_counter == 1 or step_counter == 3:
             short_task_id += 1
             req_id = f"Short_Ninja_{short_task_id}"
             prompt_short = "Summarize the key points: " * 5
             sampling_params_short = SamplingParams(max_tokens=1)
             
-            print(f" [+] 突发短任务: {req_id} (Tick {step_counter})")
+            print(f" [+] 突发短任务: {req_id} 抵达队列!")
             engine.add_request(req_id, prompt_short, sampling_params_short)
             metrics[req_id] = {"arrival": time.perf_counter(), "ttft": None}
         
-        # 触发物理层下发
         request_outputs = engine.step()
-        
         current_time = time.perf_counter()
+        
         for output in request_outputs:
             if output.finished:
                 req_id = output.request_id
