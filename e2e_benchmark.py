@@ -96,7 +96,7 @@ def run_simulation(engine: LLMEngine, short_arrival_rate: float, mode_name: str,
 if __name__ == "__main__":
     hf_model_path = "mistralai/Mistral-7B-v0.1"
     
-    USE_WAVE_SLICE = False # <--- 先用 True 跑，然后改 False 重开终端跑
+    USE_WAVE_SLICE = True # <--- 先用 True 跑，然后改 False 重开终端跑
     
     if USE_WAVE_SLICE:
         wave_model_name = hf_model_path.split("/")[-1]

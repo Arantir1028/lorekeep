@@ -3,9 +3,31 @@
 import json
 import sys
 import os
+import math
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import hw_config as cfg
+
+BASE_LAUNCH_US = 5.0 # 单次底层 CUDA Graph/Kernel Launch 基础物理开销
+
+def _calculate_dynamic_penalty(S_l: int, S_c: int, raw_contention: float, raw_read_amp: float) -> float:
+    """
+    计算消除固定常数的动态系统惩罚。
+    包含：底层总线争用 + L2 Cache 读放大 + 动态算子发射开销
+    """
+    if S_c >= S_l:
+        return 0.0
+        
+    # 物理事实：长任务被切得越碎，需要下发算子的次数就越多
+    num_chunks = math.ceil(S_l / S_c)
+    
+    # 动态发射开销 = 基础发射耗时 * 额外产生的算子块数
+    dynamic_launch_overhead = BASE_LAUNCH_US * (num_chunks - 1)
+    
+    # 总物理惩罚
+    total_penalty = raw_contention + raw_read_amp + dynamic_launch_overhead
+    
+    return total_penalty
 
 def generate_lut_for_model(model_name: str):
     paths = cfg.get_lut_paths(model_name)
@@ -23,7 +45,6 @@ def generate_lut_for_model(model_name: str):
 
     LUT_Gain = {}
     LUT_Penalty = {}
-    C_LAUNCH_US = 5.0 
 
     for s_s in cfg.BUCKETS:
         LUT_Gain[s_s] = {}
@@ -37,12 +58,12 @@ def generate_lut_for_model(model_name: str):
             if s_c >= s_l:
                 LUT_Penalty[s_l][s_c] = 0.0
             else:
-                k = s_l // s_c + (1 if s_l % s_c != 0 else 0)
                 # 争用开销：保守假设短任务 S_s 最大为 S_c
                 c_contention = max(0, T_conc[s_c][s_c] - T_solo[s_c]) if s_c in T_conc[s_c] else 0
                 c_read_amp = T_read_amp[s_l][s_c]
-                c_launch = (k - 1) * C_LAUNCH_US
-                LUT_Penalty[s_l][s_c] = c_contention + c_read_amp + c_launch
+                
+                # 接入学术严谨的动态惩罚函数
+                LUT_Penalty[s_l][s_c] = _calculate_dynamic_penalty(s_l, s_c, c_contention, c_read_amp)
 
     with open(paths["gain"], "w") as f:
         json.dump(LUT_Gain, f, indent=4)
