@@ -635,6 +635,7 @@ def _compute_budget(
     queue_len: int,
     policy: WaveSlicePolicy,
     original_budget: Any,
+    baseline_chunk: Optional[int] = None,
 ) -> Optional[int]:
     _ = long_len
     if not isinstance(original_budget, int) or original_budget <= 0:
@@ -648,6 +649,16 @@ def _compute_budget(
         + int(max(0, policy.phase1_budget_bonus_tokens)),
     )
     candidate = max(best_chunk, candidate)
+    if baseline_chunk is not None and int(baseline_chunk) > 0:
+        baseline_chunk = max(1, int(baseline_chunk))
+        baseline_ceiling = max(
+            best_chunk,
+            baseline_chunk
+            + short_len * policy.short_escape_multiplier
+            + int(max(0, queue_len)) * int(max(0, policy.phase1_budget_queue_bonus))
+            + int(max(0, policy.phase1_budget_bonus_tokens)),
+        )
+        candidate = min(candidate, baseline_ceiling)
     candidate = min(candidate, policy.max_budget_cap)
     return max(1, candidate)
 
@@ -2013,6 +2024,7 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                     queue_len,
                     state.policy,
                     original_budget,
+                    baseline_chunk=baseline_chunk,
                 )
                 if new_budget is not None:
                     scheduler_cfg.max_num_batched_tokens = new_budget

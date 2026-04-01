@@ -69,8 +69,9 @@ def generate_lut_for_model(model_name: str):
                 continue
             col = _nearest_ge_or_max(cols, s_c) if cols else s_c
             t_conc_s = float(row_conc.get(col, 0.0))
-            # 收益定义修正: Gain = T_solo(short) - T_conc(short, chunked-long)
-            LUT_Gain[s_s][s_c] = max(0.0, t_solo_s - t_conc_s)
+            # 这里必须存储原始的并发耗时 T_conc(short, chunked-long)。
+            # 真正的 utility 依赖运行时长任务长度 S_l，必须留到调度器里动态计算。
+            LUT_Gain[s_s][s_c] = t_conc_s
 
     for s_l in cfg.BUCKETS:
         LUT_Penalty[s_l] = {}

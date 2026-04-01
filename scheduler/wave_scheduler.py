@@ -97,40 +97,6 @@ class WaveScheduler:
                     "Please run offline profiler first."
                 ) from legacy_exc
 
-        # Backward compatibility:
-        # older LUT_Gain files stored T_conc(short, chunk) instead of gain.
-        if self._lut_gain_is_raw_conc_time():
-            self._convert_lut_gain_from_conc_to_gain()
-
-    def _lut_gain_is_raw_conc_time(self) -> bool:
-        try:
-            hits = 0
-            total = 0
-            for s_s, cols in self.lut_gain.items():
-                if not cols:
-                    continue
-                total += 1
-                diag = cols.get(s_s)
-                t_solo = self.t_solo_dict.get(s_s)
-                if diag is None or t_solo is None:
-                    continue
-                # Gain should be <= T_solo by construction.
-                if float(diag) > float(t_solo) * 1.01:
-                    hits += 1
-            return total > 0 and hits > 0
-        except Exception:
-            return False
-
-    def _convert_lut_gain_from_conc_to_gain(self) -> None:
-        converted: dict[int, dict[int, float]] = {}
-        for s_s, cols in self.lut_gain.items():
-            t_solo = float(self.t_solo_dict.get(s_s, 0.0))
-            new_cols: dict[int, float] = {}
-            for s_c, val in cols.items():
-                new_cols[int(s_c)] = max(0.0, t_solo - float(val))
-            converted[int(s_s)] = new_cols
-        self.lut_gain = converted
-
     def _conservative_map_up(self, seq_len: int) -> int:
         for b in self.buckets:
             if b >= seq_len:
@@ -181,14 +147,10 @@ class WaveScheduler:
         t_solo_s: float,
         t_solo_l: float,
     ) -> tuple[float, float]:
-        gain_s = self._lookup_2d(self.lut_gain, short_bucket, chunk_bucket)
+        _ = t_solo_s
+        t_conc_s = self._lookup_2d(self.lut_gain, short_bucket, chunk_bucket)
         t_penalty = self._lookup_2d(self.lut_penalty, long_bucket, chunk_bucket)
-
-        if self.objective_mode == "pure_gain":
-            utility = max(0.0, gain_s)
-        else:
-            t_conc_proxy = max(0.0, t_solo_s - max(0.0, gain_s))
-            utility = max(0.0, t_solo_l - t_conc_proxy)
+        utility = max(0.0, t_solo_l - t_conc_s)
         return utility, t_penalty
 
     def schedule_real(
@@ -215,7 +177,7 @@ class WaveScheduler:
             return S_l
         w_fairness = self.fairness_engine.compute_weight(t_wait_us, t_solo_s)
 
-        best_S_c = S_l
+        best_S_c = int(baseline_chunk) if baseline_chunk is not None else S_l
         max_net_benefit = 0.0
 
         baseline_bucket: Optional[int] = None
@@ -227,6 +189,8 @@ class WaveScheduler:
                 baseline_bucket = self._conservative_map_up(baseline_chunk)
                 if baseline_bucket >= b_l:
                     baseline_bucket = None
+            else:
+                best_S_c = S_l
         if baseline_bucket is not None:
             ref_utility, ref_penalty = self._chunk_utility(
                 short_bucket=b_s,
@@ -250,14 +214,15 @@ class WaveScheduler:
             )
 
             if baseline_bucket is not None:
-                utility = max(0.0, utility - ref_utility)
-                t_penalty = max(0.0, t_penalty - ref_penalty)
-            
-            # 3. 拥塞惩罚放大
-            cost_global = t_penalty * (1.0 + self.gamma * rho)
-            
-            # 4. 目标函数决断
-            net_benefit = w_fairness * utility - cost_global
+                delta_u = utility - ref_utility
+                delta_p = t_penalty - ref_penalty
+                cost_global = delta_p * (1.0 + self.gamma * rho)
+                net_benefit = w_fairness * delta_u - cost_global
+            else:
+                # 3. 拥塞惩罚放大
+                cost_global = t_penalty * (1.0 + self.gamma * rho)
+                # 4. 目标函数决断
+                net_benefit = w_fairness * utility - cost_global
 
             if net_benefit > max_net_benefit:
                 max_net_benefit = net_benefit
