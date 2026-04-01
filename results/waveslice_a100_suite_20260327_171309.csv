@@ -1,0 +1,30 @@
+model,lut_name,status,error,traceback
+tiiuae/falcon-7b-instruct,Falcon-7B,failed,"Model FalconForCausalLM does not support LoRA, but LoRA is enabled. Support for this model may be added in the future. If this is important to you, please open an issue on github.","Traceback (most recent call last):
+  File ""/home/onceas/Arantir/lorekeep/experiments/waveslice_a100_suite.py"", line 423, in main
+    row = _run_model(
+  File ""/home/onceas/Arantir/lorekeep/experiments/waveslice_a100_suite.py"", line 304, in _run_model
+    base_res = _run_mode(
+  File ""/home/onceas/Arantir/lorekeep/experiments/waveslice_a100_suite.py"", line 183, in _run_mode
+    engine = LLMEngine.from_engine_args(engine_args)
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/engine/llm_engine.py"", line 359, in from_engine_args
+    engine = cls(
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/engine/llm_engine.py"", line 222, in __init__
+    self.model_executor = executor_class(
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/executor/executor_base.py"", line 41, in __init__
+    self._init_executor()
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/executor/gpu_executor.py"", line 24, in _init_executor
+    self.driver_worker.load_model()
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/worker/worker.py"", line 121, in load_model
+    self.model_runner.load_model()
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/worker/model_runner.py"", line 134, in load_model
+    self.model = get_model(
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/model_executor/model_loader/__init__.py"", line 21, in get_model
+    return loader.load_model(model_config=model_config,
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/model_executor/model_loader/loader.py"", line 240, in load_model
+    model = _initialize_model(model_config, self.load_config,
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/model_executor/model_loader/loader.py"", line 94, in _initialize_model
+    **_get_model_initialization_kwargs(
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/model_executor/model_loader/loader.py"", line 68, in _get_model_initialization_kwargs
+    raise ValueError(
+ValueError: Model FalconForCausalLM does not support LoRA, but LoRA is enabled. Support for this model may be added in the future. If this is important to you, please open an issue on github.
+"

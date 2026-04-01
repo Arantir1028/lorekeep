@@ -1,0 +1,319 @@
+{
+  "config": {
+    "model_name": "Mistral-7B-v0.1",
+    "model_path": "/home/onceas/.cache/huggingface/hub/models--mistralai--Mistral-7B-v0.1/snapshots/27d67f1b5f57dc0953326b2601d68371d40ea8da",
+    "max_new_tokens": 128,
+    "timeout_sec": 300,
+    "warmup_iters": 2,
+    "repeats": 8,
+    "short_repeat": 16,
+    "long_repeat": 320,
+    "include_strict": false,
+    "adapter_a": "/tmp/waveslice_synthetic_adapters/mistral-7b-v0.1/adapter_rank8_seed7",
+    "adapter_b": "/tmp/waveslice_synthetic_adapters/mistral-7b-v0.1/adapter_rank16_seed11"
+  },
+  "token_lengths": {
+    "short_a": 353,
+    "short_b": 801,
+    "long_b": 3788
+  },
+  "phase1": {
+    "ttft_improve_ratio": {
+      "count": 8.0,
+      "mean": 0.6241201667593056,
+      "p50": 0.6254895241141929,
+      "p95": 0.6304717723335311,
+      "p99": 0.6307468487024734,
+      "min": 0.6068347816569122,
+      "max": 0.6308156177947091
+    },
+    "error_rate": {
+      "count": 8.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "scheduler_apply_ratio": {
+      "count": 8.0,
+      "mean": 0.007751937984496124,
+      "p50": 0.007751937984496124,
+      "p95": 0.007751937984496124,
+      "p99": 0.007751937984496124,
+      "min": 0.007751937984496124,
+      "max": 0.007751937984496124
+    }
+  },
+  "phase2": {
+    "ttft_improve_ratio": {
+      "count": 8.0,
+      "mean": 1.0054120685780794,
+      "p50": 1.0058309606517626,
+      "p95": 1.016441607207995,
+      "p99": 1.0177829297254972,
+      "min": 0.9885423651212366,
+      "max": 1.0181182603548729
+    },
+    "slowdown_improve_ratio": {
+      "count": 8.0,
+      "mean": 1.0036998780467072,
+      "p50": 1.0045891572929082,
+      "p95": 1.0138205615896454,
+      "p99": 1.0141311661941854,
+      "min": 0.9863497356191586,
+      "max": 1.0142088173453205
+    },
+    "wave_error_rate": {
+      "count": 8.0,
+      "mean": 0.6666666666666669,
+      "p50": 0.6666666666666667,
+      "p95": 0.6666666666666667,
+      "p99": 0.6666666666666667,
+      "min": 0.6666666666666667,
+      "max": 0.6666666666666667
+    },
+    "baseline_noise_error_rate": {
+      "count": 8.0,
+      "mean": 0.6666666666666669,
+      "p50": 0.6666666666666667,
+      "p95": 0.6666666666666667,
+      "p99": 0.6666666666666667,
+      "min": 0.6666666666666667,
+      "max": 0.6666666666666667
+    },
+    "incremental_error_rate": {
+      "count": 8.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "phase2_apply_ratio": {
+      "count": 8.0,
+      "mean": 0.4903474903474904,
+      "p50": 0.49034749034749037,
+      "p95": 0.49034749034749037,
+      "p99": 0.49034749034749037,
+      "min": 0.49034749034749037,
+      "max": 0.49034749034749037
+    }
+  },
+  "per_repeat": {
+    "phase1": [
+      {
+        "base_ttft_short_p99_ms": 175.44153705239296,
+        "wave_ttft_short_p99_ms": 289.1092309728265,
+        "ttft_improve_ratio": 0.6068347816569122,
+        "text_match_rate": 1.0,
+        "error_rate": 0.0,
+        "scheduler_apply_ratio": 0.007751937984496124,
+        "scheduler_applied": 1,
+        "scheduler_attempts": 129
+      },
+      {
+        "base_ttft_short_p99_ms": 179.36178809031844,
+        "wave_ttft_short_p99_ms": 284.3331443145871,
+        "ttft_improve_ratio": 0.6308156177947091,
+        "text_match_rate": 1.0,
+        "error_rate": 0.0,
+        "scheduler_apply_ratio": 0.007751937984496124,
+        "scheduler_applied": 1,
+        "scheduler_attempts": 129
+      },
+      {
+        "base_ttft_short_p99_ms": 177.82074492424726,
+        "wave_ttft_short_p99_ms": 283.8881560601294,
+        "ttft_improve_ratio": 0.6263760608828769,
+        "text_match_rate": 1.0,
+        "error_rate": 0.0,
+        "scheduler_apply_ratio": 0.007751937984496124,
+        "scheduler_applied": 1,
+        "scheduler_attempts": 129
+      },
+      {
+        "base_ttft_short_p99_ms": 178.54752810671926,
+        "wave_ttft_short_p99_ms": 284.04440404847264,
+        "ttft_improve_ratio": 0.6285901977363012,
+        "text_match_rate": 1.0,
+        "error_rate": 0.0,
+        "scheduler_apply_ratio": 0.007751937984496124,
+        "scheduler_applied": 1,
+        "scheduler_attempts": 129
+      },
+      {
+        "base_ttft_short_p99_ms": 176.4296218752861,
+        "wave_ttft_short_p99_ms": 283.91790203750134,
+        "ttft_improve_ratio": 0.6214106986884623,
+        "text_match_rate": 1.0,
+        "error_rate": 0.0,
+        "scheduler_apply_ratio": 0.007751937984496124,
+        "scheduler_applied": 1,
+        "scheduler_attempts": 129
+      },
+      {
+        "base_ttft_short_p99_ms": 177.0531223155558,
+        "wave_ttft_short_p99_ms": 281.11112862825394,
+        "ttft_improve_ratio": 0.6298332021913434,
+        "text_match_rate": 1.0,
+        "error_rate": 0.0,
+        "scheduler_apply_ratio": 0.007751937984496124,
+        "scheduler_applied": 1,
+        "scheduler_attempts": 129
+      },
+      {
+        "base_ttft_short_p99_ms": 178.1352716498077,
+        "wave_ttft_short_p99_ms": 285.1975979283452,
+        "ttft_improve_ratio": 0.6246029873455088,
+        "text_match_rate": 1.0,
+        "error_rate": 0.0,
+        "scheduler_apply_ratio": 0.007751937984496124,
+        "scheduler_applied": 1,
+        "scheduler_attempts": 129
+      },
+      {
+        "base_ttft_short_p99_ms": 177.51168506219983,
+        "wave_ttft_short_p99_ms": 284.2470998875797,
+        "ttft_improve_ratio": 0.6244977877783312,
+        "text_match_rate": 1.0,
+        "error_rate": 0.0,
+        "scheduler_apply_ratio": 0.007751937984496124,
+        "scheduler_applied": 1,
+        "scheduler_attempts": 129
+      }
+    ],
+    "phase2": [
+      {
+        "base_ttft_short_p99_ms": 9671.919518322684,
+        "wave_ttft_short_p99_ms": 9666.581502188928,
+        "ttft_improve_ratio": 1.0005522134306266,
+        "base_slowdown_short_p99": 5094.896873823995,
+        "wave_slowdown_short_p99": 5124.5381411034605,
+        "slowdown_improve_ratio": 0.9942158168281126,
+        "baseline_noise_match_rate": 0.3333333333333333,
+        "baseline_noise_error_rate": 0.6666666666666667,
+        "wave_match_rate": 0.3333333333333333,
+        "wave_error_rate": 0.6666666666666667,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.49034749034749037,
+        "phase2_applied": 127,
+        "phase2_attempts": 259
+      },
+      {
+        "base_ttft_short_p99_ms": 9697.257254011929,
+        "wave_ttft_short_p99_ms": 9635.438323356211,
+        "ttft_improve_ratio": 1.0064157881127078,
+        "base_slowdown_short_p99": 5124.9607313356855,
+        "wave_slowdown_short_p99": 5104.016137017365,
+        "slowdown_improve_ratio": 1.0041035517435806,
+        "baseline_noise_match_rate": 0.3333333333333333,
+        "baseline_noise_error_rate": 0.6666666666666667,
+        "wave_match_rate": 0.3333333333333333,
+        "wave_error_rate": 0.6666666666666667,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.49034749034749037,
+        "phase2_applied": 127,
+        "phase2_attempts": 259
+      },
+      {
+        "base_ttft_short_p99_ms": 9650.029855472967,
+        "wave_ttft_short_p99_ms": 9523.107565408573,
+        "ttft_improve_ratio": 1.0133278227923648,
+        "base_slowdown_short_p99": 5090.436851562793,
+        "wave_slowdown_short_p99": 5024.616807389317,
+        "slowdown_improve_ratio": 1.0130995151862485,
+        "baseline_noise_match_rate": 0.3333333333333333,
+        "baseline_noise_error_rate": 0.6666666666666667,
+        "wave_match_rate": 0.3333333333333333,
+        "wave_error_rate": 0.6666666666666667,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.49034749034749037,
+        "phase2_applied": 127,
+        "phase2_attempts": 259
+      },
+      {
+        "base_ttft_short_p99_ms": 9696.406558076851,
+        "wave_ttft_short_p99_ms": 9645.803388766944,
+        "ttft_improve_ratio": 1.0052461331908171,
+        "base_slowdown_short_p99": 5134.833581416229,
+        "wave_slowdown_short_p99": 5108.907089553728,
+        "slowdown_improve_ratio": 1.0050747628422356,
+        "baseline_noise_match_rate": 0.3333333333333333,
+        "baseline_noise_error_rate": 0.6666666666666667,
+        "wave_match_rate": 0.3333333333333333,
+        "wave_error_rate": 0.6666666666666667,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.49034749034749037,
+        "phase2_applied": 127,
+        "phase2_attempts": 259
+      },
+      {
+        "base_ttft_short_p99_ms": 9677.944617900066,
+        "wave_ttft_short_p99_ms": 9505.71755242534,
+        "ttft_improve_ratio": 1.0181182603548729,
+        "base_slowdown_short_p99": 5099.27539227523,
+        "wave_slowdown_short_p99": 5027.835791866336,
+        "slowdown_improve_ratio": 1.0142088173453205,
+        "baseline_noise_match_rate": 0.3333333333333333,
+        "baseline_noise_error_rate": 0.6666666666666667,
+        "wave_match_rate": 0.3333333333333333,
+        "wave_error_rate": 0.6666666666666667,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.49034749034749037,
+        "phase2_applied": 127,
+        "phase2_attempts": 259
+      },
+      {
+        "base_ttft_short_p99_ms": 9662.647529169917,
+        "wave_ttft_short_p99_ms": 9667.904590242542,
+        "ttft_improve_ratio": 0.9994562357309638,
+        "base_slowdown_short_p99": 5116.935629488471,
+        "wave_slowdown_short_p99": 5109.815014402799,
+        "slowdown_improve_ratio": 1.0013935171949673,
+        "baseline_noise_match_rate": 0.3333333333333333,
+        "baseline_noise_error_rate": 0.6666666666666667,
+        "wave_match_rate": 0.3333333333333333,
+        "wave_error_rate": 0.6666666666666667,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.49034749034749037,
+        "phase2_applied": 127,
+        "phase2_attempts": 259
+      },
+      {
+        "base_ttft_short_p99_ms": 9679.381234822795,
+        "wave_ttft_short_p99_ms": 9568.031073599122,
+        "ttft_improve_ratio": 1.011637729891045,
+        "base_slowdown_short_p99": 5116.892053356043,
+        "wave_slowdown_short_p99": 5060.451283525045,
+        "slowdown_improve_ratio": 1.011153307614036,
+        "baseline_noise_match_rate": 0.3333333333333333,
+        "baseline_noise_error_rate": 0.6666666666666667,
+        "wave_match_rate": 0.3333333333333333,
+        "wave_error_rate": 0.6666666666666667,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.49034749034749037,
+        "phase2_applied": 127,
+        "phase2_attempts": 259
+      },
+      {
+        "base_ttft_short_p99_ms": 9572.316307076253,
+        "wave_ttft_short_p99_ms": 9683.26360590756,
+        "ttft_improve_ratio": 0.9885423651212366,
+        "base_slowdown_short_p99": 5053.287420062612,
+        "wave_slowdown_short_p99": 5123.220737612431,
+        "slowdown_improve_ratio": 0.9863497356191586,
+        "baseline_noise_match_rate": 0.3333333333333333,
+        "baseline_noise_error_rate": 0.6666666666666667,
+        "wave_match_rate": 0.3333333333333333,
+        "wave_error_rate": 0.6666666666666667,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.49034749034749037,
+        "phase2_applied": 127,
+        "phase2_attempts": 259
+      }
+    ]
+  }
+}

@@ -1,5 +1,6 @@
 # lorekeep/profiler/offline_profiler.py
 
+import argparse
 import torch
 import torch.nn.functional as F
 from torch.nn.attention import sdpa_kernel, SDPBackend
@@ -213,17 +214,61 @@ class ModelProfiler:
             json.dump(profile_data, f, indent=4)
         print(f"✅ [{self.model_name}] 原始物理数据已保存至: {self.paths['raw']}")
 
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Wave-Slice offline profiler")
+    parser.add_argument(
+        "--models",
+        default="all",
+        help="Comma-separated model keys in config/hw_config.py, or 'all'.",
+    )
+    parser.add_argument("--device", default="cuda:0")
+    parser.add_argument(
+        "--dtype",
+        choices=["fp16", "bf16"],
+        default="fp16",
+    )
+    parser.add_argument("--warmup-iters", type=int, default=WARMUP_ITERS)
+    parser.add_argument("--active-iters", type=int, default=ACTIVE_ITERS)
+    parser.add_argument(
+        "--buckets",
+        default=None,
+        help="Optional comma-separated buckets override, e.g. 32,64,128,256,512,1024,2048,4096",
+    )
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
+    args = _parse_args()
     if not torch.cuda.is_available():
         print("Fatal Error: 本脚本强依赖 NVIDIA GPU 环境，当前检测为 CPU。")
         sys.exit(1)
-        
-    device = torch.device("cuda:0")
-    dtype = torch.float16
+
+    if args.buckets:
+        cfg.BUCKETS = [int(x.strip()) for x in args.buckets.split(",") if x.strip()]
+        cfg.BUCKETS = sorted({b for b in cfg.BUCKETS if b > 0})
+        if not cfg.BUCKETS:
+            raise ValueError("Invalid --buckets")
+
+    WARMUP_ITERS = max(1, int(args.warmup_iters))
+    ACTIVE_ITERS = max(1, int(args.active_iters))
+
+    model_names = list(cfg.SUPPORTED_MODELS.keys())
+    if args.models.strip().lower() != "all":
+        chosen = [m.strip() for m in args.models.split(",") if m.strip()]
+        unknown = [m for m in chosen if m not in cfg.SUPPORTED_MODELS]
+        if unknown:
+            raise ValueError(f"Unknown models: {unknown}")
+        model_names = chosen
+
+    device = torch.device(args.device)
+    dtype = torch.float16 if args.dtype == "fp16" else torch.bfloat16
     torch.cuda.empty_cache()
-    
-    for model_name in cfg.SUPPORTED_MODELS.keys():
+
+    print(f"[Profiler] models={model_names}")
+    print(f"[Profiler] buckets={cfg.BUCKETS}")
+    print(f"[Profiler] warmup={WARMUP_ITERS} active={ACTIVE_ITERS}")
+    for model_name in model_names:
         profiler = ModelProfiler(model_name, device, dtype)
         profiler.run()
-        
-    print("\n🎉 所有模型架构的物理底座采集完毕！")
+
+    print("\n🎉 选定模型的物理底座采集完毕！")

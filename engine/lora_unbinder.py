@@ -6,6 +6,8 @@ class WaveLoRAUnbinder:
         self.d_model = d_model
         self.r = r
         self.device = device
+        if self.device.type != "cuda":
+            raise RuntimeError("WaveLoRAUnbinder requires a CUDA device.")
         
         # 预分配常驻流 (Persistent Streams)
         self.stream_short = torch.cuda.Stream(device=self.device, priority=-1) # 高优先级
@@ -69,7 +71,17 @@ if __name__ == "__main__":
     W_B_l = torch.randn(32, 4096, device=device, dtype=torch.float16)
     
     # 执行解绑与逃逸
-    Out_short, Out_long = unbinder.execute_and_escape(X_base_out, meta, W_A_s, W_B_s, W_A_l, W_B_l)
+    evt_short_done = torch.cuda.Event(enable_timing=False)
+    Out_short, Out_long = unbinder.execute_and_escape(
+        X_base_out=X_base_out,
+        S_s=meta["S_s"],
+        S_l=meta["S_c"],
+        lora_A_short=W_A_s,
+        lora_B_short=W_B_s,
+        lora_A_long=W_A_l,
+        lora_B_long=W_B_l,
+        evt_short_done=evt_short_done,
+    )
     
     print(f"=== LoRA Unbinder 物理状态 ===")
     print(f"输入 Base 聚合形状: {X_base_out.shape}")

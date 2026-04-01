@@ -1,0 +1,2 @@
+model,lut_name,model_path,adapter_dir,status
+EleutherAI/gpt-j-6b,Mistral-7B-v0.1,/home/onceas/.cache/huggingface/hub/models--EleutherAI--gpt-j-6b/snapshots/47e169305d2e8376be1d31e765533382721b2cc1,/tmp/waveslice_synthetic_adapters/gpt-j-6b,dry_run

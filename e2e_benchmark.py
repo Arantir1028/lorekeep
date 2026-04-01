@@ -2,12 +2,27 @@
 import time
 import random
 import numpy as np
+
+from engine.runtime_bootstrap import bootstrap_vllm_runtime
+
+bootstrap_vllm_runtime()
+
 from vllm.engine.arg_utils import EngineArgs
 from vllm.engine.llm_engine import LLMEngine
 from vllm.sampling_params import SamplingParams
-from engine.vllm_hijacker import inject_wave_slice
+from engine.vllm_hijacker import (
+    get_wave_slice_metrics,
+    inject_wave_slice,
+    reset_wave_slice_metrics,
+)
 
-def run_simulation(engine: LLMEngine, short_arrival_rate: float, mode_name: str, num_short_requests: int = 50):
+def run_simulation(
+    engine: LLMEngine,
+    short_arrival_rate: float,
+    mode_name: str,
+    num_short_requests: int = 50,
+    decode_tokens: int = 32,
+):
     print(f"\n{'='*70}")
     print(f"🔥 启动极限抗压测试: {mode_name} | 短任务并发率 (λ): {short_arrival_rate} Req/s")
     print(f"{'='*70}")
@@ -18,7 +33,8 @@ def run_simulation(engine: LLMEngine, short_arrival_rate: float, mode_name: str,
     for i in range(3):
         requests.append({
             "req_id": f"Long_Titan_Bg_{i}",
-            "prompt": "The capital of the world is a complex topic. " * 3000, # 约 24000 Tokens
+            # Keep long prompts below typical 4k context limit.
+            "prompt": "The capital of the world is a complex topic. " * 300,
             "is_short": False,
             "arrival_time": 0.0, 
             "injected": False
@@ -41,6 +57,7 @@ def run_simulation(engine: LLMEngine, short_arrival_rate: float, mode_name: str,
         })
 
     metrics = {}
+    reset_wave_slice_metrics()
     start_time = time.perf_counter()
     step_counter = 0
 
@@ -53,7 +70,7 @@ def run_simulation(engine: LLMEngine, short_arrival_rate: float, mode_name: str,
                 engine.add_request(
                     req["req_id"], 
                     req["prompt"], 
-                    SamplingParams(max_tokens=1, temperature=0.0)
+                    SamplingParams(max_tokens=decode_tokens, temperature=0.0)
                 )
                 req["injected"] = True
                 metrics[req["req_id"]] = {
@@ -90,6 +107,18 @@ def run_simulation(engine: LLMEngine, short_arrival_rate: float, mode_name: str,
     
     print(f"\n=== 仿真结果 ({mode_name} | λ={short_arrival_rate}) ===")
     print(f"短任务 P99 TTFT: {p99_short:.2f} ms (Mean: {mean_short:.2f} ms)")
+
+    wave_report = get_wave_slice_metrics(reset=True)
+    if wave_report:
+        ttft_short_p99 = wave_report.get("ttft_ms_short", {}).get("p99")
+        slowdown_short_p99 = wave_report.get("slowdown_short", {}).get("p99")
+        phase2_ratio = wave_report.get("phase2", {}).get("apply_ratio")
+        print(
+            "Wave-Hook Metrics | "
+            f"TTFT-P99(short)={ttft_short_p99} ms, "
+            f"Slowdown-P99(short)={slowdown_short_p99}, "
+            f"PhaseII-ApplyRatio={phase2_ratio}"
+        )
     
     return p99_short
 
@@ -124,8 +153,9 @@ if __name__ == "__main__":
     load_levels = [5.0, 10.0, 20.0, 30.0] 
     
     results = {}
+    decode_tokens = 32
     for rate in load_levels:
-        p99 = run_simulation(engine, rate, mode_name, num_short_requests=40)
+        p99 = run_simulation(engine, rate, mode_name, num_short_requests=40, decode_tokens=decode_tokens)
         results[rate] = p99
         
     print(f"\n📊 最终汇总帕累托数据 (模式: {mode_name})")

@@ -1,0 +1,244 @@
+{
+  "config": {
+    "model_name": "Mistral-7B-v0.1",
+    "model_path": "/home/onceas/.cache/huggingface/hub/models--mistralai--Mistral-7B-v0.1/snapshots/27d67f1b5f57dc0953326b2601d68371d40ea8da",
+    "max_new_tokens": 32,
+    "timeout_sec": 240,
+    "warmup_iters": 2,
+    "repeats": 3,
+    "short_repeat": 10,
+    "long_repeat": 90,
+    "max_model_len": 2304,
+    "max_num_batched_tokens": 1024,
+    "gpu_memory_utilization": 0.88,
+    "include_strict": false,
+    "phase2_dispatch_mode": "synchronized",
+    "adapter_a": "/tmp/waveslice_synthetic_adapters/mistral-7b-v0.1/adapter_rank8_seed7",
+    "adapter_b": "/tmp/waveslice_synthetic_adapters/mistral-7b-v0.1/adapter_rank16_seed11"
+  },
+  "token_lengths": {
+    "short_a": 221,
+    "short_b": 501,
+    "long_b": 1628
+  },
+  "phase1": {
+    "ttft_improve_ratio": {
+      "count": 3.0,
+      "mean": 0.5614472557129973,
+      "p50": 0.5621691287479788,
+      "p95": 0.5660943670176023,
+      "p99": 0.5664432770860133,
+      "min": 0.5556421337878968,
+      "max": 0.566530504603116
+    },
+    "round_wall_improve_ratio": {
+      "count": 3.0,
+      "mean": 0.9584089184544723,
+      "p50": 0.9603913412984886,
+      "p95": 0.9627969737047645,
+      "p99": 0.9630108076964334,
+      "min": 0.9517711478705774,
+      "max": 0.9630642661943507
+    },
+    "error_rate": {
+      "count": 3.0,
+      "mean": 0.3333333333333333,
+      "p50": 0.33333333333333337,
+      "p95": 0.33333333333333337,
+      "p99": 0.33333333333333337,
+      "min": 0.33333333333333337,
+      "max": 0.33333333333333337
+    },
+    "scheduler_apply_ratio": {
+      "count": 3.0,
+      "mean": 0.0588235294117647,
+      "p50": 0.058823529411764705,
+      "p95": 0.058823529411764705,
+      "p99": 0.058823529411764705,
+      "min": 0.058823529411764705,
+      "max": 0.058823529411764705
+    }
+  },
+  "phase2": {
+    "ttft_improve_ratio": {
+      "count": 3.0,
+      "mean": 0.9920973552124998,
+      "p50": 0.9861105126443527,
+      "p95": 1.005126274159485,
+      "p99": 1.0068165640719413,
+      "min": 0.9829424164430915,
+      "max": 1.0072391365500553
+    },
+    "slowdown_improve_ratio": {
+      "count": 3.0,
+      "mean": 0.9930834121676524,
+      "p50": 0.9900174655085572,
+      "p95": 0.9989541571476012,
+      "p99": 0.9997485297377384,
+      "min": 0.9892856481091273,
+      "max": 0.9999471228852728
+    },
+    "round_wall_improve_ratio": {
+      "count": 3.0,
+      "mean": 0.9934199419774412,
+      "p50": 0.9907243633313548,
+      "p95": 0.9987299771232214,
+      "p99": 0.999441587238054,
+      "min": 0.9899159728342065,
+      "max": 0.9996194897667622
+    },
+    "wave_error_rate": {
+      "count": 3.0,
+      "mean": 0.6666666666666666,
+      "p50": 0.6666666666666667,
+      "p95": 0.6666666666666667,
+      "p99": 0.6666666666666667,
+      "min": 0.6666666666666667,
+      "max": 0.6666666666666667
+    },
+    "baseline_noise_error_rate": {
+      "count": 3.0,
+      "mean": 0.5555555555555556,
+      "p50": 0.6666666666666667,
+      "p95": 0.6666666666666667,
+      "p99": 0.6666666666666667,
+      "min": 0.33333333333333337,
+      "max": 0.6666666666666667
+    },
+    "incremental_error_rate": {
+      "count": 3.0,
+      "mean": 0.11111111111111112,
+      "p50": 0.0,
+      "p95": 0.3,
+      "p99": 0.3266666666666667,
+      "min": 0.0,
+      "max": 0.33333333333333337
+    },
+    "phase2_apply_ratio": {
+      "count": 3.0,
+      "mean": 0.4696969696969697,
+      "p50": 0.4696969696969697,
+      "p95": 0.4696969696969697,
+      "p99": 0.4696969696969697,
+      "min": 0.4696969696969697,
+      "max": 0.4696969696969697
+    }
+  },
+  "per_repeat": {
+    "phase1": [
+      {
+        "base_ttft_short_p99_ms": 85.51625115796924,
+        "wave_ttft_short_p99_ms": 153.90526736155152,
+        "ttft_improve_ratio": 0.5556421337878968,
+        "base_round_wall_ms": 811.3226690329611,
+        "wave_round_wall_ms": 852.4346118792892,
+        "round_wall_improve_ratio": 0.9517711478705774,
+        "text_match_rate": 0.6666666666666666,
+        "error_rate": 0.33333333333333337,
+        "scheduler_apply_ratio": 0.058823529411764705,
+        "scheduler_applied": 2,
+        "scheduler_attempts": 34,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "base_ttft_short_p99_ms": 85.52483934909105,
+        "wave_ttft_short_p99_ms": 150.9624612517655,
+        "ttft_improve_ratio": 0.566530504603116,
+        "base_round_wall_ms": 813.3521513082087,
+        "wave_round_wall_ms": 846.8965892679989,
+        "round_wall_improve_ratio": 0.9603913412984886,
+        "text_match_rate": 0.6666666666666666,
+        "error_rate": 0.33333333333333337,
+        "scheduler_apply_ratio": 0.058823529411764705,
+        "scheduler_applied": 2,
+        "scheduler_attempts": 34,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "base_ttft_short_p99_ms": 86.24980598688126,
+        "wave_ttft_short_p99_ms": 153.42323435470462,
+        "ttft_improve_ratio": 0.5621691287479788,
+        "base_round_wall_ms": 814.6355762146413,
+        "wave_round_wall_ms": 845.8787277340889,
+        "round_wall_improve_ratio": 0.9630642661943507,
+        "text_match_rate": 0.6666666666666666,
+        "error_rate": 0.33333333333333337,
+        "scheduler_apply_ratio": 0.058823529411764705,
+        "scheduler_applied": 2,
+        "scheduler_attempts": 34,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      }
+    ],
+    "phase2": [
+      {
+        "repeat_index": 0,
+        "base_ttft_short_p99_ms": 2605.076161888428,
+        "wave_ttft_short_p99_ms": 2586.353197921999,
+        "ttft_improve_ratio": 1.0072391365500553,
+        "base_slowdown_short_p99": 3503.676908335872,
+        "wave_slowdown_short_p99": 3503.8621824584825,
+        "slowdown_improve_ratio": 0.9999471228852728,
+        "base_round_wall_ms": 5036.79884923622,
+        "wave_round_wall_ms": 5038.716132286936,
+        "round_wall_improve_ratio": 0.9996194897667622,
+        "baseline_noise_match_rate": 0.6666666666666666,
+        "baseline_noise_error_rate": 0.33333333333333337,
+        "wave_match_rate": 0.3333333333333333,
+        "wave_error_rate": 0.6666666666666667,
+        "incremental_error_rate": 0.33333333333333337,
+        "phase2_apply_ratio": 0.4696969696969697,
+        "phase2_applied": 31,
+        "phase2_attempts": 66,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "repeat_index": 1,
+        "base_ttft_short_p99_ms": 2563.038376593031,
+        "wave_ttft_short_p99_ms": 2607.516303821467,
+        "ttft_improve_ratio": 0.9829424164430915,
+        "base_slowdown_short_p99": 3483.166389973803,
+        "wave_slowdown_short_p99": 3518.287819482611,
+        "slowdown_improve_ratio": 0.9900174655085572,
+        "base_round_wall_ms": 5008.03327281028,
+        "wave_round_wall_ms": 5059.048858936876,
+        "round_wall_improve_ratio": 0.9899159728342065,
+        "baseline_noise_match_rate": 0.3333333333333333,
+        "baseline_noise_error_rate": 0.6666666666666667,
+        "wave_match_rate": 0.3333333333333333,
+        "wave_error_rate": 0.6666666666666667,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.4696969696969697,
+        "phase2_applied": 31,
+        "phase2_attempts": 66,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "repeat_index": 2,
+        "base_ttft_short_p99_ms": 2571.961107472889,
+        "wave_ttft_short_p99_ms": 2608.187494701706,
+        "ttft_improve_ratio": 0.9861105126443527,
+        "base_slowdown_short_p99": 3493.9684087007595,
+        "wave_slowdown_short_p99": 3531.809458045774,
+        "slowdown_improve_ratio": 0.9892856481091273,
+        "base_round_wall_ms": 5032.012024894357,
+        "wave_round_wall_ms": 5079.124134965241,
+        "round_wall_improve_ratio": 0.9907243633313548,
+        "baseline_noise_match_rate": 0.3333333333333333,
+        "baseline_noise_error_rate": 0.6666666666666667,
+        "wave_match_rate": 0.3333333333333333,
+        "wave_error_rate": 0.6666666666666667,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.4696969696969697,
+        "phase2_applied": 31,
+        "phase2_attempts": 66,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      }
+    ]
+  }
+}

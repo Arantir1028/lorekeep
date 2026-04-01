@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wave-slice"
+version = "0.1.0"
+description = "Wave-Slice: fairness-aware spatio-temporal scheduler hijacker for vLLM LoRA serving."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "torch>=2.1",
+]
+
+[project.optional-dependencies]
+vllm = ["vllm>=0.5.0"]
+
+[project.entry-points."vllm.general_plugins"]
+waveslice_autoinject = "engine.vllm_hijacker:waveslice_vllm_general_plugin"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["waveslice*", "engine*", "scheduler*", "config*", "data*"]
+
+[tool.setuptools.package-data]
+"data.lut_tables" = ["*.json"]

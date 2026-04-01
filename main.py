@@ -1,11 +1,22 @@
 # main.py
 import time
-from vllm.engine.arg_utils import EngineArgs
-from vllm.engine.llm_engine import LLMEngine
-from vllm.sampling_params import SamplingParams
+
+from engine.runtime_bootstrap import bootstrap_vllm_runtime
 from engine.vllm_hijacker import inject_wave_slice
 
-def setup_engine(model_path="mistralai/Mistral-7B-v0.1"):
+bootstrap_vllm_runtime()
+
+try:
+    from vllm.engine.arg_utils import EngineArgs
+    from vllm.engine.llm_engine import LLMEngine
+    from vllm.sampling_params import SamplingParams
+except ModuleNotFoundError as exc:
+    raise ModuleNotFoundError(
+        "vllm is not installed. Install it first, e.g. `pip install vllm`, "
+        "then re-run main.py."
+    ) from exc
+
+def setup_engine(model_path="mistralai/Mistral-7B-v0.1", enable_lora: bool = False):
     wave_model_name = model_path.split("/")[-1] 
     
     # 物理劫持注入
@@ -13,8 +24,8 @@ def setup_engine(model_path="mistralai/Mistral-7B-v0.1"):
     
     engine_args = EngineArgs(
         model=model_path, 
-        enable_lora=False,
-        max_lora_rank=64,
+        enable_lora=enable_lora,
+        max_lora_rank=32,
         max_num_batched_tokens=2048, # 维持较小预算，逼迫引擎触发多帧切分
         enable_chunked_prefill=True, 
         disable_sliding_window=True,
@@ -31,8 +42,9 @@ def run_latency_benchmark(engine):
     print("="*50)
     metrics = {}
     
-    prompt_long = "The quick brown fox jumps over the lazy dog. " * 1500
-    sampling_params_long = SamplingParams(max_tokens=1) 
+    # Keep within common 4k context windows across vLLM versions.
+    prompt_long = "The quick brown fox jumps over the lazy dog. " * 200
+    sampling_params_long = SamplingParams(max_tokens=16)
     
     print("[+] 注入长序列背景任务 (Titan)")
     engine.add_request("Long_Titan", prompt_long, sampling_params_long)
@@ -47,7 +59,7 @@ def run_latency_benchmark(engine):
             short_task_id += 1
             req_id = f"Short_Ninja_{short_task_id}"
             prompt_short = "Summarize the key points: " * 5
-            sampling_params_short = SamplingParams(max_tokens=1)
+            sampling_params_short = SamplingParams(max_tokens=16)
             
             print(f" [+] 突发短任务: {req_id} 抵达队列!")
             engine.add_request(req_id, prompt_short, sampling_params_short)
@@ -82,10 +94,10 @@ def run_accuracy_verification(engine):
     metrics = {}
     
     # 纯粹的地理常识构建长文本，顺应 Base 模型的续写逻辑
-    filler = "London is the capital of the United Kingdom. Berlin is the capital of Germany. Rome is the capital of Italy. Madrid is the capital of Spain. " * 300
+    filler = "London is the capital of the United Kingdom. Berlin is the capital of Germany. Rome is the capital of Italy. Madrid is the capital of Spain. " * 60
     prompt_long = filler + "Tokyo is the capital of Japan. The capital of France is"
     
-    sampling_params_long = SamplingParams(max_tokens=5, temperature=0.0) 
+    sampling_params_long = SamplingParams(max_tokens=32, temperature=0.0)
     
     print("[+] 注入长序列常识补全任务 (Titan)")
     engine.add_request("Long_Titan", prompt_long, sampling_params_long)
@@ -98,14 +110,14 @@ def run_accuracy_verification(engine):
         
         if step_counter == 2:
             prompt_short_1 = "English: Hello. French: Bonjour. English: Apple. French:"
-            sampling_params_short_1 = SamplingParams(max_tokens=5, temperature=0.0)
+            sampling_params_short_1 = SamplingParams(max_tokens=32, temperature=0.0)
             print(f"\n [+] 突发短任务 (Tick {step_counter}): 短文本翻译 (Ninja_1) 抵达！")
             engine.add_request("Short_Ninja_1", prompt_short_1, sampling_params_short_1)
             metrics["Short_Ninja_1"] = {"arrival": time.perf_counter(), "ttft": None, "total_time": None, "output": ""}
 
         if step_counter == 4:
             prompt_short_2 = "10 + 10 = 20. 15 + 25 ="
-            sampling_params_short_2 = SamplingParams(max_tokens=5, temperature=0.0)
+            sampling_params_short_2 = SamplingParams(max_tokens=32, temperature=0.0)
             print(f"\n [+] 突发短任务 (Tick {step_counter}): 基础数学推理 (Ninja_2) 抵达！")
             engine.add_request("Short_Ninja_2", prompt_short_2, sampling_params_short_2)
             metrics["Short_Ninja_2"] = {"arrival": time.perf_counter(), "ttft": None, "total_time": None, "output": ""}
@@ -142,7 +154,7 @@ def run_accuracy_verification(engine):
 
 if __name__ == "__main__":
     hf_model_path = "mistralai/Mistral-7B-v0.1"
-    engine = setup_engine(hf_model_path)
+    engine = setup_engine(hf_model_path, enable_lora=False)
     
     # ---------------------------------------------------------
     # 模式开关：按需取消注释即可运行对应测试

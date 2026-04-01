@@ -1,0 +1,2 @@
+model,lut_name,status,error
+mistralai/Mistral-7B-v0.1,Mistral-7B-v0.1,failed,"The expanded size of the tensor (1) must match the existing size (2) at non-singleton dimension 0.  Target sizes: [1, 256].  Tensor sizes: [2, 256]"

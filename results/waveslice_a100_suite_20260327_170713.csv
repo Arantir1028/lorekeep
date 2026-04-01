@@ -1,0 +1,198 @@
+model,lut_name,status,error,traceback
+Qwen/Qwen2.5-7B-Instruct,Qwen2-7B,failed,"No suitable kernel. h_in=64 h_out=18944 dtype=Float out_dtype=BFloat16
+Exception raised from dispatch_bgmv_low_level at /home/runner/work/vllm/vllm/csrc/punica/punica_ops.cu:567 (most recent call first):
+frame #0: c10::Error::Error(c10::SourceLocation, std::string) + 0x57 (0x7fda61acf897 in /home/onceas/.local/lib/python3.10/site-packages/torch/lib/libc10.so)
+frame #1: c10::detail::torchCheckFail(char const*, char const*, unsigned int, std::string const&) + 0x64 (0x7fda61a7fb25 in /home/onceas/.local/lib/python3.10/site-packages/torch/lib/libc10.so)
+frame #2: dispatch_bgmv_low_level(at::Tensor, at::Tensor, at::Tensor, at::Tensor, long, float, long, long, long) + 0xb74 (0x7fd4b7832b64 in /home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/_punica_C.cpython-310-x86_64-linux-gnu.so)
+frame #3: <unknown function> + 0x5bf8e9 (0x7fd4b78878e9 in /home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/_punica_C.cpython-310-x86_64-linux-gnu.so)
+frame #4: <unknown function> + 0x5bc3f7 (0x7fd4b78843f7 in /home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/_punica_C.cpython-310-x86_64-linux-gnu.so)
+frame #5: <unknown function> + 0x13bc66 (0x5567d3a1ec66 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #6: _PyObject_MakeTpCall + 0x2d3 (0x5567d3a18023 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #7: _PyEval_EvalFrameDefault + 0x51f6 (0x5567d3a142a6 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #8: _PyFunction_Vectorcall + 0x6c (0x5567d3a1f0ec in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #9: _PyEval_EvalFrameDefault + 0x30c (0x5567d3a0f3bc in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #10: _PyFunction_Vectorcall + 0x6c (0x5567d3a1f0ec in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #11: _PyEval_EvalFrameDefault + 0x30c (0x5567d3a0f3bc in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #12: <unknown function> + 0x1474b2 (0x5567d3a2a4b2 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #13: _PyEval_EvalFrameDefault + 0x49b5 (0x5567d3a13a65 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #14: <unknown function> + 0x147608 (0x5567d3a2a608 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #15: _PyEval_EvalFrameDefault + 0x2ba5 (0x5567d3a11c55 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #16: <unknown function> + 0x147608 (0x5567d3a2a608 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #17: _PyEval_EvalFrameDefault + 0x2ba5 (0x5567d3a11c55 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #18: _PyObject_FastCallDictTstate + 0xd0 (0x5567d3a174b0 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #19: _PyObject_Call_Prepend + 0x69 (0x5567d3a28ab9 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #20: <unknown function> + 0x205949 (0x5567d3ae8949 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #21: _PyObject_MakeTpCall + 0x2d3 (0x5567d3a18023 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #22: _PyEval_EvalFrameDefault + 0x51f6 (0x5567d3a142a6 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #23: <unknown function> + 0x147608 (0x5567d3a2a608 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #24: _PyEval_EvalFrameDefault + 0x2ba5 (0x5567d3a11c55 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #25: <unknown function> + 0x147608 (0x5567d3a2a608 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #26: _PyEval_EvalFrameDefault + 0x2ba5 (0x5567d3a11c55 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #27: _PyObject_FastCallDictTstate + 0xd0 (0x5567d3a174b0 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #28: _PyObject_Call_Prepend + 0x69 (0x5567d3a28ab9 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #29: <unknown function> + 0x205949 (0x5567d3ae8949 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #30: _PyObject_MakeTpCall + 0x2d3 (0x5567d3a18023 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #31: _PyEval_EvalFrameDefault + 0x51f6 (0x5567d3a142a6 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #32: <unknown function> + 0x147608 (0x5567d3a2a608 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #33: _PyEval_EvalFrameDefault + 0x2ba5 (0x5567d3a11c55 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #34: <unknown function> + 0x147608 (0x5567d3a2a608 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #35: _PyEval_EvalFrameDefault + 0x2ba5 (0x5567d3a11c55 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #36: _PyObject_FastCallDictTstate + 0xd0 (0x5567d3a174b0 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #37: _PyObject_Call_Prepend + 0xe9 (0x5567d3a28b39 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #38: <unknown function> + 0x205949 (0x5567d3ae8949 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #39: _PyObject_MakeTpCall + 0x2d3 (0x5567d3a18023 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #40: _PyEval_EvalFrameDefault + 0x4c16 (0x5567d3a13cc6 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #41: <unknown function> + 0x147608 (0x5567d3a2a608 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #42: _PyEval_EvalFrameDefault + 0x2ba5 (0x5567d3a11c55 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #43: <unknown function> + 0x147608 (0x5567d3a2a608 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #44: _PyEval_EvalFrameDefault + 0x2ba5 (0x5567d3a11c55 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #45: _PyObject_FastCallDictTstate + 0xd0 (0x5567d3a174b0 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #46: _PyObject_Call_Prepend + 0x69 (0x5567d3a28ab9 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #47: <unknown function> + 0x205949 (0x5567d3ae8949 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #48: _PyObject_MakeTpCall + 0x2d3 (0x5567d3a18023 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #49: _PyEval_EvalFrameDefault + 0x51f6 (0x5567d3a142a6 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #50: <unknown function> + 0x1474b2 (0x5567d3a2a4b2 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #51: PyObject_Call + 0xbc (0x5567d3a2ae4c in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #52: _PyEval_EvalFrameDefault + 0x2ba5 (0x5567d3a11c55 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #53: <unknown function> + 0x1474b2 (0x5567d3a2a4b2 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #54: PyObject_Call + 0xbc (0x5567d3a2ae4c in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #55: _PyEval_EvalFrameDefault + 0x2ba5 (0x5567d3a11c55 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #56: _PyFunction_Vectorcall + 0x6c (0x5567d3a1f0ec in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #57: _PyObject_FastCallDictTstate + 0x187 (0x5567d3a17567 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #58: _PyObject_Call_Prepend + 0x69 (0x5567d3a28ab9 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #59: <unknown function> + 0x205949 (0x5567d3ae8949 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #60: PyObject_Call + 0x20f (0x5567d3a2af9f in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #61: _PyEval_EvalFrameDefault + 0x2ba5 (0x5567d3a11c55 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #62: _PyFunction_Vectorcall + 0x6c (0x5567d3a1f0ec in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #63: _PyEval_EvalFrameDefault + 0x2ba5 (0x5567d3a11c55 in /home/onceas/anaconda3/envs/sara/bin/python)
+","Traceback (most recent call last):
+  File ""/home/onceas/Arantir/lorekeep/experiments/waveslice_a100_suite.py"", line 420, in main
+    row = _run_model(
+  File ""/home/onceas/Arantir/lorekeep/experiments/waveslice_a100_suite.py"", line 301, in _run_model
+    base_res = _run_mode(
+  File ""/home/onceas/Arantir/lorekeep/experiments/waveslice_a100_suite.py"", line 180, in _run_mode
+    engine = LLMEngine.from_engine_args(engine_args)
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/engine/llm_engine.py"", line 359, in from_engine_args
+    engine = cls(
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/engine/llm_engine.py"", line 235, in __init__
+    self._initialize_kv_caches()
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/engine/llm_engine.py"", line 312, in _initialize_kv_caches
+    self.model_executor.determine_num_available_blocks())
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/executor/gpu_executor.py"", line 75, in determine_num_available_blocks
+    return self.driver_worker.determine_num_available_blocks()
+  File ""/home/onceas/.local/lib/python3.10/site-packages/torch/utils/_contextlib.py"", line 115, in decorate_context
+    return func(*args, **kwargs)
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/worker/worker.py"", line 154, in determine_num_available_blocks
+    self.model_runner.profile_run()
+  File ""/home/onceas/.local/lib/python3.10/site-packages/torch/utils/_contextlib.py"", line 115, in decorate_context
+    return func(*args, **kwargs)
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/worker/model_runner.py"", line 809, in profile_run
+    self.execute_model(seqs, kv_caches)
+  File ""/home/onceas/.local/lib/python3.10/site-packages/torch/utils/_contextlib.py"", line 115, in decorate_context
+    return func(*args, **kwargs)
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/worker/model_runner.py"", line 728, in execute_model
+    hidden_states = model_executable(**execute_model_kwargs)
+  File ""/home/onceas/.local/lib/python3.10/site-packages/torch/nn/modules/module.py"", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File ""/home/onceas/.local/lib/python3.10/site-packages/torch/nn/modules/module.py"", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/model_executor/models/qwen2.py"", line 330, in forward
+    hidden_states = self.model(input_ids, positions, kv_caches,
+  File ""/home/onceas/.local/lib/python3.10/site-packages/torch/nn/modules/module.py"", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File ""/home/onceas/.local/lib/python3.10/site-packages/torch/nn/modules/module.py"", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/model_executor/models/qwen2.py"", line 254, in forward
+    hidden_states, residual = layer(
+  File ""/home/onceas/.local/lib/python3.10/site-packages/torch/nn/modules/module.py"", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File ""/home/onceas/.local/lib/python3.10/site-packages/torch/nn/modules/module.py"", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/model_executor/models/qwen2.py"", line 216, in forward
+    hidden_states = self.mlp(hidden_states)
+  File ""/home/onceas/.local/lib/python3.10/site-packages/torch/nn/modules/module.py"", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File ""/home/onceas/.local/lib/python3.10/site-packages/torch/nn/modules/module.py"", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/model_executor/models/qwen2.py"", line 75, in forward
+    gate_up, _ = self.gate_up_proj(x)
+  File ""/home/onceas/.local/lib/python3.10/site-packages/torch/nn/modules/module.py"", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File ""/home/onceas/.local/lib/python3.10/site-packages/torch/nn/modules/module.py"", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/lora/layers.py"", line 470, in forward
+    output_parallel = self.apply(input_, bias)
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/lora/layers.py"", line 600, in apply
+    _apply_lora_packed_nslice(
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/lora/layers.py"", line 129, in _apply_lora_packed_nslice
+    add_lora_slice(output, x, lora_a_stacked[slice_idx],
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/lora/punica.py"", line 203, in add_lora_slice
+    punica_kernels.dispatch_bgmv_low_level(
+RuntimeError: No suitable kernel. h_in=64 h_out=18944 dtype=Float out_dtype=BFloat16
+Exception raised from dispatch_bgmv_low_level at /home/runner/work/vllm/vllm/csrc/punica/punica_ops.cu:567 (most recent call first):
+frame #0: c10::Error::Error(c10::SourceLocation, std::string) + 0x57 (0x7fda61acf897 in /home/onceas/.local/lib/python3.10/site-packages/torch/lib/libc10.so)
+frame #1: c10::detail::torchCheckFail(char const*, char const*, unsigned int, std::string const&) + 0x64 (0x7fda61a7fb25 in /home/onceas/.local/lib/python3.10/site-packages/torch/lib/libc10.so)
+frame #2: dispatch_bgmv_low_level(at::Tensor, at::Tensor, at::Tensor, at::Tensor, long, float, long, long, long) + 0xb74 (0x7fd4b7832b64 in /home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/_punica_C.cpython-310-x86_64-linux-gnu.so)
+frame #3: <unknown function> + 0x5bf8e9 (0x7fd4b78878e9 in /home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/_punica_C.cpython-310-x86_64-linux-gnu.so)
+frame #4: <unknown function> + 0x5bc3f7 (0x7fd4b78843f7 in /home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/_punica_C.cpython-310-x86_64-linux-gnu.so)
+frame #5: <unknown function> + 0x13bc66 (0x5567d3a1ec66 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #6: _PyObject_MakeTpCall + 0x2d3 (0x5567d3a18023 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #7: _PyEval_EvalFrameDefault + 0x51f6 (0x5567d3a142a6 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #8: _PyFunction_Vectorcall + 0x6c (0x5567d3a1f0ec in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #9: _PyEval_EvalFrameDefault + 0x30c (0x5567d3a0f3bc in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #10: _PyFunction_Vectorcall + 0x6c (0x5567d3a1f0ec in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #11: _PyEval_EvalFrameDefault + 0x30c (0x5567d3a0f3bc in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #12: <unknown function> + 0x1474b2 (0x5567d3a2a4b2 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #13: _PyEval_EvalFrameDefault + 0x49b5 (0x5567d3a13a65 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #14: <unknown function> + 0x147608 (0x5567d3a2a608 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #15: _PyEval_EvalFrameDefault + 0x2ba5 (0x5567d3a11c55 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #16: <unknown function> + 0x147608 (0x5567d3a2a608 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #17: _PyEval_EvalFrameDefault + 0x2ba5 (0x5567d3a11c55 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #18: _PyObject_FastCallDictTstate + 0xd0 (0x5567d3a174b0 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #19: _PyObject_Call_Prepend + 0x69 (0x5567d3a28ab9 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #20: <unknown function> + 0x205949 (0x5567d3ae8949 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #21: _PyObject_MakeTpCall + 0x2d3 (0x5567d3a18023 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #22: _PyEval_EvalFrameDefault + 0x51f6 (0x5567d3a142a6 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #23: <unknown function> + 0x147608 (0x5567d3a2a608 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #24: _PyEval_EvalFrameDefault + 0x2ba5 (0x5567d3a11c55 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #25: <unknown function> + 0x147608 (0x5567d3a2a608 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #26: _PyEval_EvalFrameDefault + 0x2ba5 (0x5567d3a11c55 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #27: _PyObject_FastCallDictTstate + 0xd0 (0x5567d3a174b0 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #28: _PyObject_Call_Prepend + 0x69 (0x5567d3a28ab9 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #29: <unknown function> + 0x205949 (0x5567d3ae8949 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #30: _PyObject_MakeTpCall + 0x2d3 (0x5567d3a18023 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #31: _PyEval_EvalFrameDefault + 0x51f6 (0x5567d3a142a6 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #32: <unknown function> + 0x147608 (0x5567d3a2a608 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #33: _PyEval_EvalFrameDefault + 0x2ba5 (0x5567d3a11c55 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #34: <unknown function> + 0x147608 (0x5567d3a2a608 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #35: _PyEval_EvalFrameDefault + 0x2ba5 (0x5567d3a11c55 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #36: _PyObject_FastCallDictTstate + 0xd0 (0x5567d3a174b0 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #37: _PyObject_Call_Prepend + 0xe9 (0x5567d3a28b39 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #38: <unknown function> + 0x205949 (0x5567d3ae8949 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #39: _PyObject_MakeTpCall + 0x2d3 (0x5567d3a18023 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #40: _PyEval_EvalFrameDefault + 0x4c16 (0x5567d3a13cc6 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #41: <unknown function> + 0x147608 (0x5567d3a2a608 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #42: _PyEval_EvalFrameDefault + 0x2ba5 (0x5567d3a11c55 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #43: <unknown function> + 0x147608 (0x5567d3a2a608 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #44: _PyEval_EvalFrameDefault + 0x2ba5 (0x5567d3a11c55 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #45: _PyObject_FastCallDictTstate + 0xd0 (0x5567d3a174b0 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #46: _PyObject_Call_Prepend + 0x69 (0x5567d3a28ab9 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #47: <unknown function> + 0x205949 (0x5567d3ae8949 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #48: _PyObject_MakeTpCall + 0x2d3 (0x5567d3a18023 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #49: _PyEval_EvalFrameDefault + 0x51f6 (0x5567d3a142a6 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #50: <unknown function> + 0x1474b2 (0x5567d3a2a4b2 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #51: PyObject_Call + 0xbc (0x5567d3a2ae4c in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #52: _PyEval_EvalFrameDefault + 0x2ba5 (0x5567d3a11c55 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #53: <unknown function> + 0x1474b2 (0x5567d3a2a4b2 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #54: PyObject_Call + 0xbc (0x5567d3a2ae4c in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #55: _PyEval_EvalFrameDefault + 0x2ba5 (0x5567d3a11c55 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #56: _PyFunction_Vectorcall + 0x6c (0x5567d3a1f0ec in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #57: _PyObject_FastCallDictTstate + 0x187 (0x5567d3a17567 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #58: _PyObject_Call_Prepend + 0x69 (0x5567d3a28ab9 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #59: <unknown function> + 0x205949 (0x5567d3ae8949 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #60: PyObject_Call + 0x20f (0x5567d3a2af9f in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #61: _PyEval_EvalFrameDefault + 0x2ba5 (0x5567d3a11c55 in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #62: _PyFunction_Vectorcall + 0x6c (0x5567d3a1f0ec in /home/onceas/anaconda3/envs/sara/bin/python)
+frame #63: _PyEval_EvalFrameDefault + 0x2ba5 (0x5567d3a11c55 in /home/onceas/anaconda3/envs/sara/bin/python)
+
+"

@@ -3,7 +3,13 @@
 import math
 
 class FairnessEngine:
-    def __init__(self, alpha: float = 0.5, beta: float = 2.0, w_max: float = 10.0):
+    def __init__(
+        self,
+        alpha: float = 0.5,
+        beta: float = 2.0,
+        w_max: float = 10.0,
+        rho_bypass: float = 0.98,
+    ):
         """
         公平性大脑与负载评估器。
         
@@ -15,6 +21,7 @@ class FairnessEngine:
         self.alpha = alpha
         self.beta = beta
         self.w_max = w_max
+        self.rho_bypass = max(0.0, min(0.999, rho_bypass))
 
     def compute_weight(self, t_wait_us: float, t_solo_us: float) -> float:
         """
@@ -45,3 +52,6 @@ class FairnessEngine:
         
         # 物理边界保护
         return min(0.99, max(0.0, rho))
+
+    def should_elastic_bypass(self, rho: float) -> bool:
+        return float(rho) >= self.rho_bypass

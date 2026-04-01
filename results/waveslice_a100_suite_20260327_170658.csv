@@ -1,0 +1,26 @@
+model,lut_name,status,error,traceback
+Qwen/Qwen2.5-7B-Instruct,Qwen2-7B,failed,[Errno 1] Operation not permitted,"Traceback (most recent call last):
+  File ""/home/onceas/Arantir/lorekeep/experiments/waveslice_a100_suite.py"", line 420, in main
+    row = _run_model(
+  File ""/home/onceas/Arantir/lorekeep/experiments/waveslice_a100_suite.py"", line 301, in _run_model
+    base_res = _run_mode(
+  File ""/home/onceas/Arantir/lorekeep/experiments/waveslice_a100_suite.py"", line 180, in _run_mode
+    engine = LLMEngine.from_engine_args(engine_args)
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/engine/llm_engine.py"", line 359, in from_engine_args
+    engine = cls(
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/engine/llm_engine.py"", line 222, in __init__
+    self.model_executor = executor_class(
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/executor/executor_base.py"", line 41, in __init__
+    self._init_executor()
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/executor/gpu_executor.py"", line 22, in _init_executor
+    self.driver_worker = self._create_worker()
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/executor/gpu_executor.py"", line 67, in _create_worker
+    wrapper.init_worker(**self._get_worker_kwargs(local_rank, rank,
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/executor/gpu_executor.py"", line 34, in _get_worker_kwargs
+    get_ip(), get_open_port())
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/vllm/utils.py"", line 258, in get_ip
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/socket.py"", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+"

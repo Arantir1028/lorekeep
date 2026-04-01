@@ -16,6 +16,9 @@ def run_spatial_ablation(d_model=4096, r=64, S_l=1024, S_s=1, num_warmup=10, num
     print("="*70)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if device.type != "cuda":
+        print("⚠️ 跳过: 当前环境无 CUDA，无法验证多流 LoRA 解绑有效性。")
+        return
     
     # 1. 物理环境初始化
     unbinder = WaveLoRAUnbinder(d_model, r, device)

@@ -1,0 +1,231 @@
+{
+  "config": {
+    "model_name": "Mistral-7B-v0.1",
+    "model_path": "/home/onceas/.cache/huggingface/hub/models--mistralai--Mistral-7B-v0.1/snapshots/27d67f1b5f57dc0953326b2601d68371d40ea8da",
+    "max_new_tokens": 128,
+    "timeout_sec": 240,
+    "warmup_iters": 1,
+    "repeats": 2,
+    "short_repeat": 16,
+    "long_repeat": 320,
+    "include_strict": true,
+    "phase2_dispatch_mode": "synchronized",
+    "adapter_a": "/tmp/waveslice_synthetic_adapters/mistral-7b-v0.1/adapter_rank8_seed7",
+    "adapter_b": "/tmp/waveslice_synthetic_adapters/mistral-7b-v0.1/adapter_rank16_seed11"
+  },
+  "token_lengths": {
+    "short_a": 353,
+    "short_b": 801,
+    "long_b": 3788
+  },
+  "phase1": {
+    "ttft_improve_ratio": {
+      "count": 2.0,
+      "mean": 0.6242132870579091,
+      "p50": 0.6242132870579091,
+      "p95": 0.6254328097961993,
+      "p99": 0.6255412118173806,
+      "min": 0.6228582617931424,
+      "max": 0.625568312322676
+    },
+    "error_rate": {
+      "count": 2.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "scheduler_apply_ratio": {
+      "count": 2.0,
+      "mean": 0.022900763358778626,
+      "p50": 0.022900763358778626,
+      "p95": 0.022900763358778626,
+      "p99": 0.022900763358778626,
+      "min": 0.022900763358778626,
+      "max": 0.022900763358778626
+    }
+  },
+  "phase2": {
+    "ttft_improve_ratio": {
+      "count": 2.0,
+      "mean": 1.0005226252913202,
+      "p50": 1.0005226252913202,
+      "p95": 1.0153009028248152,
+      "p99": 1.0166145274944594,
+      "min": 0.9841023169207699,
+      "max": 1.0169429336618703
+    },
+    "slowdown_improve_ratio": {
+      "count": 2.0,
+      "mean": 1.0001997115078125,
+      "p50": 1.0001997115078125,
+      "p95": 1.0145632395927058,
+      "p99": 1.0158399976446963,
+      "min": 0.9842402358579307,
+      "max": 1.016159187157694
+    },
+    "wave_error_rate": {
+      "count": 2.0,
+      "mean": 0.6666666666666667,
+      "p50": 0.6666666666666667,
+      "p95": 0.6666666666666667,
+      "p99": 0.6666666666666667,
+      "min": 0.6666666666666667,
+      "max": 0.6666666666666667
+    },
+    "baseline_noise_error_rate": {
+      "count": 2.0,
+      "mean": 0.6666666666666667,
+      "p50": 0.6666666666666667,
+      "p95": 0.6666666666666667,
+      "p99": 0.6666666666666667,
+      "min": 0.6666666666666667,
+      "max": 0.6666666666666667
+    },
+    "incremental_error_rate": {
+      "count": 2.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "phase2_apply_ratio": {
+      "count": 2.0,
+      "mean": 0.49034749034749037,
+      "p50": 0.49034749034749037,
+      "p95": 0.49034749034749037,
+      "p99": 0.49034749034749037,
+      "min": 0.49034749034749037,
+      "max": 0.49034749034749037
+    }
+  },
+  "per_repeat": {
+    "phase1": [
+      {
+        "base_ttft_short_p99_ms": 178.56783233582973,
+        "wave_ttft_short_p99_ms": 285.4489730671048,
+        "ttft_improve_ratio": 0.625568312322676,
+        "text_match_rate": 1.0,
+        "error_rate": 0.0,
+        "scheduler_apply_ratio": 0.022900763358778626,
+        "scheduler_applied": 3,
+        "scheduler_attempts": 131
+      },
+      {
+        "base_ttft_short_p99_ms": 175.63869012519717,
+        "wave_ttft_short_p99_ms": 281.98821609839797,
+        "ttft_improve_ratio": 0.6228582617931424,
+        "text_match_rate": 1.0,
+        "error_rate": 0.0,
+        "scheduler_apply_ratio": 0.022900763358778626,
+        "scheduler_applied": 3,
+        "scheduler_attempts": 131
+      }
+    ],
+    "phase2": [
+      {
+        "base_ttft_short_p99_ms": 9768.430661340244,
+        "wave_ttft_short_p99_ms": 9605.68222463131,
+        "ttft_improve_ratio": 1.0169429336618703,
+        "base_slowdown_short_p99": 7203.653760032991,
+        "wave_slowdown_short_p99": 7089.099671659104,
+        "slowdown_improve_ratio": 1.016159187157694,
+        "baseline_noise_match_rate": 0.3333333333333333,
+        "baseline_noise_error_rate": 0.6666666666666667,
+        "wave_match_rate": 0.3333333333333333,
+        "wave_error_rate": 0.6666666666666667,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.49034749034749037,
+        "phase2_applied": 127,
+        "phase2_attempts": 259,
+        "strict_ttft_short_p99_ms": 9522.032900960185,
+        "strict_ttft_improve_ratio": 1.0258765919990902,
+        "strict_slowdown_short_p99": 7030.470156184291,
+        "strict_slowdown_improve_ratio": 1.0246332890975094,
+        "strict_match_rate": 0.3333333333333333,
+        "strict_error_rate": 0.6666666666666667,
+        "strict_incremental_error_rate": 0.0,
+        "strict_phase2_apply_ratio": 0.0,
+        "strict_phase2_applied": 0,
+        "strict_phase2_attempts": 259
+      },
+      {
+        "base_ttft_short_p99_ms": 9505.677513922565,
+        "wave_ttft_short_p99_ms": 9659.237002576701,
+        "ttft_improve_ratio": 0.9841023169207699,
+        "base_slowdown_short_p99": 6990.280671089898,
+        "wave_slowdown_short_p99": 7102.209822784468,
+        "slowdown_improve_ratio": 0.9842402358579307,
+        "baseline_noise_match_rate": 0.3333333333333333,
+        "baseline_noise_error_rate": 0.6666666666666667,
+        "wave_match_rate": 0.3333333333333333,
+        "wave_error_rate": 0.6666666666666667,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.49034749034749037,
+        "phase2_applied": 127,
+        "phase2_attempts": 259,
+        "strict_ttft_short_p99_ms": 9625.229501510039,
+        "strict_ttft_improve_ratio": 0.9875793104394323,
+        "strict_slowdown_short_p99": 7114.568309266373,
+        "strict_slowdown_improve_ratio": 0.9825305439804974,
+        "strict_match_rate": 0.3333333333333333,
+        "strict_error_rate": 0.6666666666666667,
+        "strict_incremental_error_rate": 0.0,
+        "strict_phase2_apply_ratio": 0.0,
+        "strict_phase2_applied": 0,
+        "strict_phase2_attempts": 259
+      }
+    ]
+  },
+  "phase2_strict": {
+    "ttft_improve_ratio": {
+      "count": 2.0,
+      "mean": 1.0067279512192613,
+      "p50": 1.0067279512192613,
+      "p95": 1.0239617279211073,
+      "p99": 1.0254936191834936,
+      "min": 0.9875793104394323,
+      "max": 1.0258765919990902
+    },
+    "slowdown_improve_ratio": {
+      "count": 2.0,
+      "mean": 1.0035819165390034,
+      "p50": 1.0035819165390034,
+      "p95": 1.0225281518416587,
+      "p99": 1.0242122616463392,
+      "min": 0.9825305439804974,
+      "max": 1.0246332890975094
+    },
+    "error_rate": {
+      "count": 2.0,
+      "mean": 0.6666666666666667,
+      "p50": 0.6666666666666667,
+      "p95": 0.6666666666666667,
+      "p99": 0.6666666666666667,
+      "min": 0.6666666666666667,
+      "max": 0.6666666666666667
+    },
+    "incremental_error_rate": {
+      "count": 2.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "apply_ratio": {
+      "count": 2.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    }
+  }
+}
