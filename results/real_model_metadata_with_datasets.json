@@ -1,0 +1,700 @@
+{
+  "models": [
+    {
+      "key": "mistral-7b-v0.1",
+      "model_id": "mistralai/Mistral-7B-v0.1",
+      "family_hint": "mistral",
+      "snapshot": "/home/onceas/.cache/huggingface/hub/models--mistralai--Mistral-7B-v0.1/snapshots/27d67f1b5f57dc0953326b2601d68371d40ea8da",
+      "available": true,
+      "architectures": [
+        "MistralForCausalLM"
+      ],
+      "model_type": "mistral",
+      "torch_dtype": "bfloat16",
+      "hidden_size": 4096,
+      "intermediate_size": 14336,
+      "num_hidden_layers": 32,
+      "num_attention_heads": 32,
+      "num_key_value_heads": 8,
+      "head_dim": 128,
+      "attn_type": "GQA",
+      "vocab_size": 32000,
+      "max_position_embeddings": 32768,
+      "sliding_window": 4096,
+      "rope_theta": 10000.0,
+      "bos_token_id": 1,
+      "eos_token_id": 2,
+      "tokenizer_class": "LlamaTokenizer",
+      "lut_artifacts": {
+        "raw_profile": "/home/onceas/Arantir/lorekeep/data/lut_tables/raw_profile_Mistral-7B-v0.1.json",
+        "lut_gain": "/home/onceas/Arantir/lorekeep/data/lut_tables/lut_gain_Mistral-7B-v0.1.json",
+        "lut_penalty": "/home/onceas/Arantir/lorekeep/data/lut_tables/lut_penalty_Mistral-7B-v0.1.json"
+      },
+      "raw_profile_summary": {
+        "bucket_count": 16,
+        "bucket_keys": [
+          32,
+          64,
+          128,
+          256,
+          288,
+          320,
+          352,
+          384,
+          448,
+          512,
+          768,
+          1024,
+          1536,
+          2048,
+          3072,
+          4096
+        ],
+        "t_solo_us_min": 521.0521602630615,
+        "t_solo_us_max": 258718.5382080078,
+        "t_conc_rows": 16,
+        "t_read_amp_rows": 16
+      }
+    },
+    {
+      "key": "mistral-7b-instruct-v0.2",
+      "model_id": "mistralai/Mistral-7B-Instruct-v0.2",
+      "family_hint": "mistral",
+      "snapshot": "/home/onceas/.cache/huggingface/hub/models--mistralai--Mistral-7B-Instruct-v0.2/snapshots/63a8b081895390a26e140280378bc85ec8bce07a",
+      "available": true,
+      "architectures": [
+        "MistralForCausalLM"
+      ],
+      "model_type": "mistral",
+      "torch_dtype": "bfloat16",
+      "hidden_size": 4096,
+      "intermediate_size": 14336,
+      "num_hidden_layers": 32,
+      "num_attention_heads": 32,
+      "num_key_value_heads": 8,
+      "head_dim": 128,
+      "attn_type": "GQA",
+      "vocab_size": 32000,
+      "max_position_embeddings": 32768,
+      "sliding_window": null,
+      "rope_theta": 1000000.0,
+      "bos_token_id": 1,
+      "eos_token_id": 2,
+      "tokenizer_class": "LlamaTokenizer",
+      "lut_family_source": "Mistral-7B-v0.1",
+      "lut_artifacts": {
+        "raw_profile": "/home/onceas/Arantir/lorekeep/data/lut_tables/raw_profile_Mistral-7B-v0.1.json",
+        "lut_gain": "/home/onceas/Arantir/lorekeep/data/lut_tables/lut_gain_Mistral-7B-v0.1.json",
+        "lut_penalty": "/home/onceas/Arantir/lorekeep/data/lut_tables/lut_penalty_Mistral-7B-v0.1.json"
+      },
+      "raw_profile_summary": {
+        "bucket_count": 16,
+        "bucket_keys": [
+          32,
+          64,
+          128,
+          256,
+          288,
+          320,
+          352,
+          384,
+          448,
+          512,
+          768,
+          1024,
+          1536,
+          2048,
+          3072,
+          4096
+        ],
+        "t_solo_us_min": 521.0521602630615,
+        "t_solo_us_max": 258718.5382080078,
+        "t_conc_rows": 16,
+        "t_read_amp_rows": 16
+      }
+    },
+    {
+      "key": "zephyr-7b-beta",
+      "model_id": "HuggingFaceH4/zephyr-7b-beta",
+      "family_hint": "mistral",
+      "snapshot": "/home/onceas/.cache/huggingface/hub/models--HuggingFaceH4--zephyr-7b-beta/snapshots/892b3d7a7b1cf10c7a701c60881cd93df615734c",
+      "available": true,
+      "architectures": [
+        "MistralForCausalLM"
+      ],
+      "model_type": "mistral",
+      "torch_dtype": "bfloat16",
+      "hidden_size": 4096,
+      "intermediate_size": 14336,
+      "num_hidden_layers": 32,
+      "num_attention_heads": 32,
+      "num_key_value_heads": 8,
+      "head_dim": 128,
+      "attn_type": "GQA",
+      "vocab_size": 32000,
+      "max_position_embeddings": 32768,
+      "sliding_window": 4096,
+      "rope_theta": 10000.0,
+      "bos_token_id": 1,
+      "eos_token_id": 2,
+      "tokenizer_class": "LlamaTokenizer",
+      "lut_family_source": "Mistral-7B-v0.1",
+      "lut_artifacts": {
+        "raw_profile": "/home/onceas/Arantir/lorekeep/data/lut_tables/raw_profile_Mistral-7B-v0.1.json",
+        "lut_gain": "/home/onceas/Arantir/lorekeep/data/lut_tables/lut_gain_Mistral-7B-v0.1.json",
+        "lut_penalty": "/home/onceas/Arantir/lorekeep/data/lut_tables/lut_penalty_Mistral-7B-v0.1.json"
+      },
+      "raw_profile_summary": {
+        "bucket_count": 16,
+        "bucket_keys": [
+          32,
+          64,
+          128,
+          256,
+          288,
+          320,
+          352,
+          384,
+          448,
+          512,
+          768,
+          1024,
+          1536,
+          2048,
+          3072,
+          4096
+        ],
+        "t_solo_us_min": 521.0521602630615,
+        "t_solo_us_max": 258718.5382080078,
+        "t_conc_rows": 16,
+        "t_read_amp_rows": 16
+      }
+    },
+    {
+      "key": "openchat-3.5-0106",
+      "model_id": "openchat/openchat-3.5-0106",
+      "family_hint": "mistral",
+      "snapshot": "/home/onceas/.cache/huggingface/hub/models--openchat--openchat-3.5-0106/snapshots/ff058fda49726ecf4ea53dc1635f917cdb8ba36b",
+      "available": true,
+      "architectures": [
+        "MistralForCausalLM"
+      ],
+      "model_type": "mistral",
+      "torch_dtype": "bfloat16",
+      "hidden_size": 4096,
+      "intermediate_size": 14336,
+      "num_hidden_layers": 32,
+      "num_attention_heads": 32,
+      "num_key_value_heads": 8,
+      "head_dim": 128,
+      "attn_type": "GQA",
+      "vocab_size": 32002,
+      "max_position_embeddings": 8192,
+      "sliding_window": 4096,
+      "rope_theta": 10000.0,
+      "bos_token_id": 1,
+      "eos_token_id": 32000,
+      "tokenizer_class": "LlamaTokenizer",
+      "lut_family_source": "Mistral-7B-v0.1",
+      "lut_artifacts": {
+        "raw_profile": "/home/onceas/Arantir/lorekeep/data/lut_tables/raw_profile_Mistral-7B-v0.1.json",
+        "lut_gain": "/home/onceas/Arantir/lorekeep/data/lut_tables/lut_gain_Mistral-7B-v0.1.json",
+        "lut_penalty": "/home/onceas/Arantir/lorekeep/data/lut_tables/lut_penalty_Mistral-7B-v0.1.json"
+      },
+      "raw_profile_summary": {
+        "bucket_count": 16,
+        "bucket_keys": [
+          32,
+          64,
+          128,
+          256,
+          288,
+          320,
+          352,
+          384,
+          448,
+          512,
+          768,
+          1024,
+          1536,
+          2048,
+          3072,
+          4096
+        ],
+        "t_solo_us_min": 521.0521602630615,
+        "t_solo_us_max": 258718.5382080078,
+        "t_conc_rows": 16,
+        "t_read_amp_rows": 16
+      }
+    },
+    {
+      "key": "gemma-7b-it",
+      "model_id": "google/gemma-7b-it",
+      "family_hint": "gemma",
+      "snapshot": "/home/onceas/.cache/huggingface/hub/models--google--gemma-7b-it/snapshots/9c5798d27f588501ce1e108079d2a19e4c3a2353",
+      "available": true,
+      "architectures": [
+        "GemmaForCausalLM"
+      ],
+      "model_type": "gemma",
+      "torch_dtype": "bfloat16",
+      "hidden_size": 3072,
+      "intermediate_size": 24576,
+      "num_hidden_layers": 28,
+      "num_attention_heads": 16,
+      "num_key_value_heads": 16,
+      "head_dim": 192,
+      "attn_type": "MHA",
+      "vocab_size": 256000,
+      "max_position_embeddings": 8192,
+      "sliding_window": null,
+      "rope_theta": 10000.0,
+      "bos_token_id": 2,
+      "eos_token_id": 1,
+      "tokenizer_class": "GemmaTokenizer",
+      "lut_family_source": "Gemma-7B",
+      "lut_artifacts": {
+        "raw_profile": "/home/onceas/Arantir/lorekeep/data/lut_tables/raw_profile_Gemma-7B.json",
+        "lut_gain": "/home/onceas/Arantir/lorekeep/data/lut_tables/lut_gain_Gemma-7B.json",
+        "lut_penalty": "/home/onceas/Arantir/lorekeep/data/lut_tables/lut_penalty_Gemma-7B.json"
+      },
+      "raw_profile_summary": {
+        "bucket_count": 7,
+        "bucket_keys": [
+          32,
+          64,
+          128,
+          256,
+          512,
+          1024,
+          2048
+        ],
+        "t_solo_us_min": 293.5193592309952,
+        "t_solo_us_max": 90497.33108520508,
+        "t_conc_rows": 7,
+        "t_read_amp_rows": 7
+      }
+    },
+    {
+      "key": "decilm-7b",
+      "model_id": "Deci/DeciLM-7B",
+      "family_hint": "mistral",
+      "snapshot": "/home/onceas/.cache/huggingface/hub/models--Deci--DeciLM-7B/snapshots/c3c9f4226801dc0433f32aebffe0aac68ee2f051",
+      "available": true,
+      "architectures": [
+        "DeciLMForCausalLM"
+      ],
+      "model_type": "deci",
+      "torch_dtype": "bfloat16",
+      "hidden_size": 4096,
+      "intermediate_size": 14336,
+      "num_hidden_layers": 32,
+      "num_attention_heads": 32,
+      "num_key_value_heads": 32,
+      "head_dim": 128,
+      "attn_type": "MHA",
+      "vocab_size": 32000,
+      "max_position_embeddings": 8192,
+      "sliding_window": null,
+      "rope_theta": null,
+      "bos_token_id": 1,
+      "eos_token_id": 2,
+      "tokenizer_class": "LlamaTokenizer",
+      "lut_family_source": "Mistral-7B-v0.1",
+      "lut_artifacts": {
+        "raw_profile": "/home/onceas/Arantir/lorekeep/data/lut_tables/raw_profile_Mistral-7B-v0.1.json",
+        "lut_gain": "/home/onceas/Arantir/lorekeep/data/lut_tables/lut_gain_Mistral-7B-v0.1.json",
+        "lut_penalty": "/home/onceas/Arantir/lorekeep/data/lut_tables/lut_penalty_Mistral-7B-v0.1.json"
+      },
+      "raw_profile_summary": {
+        "bucket_count": 16,
+        "bucket_keys": [
+          32,
+          64,
+          128,
+          256,
+          288,
+          320,
+          352,
+          384,
+          448,
+          512,
+          768,
+          1024,
+          1536,
+          2048,
+          3072,
+          4096
+        ],
+        "t_solo_us_min": 521.0521602630615,
+        "t_solo_us_max": 258718.5382080078,
+        "t_conc_rows": 16,
+        "t_read_amp_rows": 16
+      }
+    },
+    {
+      "key": "phi-2",
+      "model_id": "microsoft/phi-2",
+      "family_hint": "phi",
+      "snapshot": "/home/onceas/.cache/huggingface/hub/models--microsoft--phi-2/snapshots/810d367871c1d460086d9f82db8696f2e0a0fcd0",
+      "available": true,
+      "architectures": [
+        "PhiForCausalLM"
+      ],
+      "model_type": "phi",
+      "torch_dtype": "float16",
+      "hidden_size": 2560,
+      "intermediate_size": 10240,
+      "num_hidden_layers": 32,
+      "num_attention_heads": 32,
+      "num_key_value_heads": 32,
+      "head_dim": 80,
+      "attn_type": "MHA",
+      "vocab_size": 51200,
+      "max_position_embeddings": 2048,
+      "sliding_window": null,
+      "rope_theta": 10000.0,
+      "bos_token_id": 50256,
+      "eos_token_id": 50256,
+      "tokenizer_class": "CodeGenTokenizer",
+      "lut_family_source": "Mistral-7B-v0.1",
+      "lut_artifacts": {
+        "raw_profile": "/home/onceas/Arantir/lorekeep/data/lut_tables/raw_profile_Mistral-7B-v0.1.json",
+        "lut_gain": "/home/onceas/Arantir/lorekeep/data/lut_tables/lut_gain_Mistral-7B-v0.1.json",
+        "lut_penalty": "/home/onceas/Arantir/lorekeep/data/lut_tables/lut_penalty_Mistral-7B-v0.1.json"
+      },
+      "raw_profile_summary": {
+        "bucket_count": 16,
+        "bucket_keys": [
+          32,
+          64,
+          128,
+          256,
+          288,
+          320,
+          352,
+          384,
+          448,
+          512,
+          768,
+          1024,
+          1536,
+          2048,
+          3072,
+          4096
+        ],
+        "t_solo_us_min": 521.0521602630615,
+        "t_solo_us_max": 258718.5382080078,
+        "t_conc_rows": 16,
+        "t_read_amp_rows": 16
+      }
+    },
+    {
+      "key": "baichuan2-7b-chat",
+      "model_id": "baichuan-inc/Baichuan2-7B-Chat",
+      "family_hint": "baichuan",
+      "snapshot": "/home/onceas/.cache/huggingface/hub/models--baichuan-inc--Baichuan2-7B-Chat/snapshots/ea66ced17780ca3db39bc9f8aa601d8463db3da5",
+      "available": true,
+      "architectures": [
+        "BaichuanForCausalLM"
+      ],
+      "model_type": "baichuan",
+      "torch_dtype": "bfloat16",
+      "hidden_size": 4096,
+      "intermediate_size": 11008,
+      "num_hidden_layers": 32,
+      "num_attention_heads": 32,
+      "num_key_value_heads": 32,
+      "head_dim": 128,
+      "attn_type": "MHA",
+      "vocab_size": 125696,
+      "max_position_embeddings": 4096,
+      "sliding_window": null,
+      "rope_theta": null,
+      "bos_token_id": 1,
+      "eos_token_id": 2,
+      "tokenizer_class": "BaichuanTokenizer",
+      "lut_family_source": "Mistral-7B-v0.1",
+      "lut_artifacts": {
+        "raw_profile": "/home/onceas/Arantir/lorekeep/data/lut_tables/raw_profile_Mistral-7B-v0.1.json",
+        "lut_gain": "/home/onceas/Arantir/lorekeep/data/lut_tables/lut_gain_Mistral-7B-v0.1.json",
+        "lut_penalty": "/home/onceas/Arantir/lorekeep/data/lut_tables/lut_penalty_Mistral-7B-v0.1.json"
+      },
+      "raw_profile_summary": {
+        "bucket_count": 16,
+        "bucket_keys": [
+          32,
+          64,
+          128,
+          256,
+          288,
+          320,
+          352,
+          384,
+          448,
+          512,
+          768,
+          1024,
+          1536,
+          2048,
+          3072,
+          4096
+        ],
+        "t_solo_us_min": 521.0521602630615,
+        "t_solo_us_max": 258718.5382080078,
+        "t_conc_rows": 16,
+        "t_read_amp_rows": 16
+      }
+    }
+  ],
+  "datasets": [
+    {
+      "dataset": "LongBench",
+      "dataset_id": "Xnhyacinth/LongBench",
+      "sample_count": 128,
+      "models": [
+        {
+          "model_id": "mistralai/Mistral-7B-v0.1",
+          "snapshot": "/home/onceas/.cache/huggingface/hub/models--mistralai--Mistral-7B-v0.1/snapshots/27d67f1b5f57dc0953326b2601d68371d40ea8da",
+          "trust_remote_code": false,
+          "token_length_stats": {
+            "count": 128,
+            "mean": 13114.6875,
+            "p50": 12310.5,
+            "p90": 19151.8,
+            "p95": 20453.849999999995,
+            "p99": 28761.19,
+            "min": 1881,
+            "max": 33558
+          }
+        },
+        {
+          "model_id": "mistralai/Mistral-7B-Instruct-v0.2",
+          "snapshot": "/home/onceas/.cache/huggingface/hub/models--mistralai--Mistral-7B-Instruct-v0.2/snapshots/63a8b081895390a26e140280378bc85ec8bce07a",
+          "trust_remote_code": false,
+          "token_length_stats": {
+            "count": 128,
+            "mean": 13114.6875,
+            "p50": 12310.5,
+            "p90": 19151.8,
+            "p95": 20453.849999999995,
+            "p99": 28761.19,
+            "min": 1881,
+            "max": 33558
+          }
+        },
+        {
+          "model_id": "HuggingFaceH4/zephyr-7b-beta",
+          "snapshot": "/home/onceas/.cache/huggingface/hub/models--HuggingFaceH4--zephyr-7b-beta/snapshots/892b3d7a7b1cf10c7a701c60881cd93df615734c",
+          "trust_remote_code": false,
+          "token_length_stats": {
+            "count": 128,
+            "mean": 13114.6875,
+            "p50": 12310.5,
+            "p90": 19151.8,
+            "p95": 20453.849999999995,
+            "p99": 28761.19,
+            "min": 1881,
+            "max": 33558
+          }
+        },
+        {
+          "model_id": "openchat/openchat-3.5-0106",
+          "snapshot": "/home/onceas/.cache/huggingface/hub/models--openchat--openchat-3.5-0106/snapshots/ff058fda49726ecf4ea53dc1635f917cdb8ba36b",
+          "trust_remote_code": false,
+          "token_length_stats": {
+            "count": 128,
+            "mean": 13114.6875,
+            "p50": 12310.5,
+            "p90": 19151.8,
+            "p95": 20453.849999999995,
+            "p99": 28761.19,
+            "min": 1881,
+            "max": 33558
+          }
+        },
+        {
+          "model_id": "google/gemma-7b-it",
+          "snapshot": "/home/onceas/.cache/huggingface/hub/models--google--gemma-7b-it/snapshots/9c5798d27f588501ce1e108079d2a19e4c3a2353",
+          "trust_remote_code": false,
+          "token_length_stats": {
+            "count": 128,
+            "mean": 11778.71875,
+            "p50": 11160.0,
+            "p90": 17231.5,
+            "p95": 18835.449999999997,
+            "p99": 26572.19,
+            "min": 1698,
+            "max": 31416
+          }
+        },
+        {
+          "model_id": "Deci/DeciLM-7B",
+          "snapshot": "/home/onceas/.cache/huggingface/hub/models--Deci--DeciLM-7B/snapshots/c3c9f4226801dc0433f32aebffe0aac68ee2f051",
+          "trust_remote_code": false,
+          "token_length_stats": {
+            "count": 128,
+            "mean": 13114.6875,
+            "p50": 12310.5,
+            "p90": 19151.8,
+            "p95": 20453.849999999995,
+            "p99": 28761.19,
+            "min": 1881,
+            "max": 33558
+          }
+        },
+        {
+          "model_id": "microsoft/phi-2",
+          "snapshot": "/home/onceas/.cache/huggingface/hub/models--microsoft--phi-2/snapshots/810d367871c1d460086d9f82db8696f2e0a0fcd0",
+          "trust_remote_code": false,
+          "token_length_stats": {
+            "count": 128,
+            "mean": 11740.828125,
+            "p50": 11214.0,
+            "p90": 17259.199999999997,
+            "p95": 18481.35,
+            "p99": 27984.19,
+            "min": 1431,
+            "max": 32582
+          }
+        },
+        {
+          "model_id": "baichuan-inc/Baichuan2-7B-Chat",
+          "snapshot": "/home/onceas/.cache/huggingface/hub/models--baichuan-inc--Baichuan2-7B-Chat/snapshots/ea66ced17780ca3db39bc9f8aa601d8463db3da5",
+          "available": false,
+          "error": "/home/onceas/.cache/huggingface/hub/models--baichuan-inc--Baichuan2-7B-Chat/snapshots/ea66ced17780ca3db39bc9f8aa601d8463db3da5 does not appear to have a file named tokenization_baichuan.py. Checkout 'https://huggingface.co//home/onceas/.cache/huggingface/hub/models--baichuan-inc--Baichuan2-7B-Chat/snapshots/ea66ced17780ca3db39bc9f8aa601d8463db3da5/tree/main' for available files."
+        }
+      ],
+      "configs": [
+        "qmsum",
+        "gov_report",
+        "multifieldqa_en",
+        "hotpotqa"
+      ],
+      "config_sample_count": {
+        "qmsum": 32,
+        "gov_report": 32,
+        "multifieldqa_en": 32,
+        "hotpotqa": 32
+      }
+    },
+    {
+      "dataset": "UltraChat200k",
+      "dataset_id": "HuggingFaceH4/ultrachat_200k",
+      "sample_count": 128,
+      "models": [
+        {
+          "model_id": "mistralai/Mistral-7B-v0.1",
+          "snapshot": "/home/onceas/.cache/huggingface/hub/models--mistralai--Mistral-7B-v0.1/snapshots/27d67f1b5f57dc0953326b2601d68371d40ea8da",
+          "trust_remote_code": false,
+          "token_length_stats": {
+            "count": 128,
+            "mean": 256.6328125,
+            "p50": 180.0,
+            "p90": 560.8,
+            "p95": 814.2999999999996,
+            "p99": 1089.52,
+            "min": 54,
+            "max": 1328
+          }
+        },
+        {
+          "model_id": "mistralai/Mistral-7B-Instruct-v0.2",
+          "snapshot": "/home/onceas/.cache/huggingface/hub/models--mistralai--Mistral-7B-Instruct-v0.2/snapshots/63a8b081895390a26e140280378bc85ec8bce07a",
+          "trust_remote_code": false,
+          "token_length_stats": {
+            "count": 128,
+            "mean": 256.6328125,
+            "p50": 180.0,
+            "p90": 560.8,
+            "p95": 814.2999999999996,
+            "p99": 1089.52,
+            "min": 54,
+            "max": 1328
+          }
+        },
+        {
+          "model_id": "HuggingFaceH4/zephyr-7b-beta",
+          "snapshot": "/home/onceas/.cache/huggingface/hub/models--HuggingFaceH4--zephyr-7b-beta/snapshots/892b3d7a7b1cf10c7a701c60881cd93df615734c",
+          "trust_remote_code": false,
+          "token_length_stats": {
+            "count": 128,
+            "mean": 256.6328125,
+            "p50": 180.0,
+            "p90": 560.8,
+            "p95": 814.2999999999996,
+            "p99": 1089.52,
+            "min": 54,
+            "max": 1328
+          }
+        },
+        {
+          "model_id": "openchat/openchat-3.5-0106",
+          "snapshot": "/home/onceas/.cache/huggingface/hub/models--openchat--openchat-3.5-0106/snapshots/ff058fda49726ecf4ea53dc1635f917cdb8ba36b",
+          "trust_remote_code": false,
+          "token_length_stats": {
+            "count": 128,
+            "mean": 256.6328125,
+            "p50": 180.0,
+            "p90": 560.8,
+            "p95": 814.2999999999996,
+            "p99": 1089.52,
+            "min": 54,
+            "max": 1328
+          }
+        },
+        {
+          "model_id": "google/gemma-7b-it",
+          "snapshot": "/home/onceas/.cache/huggingface/hub/models--google--gemma-7b-it/snapshots/9c5798d27f588501ce1e108079d2a19e4c3a2353",
+          "trust_remote_code": false,
+          "token_length_stats": {
+            "count": 128,
+            "mean": 233.4296875,
+            "p50": 165.0,
+            "p90": 494.49999999999994,
+            "p95": 710.9,
+            "p99": 1012.44,
+            "min": 52,
+            "max": 1251
+          }
+        },
+        {
+          "model_id": "Deci/DeciLM-7B",
+          "snapshot": "/home/onceas/.cache/huggingface/hub/models--Deci--DeciLM-7B/snapshots/c3c9f4226801dc0433f32aebffe0aac68ee2f051",
+          "trust_remote_code": false,
+          "token_length_stats": {
+            "count": 128,
+            "mean": 256.6328125,
+            "p50": 180.0,
+            "p90": 560.8,
+            "p95": 814.2999999999996,
+            "p99": 1089.52,
+            "min": 54,
+            "max": 1328
+          }
+        },
+        {
+          "model_id": "microsoft/phi-2",
+          "snapshot": "/home/onceas/.cache/huggingface/hub/models--microsoft--phi-2/snapshots/810d367871c1d460086d9f82db8696f2e0a0fcd0",
+          "trust_remote_code": false,
+          "token_length_stats": {
+            "count": 128,
+            "mean": 236.4921875,
+            "p50": 164.5,
+            "p90": 477.9999999999999,
+            "p95": 751.5999999999992,
+            "p99": 1035.9100000000003,
+            "min": 53,
+            "max": 1233
+          }
+        },
+        {
+          "model_id": "baichuan-inc/Baichuan2-7B-Chat",
+          "snapshot": "/home/onceas/.cache/huggingface/hub/models--baichuan-inc--Baichuan2-7B-Chat/snapshots/ea66ced17780ca3db39bc9f8aa601d8463db3da5",
+          "available": false,
+          "error": "/home/onceas/.cache/huggingface/hub/models--baichuan-inc--Baichuan2-7B-Chat/snapshots/ea66ced17780ca3db39bc9f8aa601d8463db3da5 does not appear to have a file named tokenization_baichuan.py. Checkout 'https://huggingface.co//home/onceas/.cache/huggingface/hub/models--baichuan-inc--Baichuan2-7B-Chat/snapshots/ea66ced17780ca3db39bc9f8aa601d8463db3da5/tree/main' for available files."
+        }
+      ]
+    }
+  ]
+}

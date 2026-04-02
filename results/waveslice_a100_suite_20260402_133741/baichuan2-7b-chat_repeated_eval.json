@@ -1,0 +1,5528 @@
+{
+  "config": {
+    "model_name": "Mistral-7B-v0.1",
+    "model_path": "baichuan-inc/Baichuan2-7B-Chat",
+    "max_new_tokens": 64,
+    "timeout_sec": 240,
+    "warmup_iters": 2,
+    "repeats": 6,
+    "short_repeat": 24,
+    "short_a_repeat": 24,
+    "short_b_repeat": 24,
+    "long_repeat": 360,
+    "max_model_len": 3072,
+    "max_num_batched_tokens": 1536,
+    "gpu_memory_utilization": 0.6,
+    "phase1_objective_mode": "fair_escape",
+    "phase1_baseline_mode": "both",
+    "include_strict": false,
+    "phase2_dispatch_mode": "synchronized",
+    "adapter_a": "/tmp/waveslice_synthetic_adapters/baichuan2-7b-chat/adapter_rank8_seed7",
+    "adapter_b": "/tmp/waveslice_synthetic_adapters/baichuan2-7b-chat/adapter_rank16_seed11"
+  },
+  "token_lengths": {
+    "short_a": 510,
+    "short_b": 1632,
+    "long_b": 2880
+  },
+  "phase1_baseline_chunked_raw": {
+    "ttft_short_p99_ms": {
+      "count": 6.0,
+      "mean": 268.1594106811099,
+      "p50": 267.98317834502086,
+      "p95": 270.2605895232409,
+      "p99": 270.6998132187873,
+      "min": 266.49526512250304,
+      "max": 270.8096191426739
+    },
+    "round_wall_ms": {
+      "count": 6.0,
+      "mean": 1812.8240114698808,
+      "p50": 1812.7456193324178,
+      "p95": 1821.9592556124553,
+      "p99": 1823.2111857039854,
+      "min": 1802.0109361968935,
+      "max": 1823.524168226868
+    },
+    "timeout_rate": {
+      "count": 6.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    }
+  },
+  "phase1_baseline_no_chunk_raw": {
+    "ttft_short_p99_ms": {
+      "count": 6.0,
+      "mean": 197.63127660068372,
+      "p50": 197.93976563960314,
+      "p95": 198.99923726916313,
+      "p99": 199.06909205019474,
+      "min": 195.0727947987616,
+      "max": 199.08655574545264
+    },
+    "round_wall_ms": {
+      "count": 6.0,
+      "mean": 1620.5769337248057,
+      "p50": 1621.3965169154108,
+      "p95": 1628.3574120607227,
+      "p99": 1629.7240882646292,
+      "min": 1612.3778549954295,
+      "max": 1630.0657573156059
+    },
+    "timeout_rate": {
+      "count": 6.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    }
+  },
+  "phase1": {
+    "ttft_improve_ratio": {
+      "count": 6.0,
+      "mean": 1.0174511488030444,
+      "p50": 1.0182434924541113,
+      "p95": 1.025985846201985,
+      "p99": 1.0265118742094073,
+      "min": 1.003973678776963,
+      "max": 1.0266433812112628
+    },
+    "round_wall_improve_ratio": {
+      "count": 6.0,
+      "mean": 0.9999609077278944,
+      "p50": 1.0005958727265596,
+      "p95": 1.0035744184721453,
+      "p99": 1.003813787237856,
+      "min": 0.9926222559601471,
+      "max": 1.0038736294292838
+    },
+    "error_rate": {
+      "count": 6.0,
+      "mean": 0.3333333333333334,
+      "p50": 0.33333333333333337,
+      "p95": 0.33333333333333337,
+      "p99": 0.33333333333333337,
+      "min": 0.33333333333333337,
+      "max": 0.33333333333333337
+    },
+    "baseline_noise_error_rate": {
+      "count": 6.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "incremental_error_rate": {
+      "count": 6.0,
+      "mean": 0.3333333333333334,
+      "p50": 0.33333333333333337,
+      "p95": 0.33333333333333337,
+      "p99": 0.33333333333333337,
+      "min": 0.33333333333333337,
+      "max": 0.33333333333333337
+    },
+    "base_semantic_pass_rate": {
+      "count": 6.0,
+      "mean": 0.3333333333333333,
+      "p50": 0.3333333333333333,
+      "p95": 0.3333333333333333,
+      "p99": 0.3333333333333333,
+      "min": 0.3333333333333333,
+      "max": 0.3333333333333333
+    },
+    "wave_semantic_pass_rate": {
+      "count": 6.0,
+      "mean": 0.3333333333333333,
+      "p50": 0.3333333333333333,
+      "p95": 0.3333333333333333,
+      "p99": 0.3333333333333333,
+      "min": 0.3333333333333333,
+      "max": 0.3333333333333333
+    },
+    "semantic_pass_delta": {
+      "count": 6.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "scheduler_apply_ratio": {
+      "count": 6.0,
+      "mean": 0.07692307692307693,
+      "p50": 0.07692307692307693,
+      "p95": 0.07692307692307693,
+      "p99": 0.07692307692307693,
+      "min": 0.07692307692307693,
+      "max": 0.07692307692307693
+    },
+    "baseline_chunk_avg": {
+      "count": 6.0,
+      "mean": 1536.0,
+      "p50": 1536.0,
+      "p95": 1536.0,
+      "p99": 1536.0,
+      "min": 1536.0,
+      "max": 1536.0
+    },
+    "chosen_chunk_avg": {
+      "count": 6.0,
+      "mean": 511.2,
+      "p50": 511.2,
+      "p95": 511.2,
+      "p99": 511.2,
+      "min": 511.2,
+      "max": 511.2
+    },
+    "chosen_vs_baseline_ratio_avg": {
+      "count": 6.0,
+      "mean": 0.3333333333333333,
+      "p50": 0.3333333333333333,
+      "p95": 0.3333333333333333,
+      "p99": 0.3333333333333333,
+      "min": 0.3333333333333333,
+      "max": 0.3333333333333333
+    },
+    "explicit_plan_ratio": {
+      "count": 6.0,
+      "mean": 0.07692307692307693,
+      "p50": 0.07692307692307693,
+      "p95": 0.07692307692307693,
+      "p99": 0.07692307692307693,
+      "min": 0.07692307692307693,
+      "max": 0.07692307692307693
+    },
+    "rewrite_apply_ratio": {
+      "count": 6.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "rewrite_old_chunk_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "rewrite_new_chunk_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "rewrite_token_delta_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_apply_ratio": {
+      "count": 6.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "virtual_cap_old_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_new_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_target_set": {
+      "count": 6.0,
+      "mean": 5.0,
+      "p50": 5.0,
+      "p95": 5.0,
+      "p99": 5.0,
+      "min": 5.0,
+      "max": 5.0
+    },
+    "virtual_cap_helper_calls": {
+      "count": 6.0,
+      "mean": 101.0,
+      "p50": 101.0,
+      "p95": 101.0,
+      "p99": 101.0,
+      "min": 101.0,
+      "max": 101.0
+    },
+    "virtual_cap_prefill_calls": {
+      "count": 6.0,
+      "mean": 10.0,
+      "p50": 10.0,
+      "p95": 10.0,
+      "p99": 10.0,
+      "min": 10.0,
+      "max": 10.0
+    },
+    "virtual_cap_target_hits": {
+      "count": 6.0,
+      "mean": 5.0,
+      "p50": 5.0,
+      "p95": 5.0,
+      "p99": 5.0,
+      "min": 5.0,
+      "max": 5.0
+    },
+    "probe_total": {
+      "count": 6.0,
+      "mean": 79.0,
+      "p50": 79.0,
+      "p95": 79.0,
+      "p99": 79.0,
+      "min": 79.0,
+      "max": 79.0
+    },
+    "probe_slice_eligible_ratio": {
+      "count": 6.0,
+      "mean": 0.12658227848101267,
+      "p50": 0.12658227848101267,
+      "p95": 0.12658227848101267,
+      "p99": 0.12658227848101267,
+      "min": 0.12658227848101267,
+      "max": 0.12658227848101267
+    },
+    "probe_best_lt_long_ratio": {
+      "count": 6.0,
+      "mean": 0.12658227848101267,
+      "p50": 0.12658227848101267,
+      "p95": 0.12658227848101267,
+      "p99": 0.12658227848101267,
+      "min": 0.12658227848101267,
+      "max": 0.12658227848101267
+    },
+    "probe_short_avg": {
+      "count": 6.0,
+      "mean": 158.73417721518987,
+      "p50": 158.73417721518987,
+      "p95": 158.73417721518987,
+      "p99": 158.73417721518987,
+      "min": 158.73417721518987,
+      "max": 158.73417721518987
+    },
+    "probe_long_avg": {
+      "count": 6.0,
+      "mean": 377.7721518987342,
+      "p50": 377.7721518987342,
+      "p95": 377.7721518987342,
+      "p99": 377.7721518987342,
+      "min": 377.7721518987342,
+      "max": 377.7721518987342
+    },
+    "probe_baseline_avg": {
+      "count": 6.0,
+      "mean": 1536.0,
+      "p50": 1536.0,
+      "p95": 1536.0,
+      "p99": 1536.0,
+      "min": 1536.0,
+      "max": 1536.0
+    },
+    "probe_best_avg": {
+      "count": 6.0,
+      "mean": 598.0,
+      "p50": 598.0,
+      "p95": 598.0,
+      "p99": 598.0,
+      "min": 598.0,
+      "max": 598.0
+    },
+    "probe_queue_avg": {
+      "count": 6.0,
+      "mean": 0.5063291139240507,
+      "p50": 0.5063291139240507,
+      "p95": 0.5063291139240507,
+      "p99": 0.5063291139240507,
+      "min": 0.5063291139240507,
+      "max": 0.5063291139240507
+    },
+    "probe_wait_us_avg": {
+      "count": 6.0,
+      "mean": 74660.79766237283,
+      "p50": 74674.29245574564,
+      "p95": 74978.48438311227,
+      "p99": 75011.7591664761,
+      "min": 74137.32552830176,
+      "max": 75020.07786231705
+    }
+  },
+  "phase2": {
+    "ttft_improve_ratio": {
+      "count": 6.0,
+      "mean": 0.9842234334750422,
+      "p50": 0.9956183526651217,
+      "p95": 1.0083880849021307,
+      "p99": 1.0103255869789267,
+      "min": 0.9178432598693538,
+      "max": 1.0108099624981257
+    },
+    "slowdown_improve_ratio": {
+      "count": 6.0,
+      "mean": 0.9874049700763284,
+      "p50": 0.9911530179482104,
+      "p95": 1.0546016949689947,
+      "p99": 1.0682074549707805,
+      "min": 0.9053401488996259,
+      "max": 1.071608894971227
+    },
+    "round_wall_improve_ratio": {
+      "count": 6.0,
+      "mean": 0.9865676229041794,
+      "p50": 0.99097311745204,
+      "p95": 1.0007539641235415,
+      "p99": 1.0024639723864202,
+      "min": 0.9570571364797886,
+      "max": 1.0028914744521398
+    },
+    "wave_error_rate": {
+      "count": 6.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "baseline_noise_error_rate": {
+      "count": 6.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "incremental_error_rate": {
+      "count": 6.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "phase2_apply_ratio": {
+      "count": 6.0,
+      "mean": 0.20437956204379562,
+      "p50": 0.20437956204379562,
+      "p95": 0.20437956204379562,
+      "p99": 0.20437956204379562,
+      "min": 0.20437956204379562,
+      "max": 0.20437956204379562
+    }
+  },
+  "per_repeat": {
+    "phase1": [
+      {
+        "base_ttft_short_p99_ms": 270.8096191426739,
+        "wave_ttft_short_p99_ms": 263.78158579580486,
+        "ttft_improve_ratio": 1.0266433812112628,
+        "base_round_wall_ms": 1823.524168226868,
+        "wave_round_wall_ms": 1823.1335203163326,
+        "round_wall_improve_ratio": 1.0002142727925203,
+        "text_match_rate": 0.6666666666666666,
+        "mismatch_details": [
+          {
+            "req_id": "short_b",
+            "common_prefix_chars": 1,
+            "base_preview": "\n\nObserved examples: 10+20=30. 20+30=50. 30+40=70. 40+50=90. The first addend grows by 10 each step and the second addend also grows",
+            "wave_preview": "\nThe first addend grows by 10 each step and the second addend also grows by 10. Observed examples: 10+20=30. 20+30=50. 30+40=70. 40+50"
+          }
+        ],
+        "error_rate": 0.33333333333333337,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 0.33333333333333337,
+        "base_semantic_pass_rate": 0.3333333333333333,
+        "wave_semantic_pass_rate": 0.3333333333333333,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "empty"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 6.0,
+            "reason": "topic_summary"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "empty"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 6.0,
+            "reason": "topic_summary"
+          }
+        },
+        "base_texts": {
+          "short_a": "",
+          "short_b": "\n\nObserved examples: 10+20=30. 20+30=50. 30+40=70. 40+50=90. The first addend grows by 10 each step and the second addend also grows",
+          "long_b": " The serving stack must handle heterogeneous LoRA workloads, especially when handling long-tail prompt lengths, fairness constraints, and resource contention."
+        },
+        "wave_texts": {
+          "short_a": "",
+          "short_b": "\nThe first addend grows by 10 each step and the second addend also grows by 10. Observed examples: 10+20=30. 20+30=50. 30+40=70. 40+50",
+          "long_b": " The serving stack must handle heterogeneous LoRA workloads, especially when handling long-tail prompt lengths, fairness constraints, and resource contention."
+        },
+        "scheduler_apply_ratio": 0.07692307692307693,
+        "scheduler_applied": 5,
+        "scheduler_attempts": 65,
+        "baseline_chunk_avg": 1536.0,
+        "chosen_chunk_avg": 511.2,
+        "chosen_vs_baseline_ratio_avg": 0.3333333333333333,
+        "explicit_plan_ratio": 0.07692307692307693,
+        "rewrite_apply_ratio": 0.0,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": 0.0,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": 5.0,
+        "virtual_cap_helper_calls": 101.0,
+        "virtual_cap_prefill_calls": 10.0,
+        "virtual_cap_target_hits": 5.0,
+        "probe_total": 79.0,
+        "probe_slice_eligible_ratio": 0.12658227848101267,
+        "probe_best_lt_long_ratio": 0.12658227848101267,
+        "probe_short_avg": 158.73417721518987,
+        "probe_long_avg": 377.7721518987342,
+        "probe_baseline_avg": 1536.0,
+        "probe_best_avg": 598.0,
+        "probe_queue_avg": 0.5063291139240507,
+        "probe_wait_us_avg": 74715.9221504308,
+        "probe_reasons": {
+          "ingress_virtual_override": 7,
+          "candidate": 7,
+          "apply": 5,
+          "best_chunk_ge_long": 2,
+          "no_need_wave_slice": 58
+        },
+        "hook_report": {
+          "requests": {
+            "total": 3,
+            "finished": 3
+          },
+          "scheduler": {
+            "attempts": 65,
+            "applied": 5,
+            "apply_ratio": 0.07692307692307693,
+            "baseline_chunk_avg": 1536.0,
+            "chosen_chunk_avg": 511.2,
+            "chosen_vs_baseline_ratio_avg": 0.3333333333333333,
+            "explicit_plan_ratio": 0.07692307692307693,
+            "rewrite_applied": 0,
+            "rewrite_apply_ratio": 0.0,
+            "rewrite_group_count": 0,
+            "rewrite_old_chunk_avg": null,
+            "rewrite_new_chunk_avg": null,
+            "rewrite_token_delta_avg": null,
+            "virtual_cap_apply_ratio": 0.0,
+            "virtual_cap_old_avg": null,
+            "virtual_cap_new_avg": null,
+            "virtual_cap_target_set": 5.0,
+            "virtual_cap_helper_calls": 101.0,
+            "virtual_cap_prefill_calls": 10.0,
+            "virtual_cap_target_hits": 5.0,
+            "request_traces": {
+              "repeat_phase1_only_0:long_b": [
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 0,
+                  "uncached": 2,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 2,
+                  "num_computed_tokens": 0
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2,
+                  "uncached": 416,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 416,
+                  "num_computed_tokens": 2
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 418,
+                  "uncached": 512,
+                  "cached": 0,
+                  "target_chunk": 512
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 512,
+                  "num_computed_tokens": 418
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 930,
+                  "uncached": 512,
+                  "cached": 0,
+                  "target_chunk": 512
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 512,
+                  "num_computed_tokens": 930
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1442,
+                  "uncached": 510,
+                  "cached": 0,
+                  "target_chunk": 510
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 510,
+                  "num_computed_tokens": 1442
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1952,
+                  "uncached": 510,
+                  "cached": 0,
+                  "target_chunk": 510
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 510,
+                  "num_computed_tokens": 1952
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2462,
+                  "uncached": 418,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 418,
+                  "num_computed_tokens": 2462
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2880,
+                  "uncached": 1,
+                  "cached": 0,
+                  "prefill_to_decode": true
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2880
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2881,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2881
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2882,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2882
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2883,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2883
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2884,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2884
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2885,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2885
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2886,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2886
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2887,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2887
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2888,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2888
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2889,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2889
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2890,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2890
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2891,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2891
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2892,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2892
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2893,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2893
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2894,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2894
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2895,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2895
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2896,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2896
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2897,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2897
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2898,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2898
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2899,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2899
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2900,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2900
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2901,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2901
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2902,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2902
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2903,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2903
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2904,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2904
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2905,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2905
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2906,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2906
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2907,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2907
+                }
+              ]
+            },
+            "probe_total": 79.0,
+            "probe_slice_eligible_ratio": 0.12658227848101267,
+            "probe_best_lt_long_ratio": 0.12658227848101267,
+            "probe_short_avg": 158.73417721518987,
+            "probe_long_avg": 377.7721518987342,
+            "probe_baseline_avg": 1536.0,
+            "probe_best_avg": 598.0,
+            "probe_queue_avg": 0.5063291139240507,
+            "probe_wait_us_avg": 74715.9221504308,
+            "proposal_scheduler_avg": 1147.142857142857,
+            "proposal_direct_avg": 498.0,
+            "proposal_cohort_target_avg": 468.42857142857144,
+            "proposal_direct_win_ratio": 0.1076923076923077,
+            "probe_reasons": {
+              "ingress_virtual_override": 7,
+              "candidate": 7,
+              "apply": 5,
+              "best_chunk_ge_long": 2,
+              "no_need_wave_slice": 58
+            }
+          },
+          "phase2": {
+            "attempts": 0,
+            "applied": 0,
+            "apply_ratio": 0.0,
+            "v1_true_unbind_applied": 0,
+            "v1_true_unbind_ratio": 0.0,
+            "reasons": {}
+          },
+          "ttft_ms_all": {
+            "count": 3.0,
+            "p50": 244.65474020689726,
+            "p95": 447.9076589923352,
+            "p99": 465.97458510659635
+          },
+          "ttft_ms_short": {
+            "count": 0.0,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          },
+          "slowdown_all": {
+            "count": 3.0,
+            "p50": 18.201064516945973,
+            "p95": 25.252371580993426,
+            "p99": 25.879154431130978
+          },
+          "slowdown_short": {
+            "count": 0.0,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          }
+        },
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "base_ttft_short_p99_ms": 268.4291361644864,
+        "wave_ttft_short_p99_ms": 264.5012256177142,
+        "ttft_improve_ratio": 1.014850254616397,
+        "base_round_wall_ms": 1816.306124906987,
+        "wave_round_wall_ms": 1814.5324690267444,
+        "round_wall_improve_ratio": 1.0009774726605989,
+        "text_match_rate": 0.6666666666666666,
+        "mismatch_details": [
+          {
+            "req_id": "short_b",
+            "common_prefix_chars": 1,
+            "base_preview": "\n\nObserved examples: 10+20=30. 20+30=50. 30+40=70. 40+50=90. The first addend grows by 10 each step and the second addend also grows",
+            "wave_preview": "\nThe first addend grows by 10 each step and the second addend also grows by 10. Observed examples: 10+20=30. 20+30=50. 30+40=70. 40+50"
+          }
+        ],
+        "error_rate": 0.33333333333333337,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 0.33333333333333337,
+        "base_semantic_pass_rate": 0.3333333333333333,
+        "wave_semantic_pass_rate": 0.3333333333333333,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "empty"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 6.0,
+            "reason": "topic_summary"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "empty"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 6.0,
+            "reason": "topic_summary"
+          }
+        },
+        "base_texts": {
+          "short_a": "",
+          "short_b": "\n\nObserved examples: 10+20=30. 20+30=50. 30+40=70. 40+50=90. The first addend grows by 10 each step and the second addend also grows",
+          "long_b": " The serving stack must handle heterogeneous LoRA workloads, especially when handling long-tail prompt lengths, fairness constraints, and resource contention."
+        },
+        "wave_texts": {
+          "short_a": "",
+          "short_b": "\nThe first addend grows by 10 each step and the second addend also grows by 10. Observed examples: 10+20=30. 20+30=50. 30+40=70. 40+50",
+          "long_b": " The serving stack must handle heterogeneous LoRA workloads, especially when handling long-tail prompt lengths, fairness constraints, and resource contention."
+        },
+        "scheduler_apply_ratio": 0.07692307692307693,
+        "scheduler_applied": 5,
+        "scheduler_attempts": 65,
+        "baseline_chunk_avg": 1536.0,
+        "chosen_chunk_avg": 511.2,
+        "chosen_vs_baseline_ratio_avg": 0.3333333333333333,
+        "explicit_plan_ratio": 0.07692307692307693,
+        "rewrite_apply_ratio": 0.0,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": 0.0,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": 5.0,
+        "virtual_cap_helper_calls": 101.0,
+        "virtual_cap_prefill_calls": 10.0,
+        "virtual_cap_target_hits": 5.0,
+        "probe_total": 79.0,
+        "probe_slice_eligible_ratio": 0.12658227848101267,
+        "probe_best_lt_long_ratio": 0.12658227848101267,
+        "probe_short_avg": 158.73417721518987,
+        "probe_long_avg": 377.7721518987342,
+        "probe_baseline_avg": 1536.0,
+        "probe_best_avg": 598.0,
+        "probe_queue_avg": 0.5063291139240507,
+        "probe_wait_us_avg": 74632.66276106049,
+        "probe_reasons": {
+          "ingress_virtual_override": 7,
+          "candidate": 7,
+          "apply": 5,
+          "best_chunk_ge_long": 2,
+          "no_need_wave_slice": 58
+        },
+        "hook_report": {
+          "requests": {
+            "total": 3,
+            "finished": 3
+          },
+          "scheduler": {
+            "attempts": 65,
+            "applied": 5,
+            "apply_ratio": 0.07692307692307693,
+            "baseline_chunk_avg": 1536.0,
+            "chosen_chunk_avg": 511.2,
+            "chosen_vs_baseline_ratio_avg": 0.3333333333333333,
+            "explicit_plan_ratio": 0.07692307692307693,
+            "rewrite_applied": 0,
+            "rewrite_apply_ratio": 0.0,
+            "rewrite_group_count": 0,
+            "rewrite_old_chunk_avg": null,
+            "rewrite_new_chunk_avg": null,
+            "rewrite_token_delta_avg": null,
+            "virtual_cap_apply_ratio": 0.0,
+            "virtual_cap_old_avg": null,
+            "virtual_cap_new_avg": null,
+            "virtual_cap_target_set": 5.0,
+            "virtual_cap_helper_calls": 101.0,
+            "virtual_cap_prefill_calls": 10.0,
+            "virtual_cap_target_hits": 5.0,
+            "request_traces": {
+              "repeat_phase1_only_1:long_b": [
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 0,
+                  "uncached": 2,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 2,
+                  "num_computed_tokens": 0
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2,
+                  "uncached": 416,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 416,
+                  "num_computed_tokens": 2
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 418,
+                  "uncached": 512,
+                  "cached": 0,
+                  "target_chunk": 512
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 512,
+                  "num_computed_tokens": 418
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 930,
+                  "uncached": 512,
+                  "cached": 0,
+                  "target_chunk": 512
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 512,
+                  "num_computed_tokens": 930
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1442,
+                  "uncached": 510,
+                  "cached": 0,
+                  "target_chunk": 510
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 510,
+                  "num_computed_tokens": 1442
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1952,
+                  "uncached": 510,
+                  "cached": 0,
+                  "target_chunk": 510
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 510,
+                  "num_computed_tokens": 1952
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2462,
+                  "uncached": 418,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 418,
+                  "num_computed_tokens": 2462
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2880,
+                  "uncached": 1,
+                  "cached": 0,
+                  "prefill_to_decode": true
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2880
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2881,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2881
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2882,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2882
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2883,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2883
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2884,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2884
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2885,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2885
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2886,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2886
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2887,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2887
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2888,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2888
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2889,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2889
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2890,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2890
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2891,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2891
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2892,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2892
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2893,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2893
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2894,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2894
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2895,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2895
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2896,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2896
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2897,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2897
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2898,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2898
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2899,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2899
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2900,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2900
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2901,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2901
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2902,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2902
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2903,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2903
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2904,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2904
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2905,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2905
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2906,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2906
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2907,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2907
+                }
+              ]
+            },
+            "probe_total": 79.0,
+            "probe_slice_eligible_ratio": 0.12658227848101267,
+            "probe_best_lt_long_ratio": 0.12658227848101267,
+            "probe_short_avg": 158.73417721518987,
+            "probe_long_avg": 377.7721518987342,
+            "probe_baseline_avg": 1536.0,
+            "probe_best_avg": 598.0,
+            "probe_queue_avg": 0.5063291139240507,
+            "probe_wait_us_avg": 74632.66276106049,
+            "proposal_scheduler_avg": 1147.142857142857,
+            "proposal_direct_avg": 498.0,
+            "proposal_cohort_target_avg": 468.42857142857144,
+            "proposal_direct_win_ratio": 0.1076923076923077,
+            "probe_reasons": {
+              "ingress_virtual_override": 7,
+              "candidate": 7,
+              "apply": 5,
+              "best_chunk_ge_long": 2,
+              "no_need_wave_slice": 58
+            }
+          },
+          "phase2": {
+            "attempts": 0,
+            "applied": 0,
+            "apply_ratio": 0.0,
+            "v1_true_unbind_applied": 0,
+            "v1_true_unbind_ratio": 0.0,
+            "reasons": {}
+          },
+          "ttft_ms_all": {
+            "count": 3.0,
+            "p50": 245.51245430484414,
+            "p95": 446.0280694067478,
+            "p99": 463.85167963802814
+          },
+          "ttft_ms_short": {
+            "count": 0.0,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          },
+          "slowdown_all": {
+            "count": 3.0,
+            "p50": 18.196106941020478,
+            "p95": 25.135775978792545,
+            "p99": 25.75263544881673
+          },
+          "slowdown_short": {
+            "count": 0.0,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          }
+        },
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "base_ttft_short_p99_ms": 267.5372205255553,
+        "wave_ttft_short_p99_ms": 261.8711843388155,
+        "ttft_improve_ratio": 1.0216367302918252,
+        "base_round_wall_ms": 1809.1851137578487,
+        "wave_round_wall_ms": 1802.2040431387722,
+        "round_wall_improve_ratio": 1.0038736294292838,
+        "text_match_rate": 0.6666666666666666,
+        "mismatch_details": [
+          {
+            "req_id": "short_b",
+            "common_prefix_chars": 1,
+            "base_preview": "\n\nObserved examples: 10+20=30. 20+30=50. 30+40=70. 40+50=90. The first addend grows by 10 each step and the second addend also grows",
+            "wave_preview": "\nThe first addend grows by 10 each step and the second addend also grows by 10. Observed examples: 10+20=30. 20+30=50. 30+40=70. 40+50"
+          }
+        ],
+        "error_rate": 0.33333333333333337,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 0.33333333333333337,
+        "base_semantic_pass_rate": 0.3333333333333333,
+        "wave_semantic_pass_rate": 0.3333333333333333,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "empty"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 6.0,
+            "reason": "topic_summary"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "empty"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 6.0,
+            "reason": "topic_summary"
+          }
+        },
+        "base_texts": {
+          "short_a": "",
+          "short_b": "\n\nObserved examples: 10+20=30. 20+30=50. 30+40=70. 40+50=90. The first addend grows by 10 each step and the second addend also grows",
+          "long_b": " The serving stack must handle heterogeneous LoRA workloads, especially when handling long-tail prompt lengths, fairness constraints, and resource contention."
+        },
+        "wave_texts": {
+          "short_a": "",
+          "short_b": "\nThe first addend grows by 10 each step and the second addend also grows by 10. Observed examples: 10+20=30. 20+30=50. 30+40=70. 40+50",
+          "long_b": " The serving stack must handle heterogeneous LoRA workloads, especially when handling long-tail prompt lengths, fairness constraints, and resource contention."
+        },
+        "scheduler_apply_ratio": 0.07692307692307693,
+        "scheduler_applied": 5,
+        "scheduler_attempts": 65,
+        "baseline_chunk_avg": 1536.0,
+        "chosen_chunk_avg": 511.2,
+        "chosen_vs_baseline_ratio_avg": 0.3333333333333333,
+        "explicit_plan_ratio": 0.07692307692307693,
+        "rewrite_apply_ratio": 0.0,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": 0.0,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": 5.0,
+        "virtual_cap_helper_calls": 101.0,
+        "virtual_cap_prefill_calls": 10.0,
+        "virtual_cap_target_hits": 5.0,
+        "probe_total": 79.0,
+        "probe_slice_eligible_ratio": 0.12658227848101267,
+        "probe_best_lt_long_ratio": 0.12658227848101267,
+        "probe_short_avg": 158.73417721518987,
+        "probe_long_avg": 377.7721518987342,
+        "probe_baseline_avg": 1536.0,
+        "probe_best_avg": 598.0,
+        "probe_queue_avg": 0.5063291139240507,
+        "probe_wait_us_avg": 74137.32552830176,
+        "probe_reasons": {
+          "ingress_virtual_override": 7,
+          "candidate": 7,
+          "apply": 5,
+          "best_chunk_ge_long": 2,
+          "no_need_wave_slice": 58
+        },
+        "hook_report": {
+          "requests": {
+            "total": 3,
+            "finished": 3
+          },
+          "scheduler": {
+            "attempts": 65,
+            "applied": 5,
+            "apply_ratio": 0.07692307692307693,
+            "baseline_chunk_avg": 1536.0,
+            "chosen_chunk_avg": 511.2,
+            "chosen_vs_baseline_ratio_avg": 0.3333333333333333,
+            "explicit_plan_ratio": 0.07692307692307693,
+            "rewrite_applied": 0,
+            "rewrite_apply_ratio": 0.0,
+            "rewrite_group_count": 0,
+            "rewrite_old_chunk_avg": null,
+            "rewrite_new_chunk_avg": null,
+            "rewrite_token_delta_avg": null,
+            "virtual_cap_apply_ratio": 0.0,
+            "virtual_cap_old_avg": null,
+            "virtual_cap_new_avg": null,
+            "virtual_cap_target_set": 5.0,
+            "virtual_cap_helper_calls": 101.0,
+            "virtual_cap_prefill_calls": 10.0,
+            "virtual_cap_target_hits": 5.0,
+            "request_traces": {
+              "repeat_phase1_only_2:long_b": [
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 0,
+                  "uncached": 2,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 2,
+                  "num_computed_tokens": 0
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2,
+                  "uncached": 416,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 416,
+                  "num_computed_tokens": 2
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 418,
+                  "uncached": 512,
+                  "cached": 0,
+                  "target_chunk": 512
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 512,
+                  "num_computed_tokens": 418
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 930,
+                  "uncached": 512,
+                  "cached": 0,
+                  "target_chunk": 512
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 512,
+                  "num_computed_tokens": 930
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1442,
+                  "uncached": 510,
+                  "cached": 0,
+                  "target_chunk": 510
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 510,
+                  "num_computed_tokens": 1442
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1952,
+                  "uncached": 510,
+                  "cached": 0,
+                  "target_chunk": 510
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 510,
+                  "num_computed_tokens": 1952
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2462,
+                  "uncached": 418,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 418,
+                  "num_computed_tokens": 2462
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2880,
+                  "uncached": 1,
+                  "cached": 0,
+                  "prefill_to_decode": true
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2880
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2881,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2881
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2882,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2882
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2883,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2883
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2884,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2884
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2885,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2885
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2886,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2886
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2887,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2887
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2888,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2888
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2889,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2889
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2890,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2890
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2891,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2891
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2892,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2892
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2893,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2893
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2894,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2894
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2895,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2895
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2896,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2896
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2897,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2897
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2898,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2898
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2899,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2899
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2900,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2900
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2901,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2901
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2902,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2902
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2903,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2903
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2904,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2904
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2905,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2905
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2906,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2906
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2907,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2907
+                }
+              ]
+            },
+            "probe_total": 79.0,
+            "probe_slice_eligible_ratio": 0.12658227848101267,
+            "probe_best_lt_long_ratio": 0.12658227848101267,
+            "probe_short_avg": 158.73417721518987,
+            "probe_long_avg": 377.7721518987342,
+            "probe_baseline_avg": 1536.0,
+            "probe_best_avg": 598.0,
+            "probe_queue_avg": 0.5063291139240507,
+            "probe_wait_us_avg": 74137.32552830176,
+            "proposal_scheduler_avg": 1147.142857142857,
+            "proposal_direct_avg": 498.0,
+            "proposal_cohort_target_avg": 468.42857142857144,
+            "proposal_direct_win_ratio": 0.1076923076923077,
+            "probe_reasons": {
+              "ingress_virtual_override": 7,
+              "candidate": 7,
+              "apply": 5,
+              "best_chunk_ge_long": 2,
+              "no_need_wave_slice": 58
+            }
+          },
+          "phase2": {
+            "attempts": 0,
+            "applied": 0,
+            "apply_ratio": 0.0,
+            "v1_true_unbind_applied": 0,
+            "v1_true_unbind_ratio": 0.0,
+            "reasons": {}
+          },
+          "ttft_ms_all": {
+            "count": 3.0,
+            "p50": 242.68369702622294,
+            "p95": 444.7584324516356,
+            "p99": 462.7206311561167
+          },
+          "ttft_ms_short": {
+            "count": 0.0,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          },
+          "slowdown_all": {
+            "count": 3.0,
+            "p50": 18.22867172152003,
+            "p95": 24.989797293959597,
+            "p99": 25.590786233732004
+          },
+          "slowdown_short": {
+            "count": 0.0,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          }
+        },
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "base_ttft_short_p99_ms": 266.49526512250304,
+        "wave_ttft_short_p99_ms": 262.92225507088006,
+        "ttft_improve_ratio": 1.0135896067476666,
+        "base_round_wall_ms": 1802.0109361968935,
+        "wave_round_wall_ms": 1803.0909337103367,
+        "round_wall_improve_ratio": 0.9994010299240866,
+        "text_match_rate": 0.6666666666666666,
+        "mismatch_details": [
+          {
+            "req_id": "short_b",
+            "common_prefix_chars": 1,
+            "base_preview": "\n\nObserved examples: 10+20=30. 20+30=50. 30+40=70. 40+50=90. The first addend grows by 10 each step and the second addend also grows",
+            "wave_preview": "\nThe first addend grows by 10 each step and the second addend also grows by 10. Observed examples: 10+20=30. 20+30=50. 30+40=70. 40+50"
+          }
+        ],
+        "error_rate": 0.33333333333333337,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 0.33333333333333337,
+        "base_semantic_pass_rate": 0.3333333333333333,
+        "wave_semantic_pass_rate": 0.3333333333333333,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "empty"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 6.0,
+            "reason": "topic_summary"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "empty"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 6.0,
+            "reason": "topic_summary"
+          }
+        },
+        "base_texts": {
+          "short_a": "",
+          "short_b": "\n\nObserved examples: 10+20=30. 20+30=50. 30+40=70. 40+50=90. The first addend grows by 10 each step and the second addend also grows",
+          "long_b": " The serving stack must handle heterogeneous LoRA workloads, especially when handling long-tail prompt lengths, fairness constraints, and resource contention."
+        },
+        "wave_texts": {
+          "short_a": "",
+          "short_b": "\nThe first addend grows by 10 each step and the second addend also grows by 10. Observed examples: 10+20=30. 20+30=50. 30+40=70. 40+50",
+          "long_b": " The serving stack must handle heterogeneous LoRA workloads, especially when handling long-tail prompt lengths, fairness constraints, and resource contention."
+        },
+        "scheduler_apply_ratio": 0.07692307692307693,
+        "scheduler_applied": 5,
+        "scheduler_attempts": 65,
+        "baseline_chunk_avg": 1536.0,
+        "chosen_chunk_avg": 511.2,
+        "chosen_vs_baseline_ratio_avg": 0.3333333333333333,
+        "explicit_plan_ratio": 0.07692307692307693,
+        "rewrite_apply_ratio": 0.0,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": 0.0,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": 5.0,
+        "virtual_cap_helper_calls": 101.0,
+        "virtual_cap_prefill_calls": 10.0,
+        "virtual_cap_target_hits": 5.0,
+        "probe_total": 79.0,
+        "probe_slice_eligible_ratio": 0.12658227848101267,
+        "probe_best_lt_long_ratio": 0.12658227848101267,
+        "probe_short_avg": 158.73417721518987,
+        "probe_long_avg": 377.7721518987342,
+        "probe_baseline_avg": 1536.0,
+        "probe_best_avg": 598.0,
+        "probe_queue_avg": 0.5063291139240507,
+        "probe_wait_us_avg": 74605.09372662894,
+        "probe_reasons": {
+          "ingress_virtual_override": 7,
+          "candidate": 7,
+          "apply": 5,
+          "best_chunk_ge_long": 2,
+          "no_need_wave_slice": 58
+        },
+        "hook_report": {
+          "requests": {
+            "total": 3,
+            "finished": 3
+          },
+          "scheduler": {
+            "attempts": 65,
+            "applied": 5,
+            "apply_ratio": 0.07692307692307693,
+            "baseline_chunk_avg": 1536.0,
+            "chosen_chunk_avg": 511.2,
+            "chosen_vs_baseline_ratio_avg": 0.3333333333333333,
+            "explicit_plan_ratio": 0.07692307692307693,
+            "rewrite_applied": 0,
+            "rewrite_apply_ratio": 0.0,
+            "rewrite_group_count": 0,
+            "rewrite_old_chunk_avg": null,
+            "rewrite_new_chunk_avg": null,
+            "rewrite_token_delta_avg": null,
+            "virtual_cap_apply_ratio": 0.0,
+            "virtual_cap_old_avg": null,
+            "virtual_cap_new_avg": null,
+            "virtual_cap_target_set": 5.0,
+            "virtual_cap_helper_calls": 101.0,
+            "virtual_cap_prefill_calls": 10.0,
+            "virtual_cap_target_hits": 5.0,
+            "request_traces": {
+              "repeat_phase1_only_3:long_b": [
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 0,
+                  "uncached": 2,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 2,
+                  "num_computed_tokens": 0
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2,
+                  "uncached": 416,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 416,
+                  "num_computed_tokens": 2
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 418,
+                  "uncached": 512,
+                  "cached": 0,
+                  "target_chunk": 512
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 512,
+                  "num_computed_tokens": 418
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 930,
+                  "uncached": 512,
+                  "cached": 0,
+                  "target_chunk": 512
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 512,
+                  "num_computed_tokens": 930
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1442,
+                  "uncached": 510,
+                  "cached": 0,
+                  "target_chunk": 510
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 510,
+                  "num_computed_tokens": 1442
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1952,
+                  "uncached": 510,
+                  "cached": 0,
+                  "target_chunk": 510
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 510,
+                  "num_computed_tokens": 1952
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2462,
+                  "uncached": 418,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 418,
+                  "num_computed_tokens": 2462
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2880,
+                  "uncached": 1,
+                  "cached": 0,
+                  "prefill_to_decode": true
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2880
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2881,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2881
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2882,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2882
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2883,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2883
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2884,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2884
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2885,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2885
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2886,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2886
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2887,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2887
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2888,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2888
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2889,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2889
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2890,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2890
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2891,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2891
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2892,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2892
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2893,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2893
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2894,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2894
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2895,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2895
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2896,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2896
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2897,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2897
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2898,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2898
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2899,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2899
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2900,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2900
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2901,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2901
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2902,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2902
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2903,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2903
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2904,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2904
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2905,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2905
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2906,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2906
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2907,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2907
+                }
+              ]
+            },
+            "probe_total": 79.0,
+            "probe_slice_eligible_ratio": 0.12658227848101267,
+            "probe_best_lt_long_ratio": 0.12658227848101267,
+            "probe_short_avg": 158.73417721518987,
+            "probe_long_avg": 377.7721518987342,
+            "probe_baseline_avg": 1536.0,
+            "probe_best_avg": 598.0,
+            "probe_queue_avg": 0.5063291139240507,
+            "probe_wait_us_avg": 74605.09372662894,
+            "proposal_scheduler_avg": 1147.142857142857,
+            "proposal_direct_avg": 498.0,
+            "proposal_cohort_target_avg": 468.42857142857144,
+            "proposal_direct_win_ratio": 0.1076923076923077,
+            "probe_reasons": {
+              "ingress_virtual_override": 7,
+              "candidate": 7,
+              "apply": 5,
+              "best_chunk_ge_long": 2,
+              "no_need_wave_slice": 58
+            }
+          },
+          "phase2": {
+            "attempts": 0,
+            "applied": 0,
+            "apply_ratio": 0.0,
+            "v1_true_unbind_applied": 0,
+            "v1_true_unbind_ratio": 0.0,
+            "reasons": {}
+          },
+          "ttft_ms_all": {
+            "count": 3.0,
+            "p50": 244.3172698840499,
+            "p95": 446.9705137889832,
+            "p99": 464.98413546942174
+          },
+          "ttft_ms_short": {
+            "count": 0.0,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          },
+          "slowdown_all": {
+            "count": 3.0,
+            "p50": 18.193274068140468,
+            "p95": 24.99189257491401,
+            "p99": 25.596214219960547
+          },
+          "slowdown_short": {
+            "count": 0.0,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          }
+        },
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "base_ttft_short_p99_ms": 268.61350066494197,
+        "wave_ttft_short_p99_ms": 262.31447979807854,
+        "ttft_improve_ratio": 1.0240132411741518,
+        "base_round_wall_ms": 1817.2645177692175,
+        "wave_round_wall_ms": 1830.771481152624,
+        "round_wall_improve_ratio": 0.9926222559601471,
+        "text_match_rate": 0.6666666666666666,
+        "mismatch_details": [
+          {
+            "req_id": "short_b",
+            "common_prefix_chars": 1,
+            "base_preview": "\n\nObserved examples: 10+20=30. 20+30=50. 30+40=70. 40+50=90. The first addend grows by 10 each step and the second addend also grows",
+            "wave_preview": "\nThe first addend grows by 10 each step and the second addend also grows by 10. Observed examples: 10+20=30. 20+30=50. 30+40=70. 40+50"
+          }
+        ],
+        "error_rate": 0.33333333333333337,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 0.33333333333333337,
+        "base_semantic_pass_rate": 0.3333333333333333,
+        "wave_semantic_pass_rate": 0.3333333333333333,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "empty"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 6.0,
+            "reason": "topic_summary"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "empty"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 6.0,
+            "reason": "topic_summary"
+          }
+        },
+        "base_texts": {
+          "short_a": "",
+          "short_b": "\n\nObserved examples: 10+20=30. 20+30=50. 30+40=70. 40+50=90. The first addend grows by 10 each step and the second addend also grows",
+          "long_b": " The serving stack must handle heterogeneous LoRA workloads, especially when handling long-tail prompt lengths, fairness constraints, and resource contention."
+        },
+        "wave_texts": {
+          "short_a": "",
+          "short_b": "\nThe first addend grows by 10 each step and the second addend also grows by 10. Observed examples: 10+20=30. 20+30=50. 30+40=70. 40+50",
+          "long_b": " The serving stack must handle heterogeneous LoRA workloads, especially when handling long-tail prompt lengths, fairness constraints, and resource contention."
+        },
+        "scheduler_apply_ratio": 0.07692307692307693,
+        "scheduler_applied": 5,
+        "scheduler_attempts": 65,
+        "baseline_chunk_avg": 1536.0,
+        "chosen_chunk_avg": 511.2,
+        "chosen_vs_baseline_ratio_avg": 0.3333333333333333,
+        "explicit_plan_ratio": 0.07692307692307693,
+        "rewrite_apply_ratio": 0.0,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": 0.0,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": 5.0,
+        "virtual_cap_helper_calls": 101.0,
+        "virtual_cap_prefill_calls": 10.0,
+        "virtual_cap_target_hits": 5.0,
+        "probe_total": 79.0,
+        "probe_slice_eligible_ratio": 0.12658227848101267,
+        "probe_best_lt_long_ratio": 0.12658227848101267,
+        "probe_short_avg": 158.73417721518987,
+        "probe_long_avg": 377.7721518987342,
+        "probe_baseline_avg": 1536.0,
+        "probe_best_avg": 598.0,
+        "probe_queue_avg": 0.5063291139240507,
+        "probe_wait_us_avg": 74853.70394549792,
+        "probe_reasons": {
+          "ingress_virtual_override": 7,
+          "candidate": 7,
+          "apply": 5,
+          "best_chunk_ge_long": 2,
+          "no_need_wave_slice": 58
+        },
+        "hook_report": {
+          "requests": {
+            "total": 3,
+            "finished": 3
+          },
+          "scheduler": {
+            "attempts": 65,
+            "applied": 5,
+            "apply_ratio": 0.07692307692307693,
+            "baseline_chunk_avg": 1536.0,
+            "chosen_chunk_avg": 511.2,
+            "chosen_vs_baseline_ratio_avg": 0.3333333333333333,
+            "explicit_plan_ratio": 0.07692307692307693,
+            "rewrite_applied": 0,
+            "rewrite_apply_ratio": 0.0,
+            "rewrite_group_count": 0,
+            "rewrite_old_chunk_avg": null,
+            "rewrite_new_chunk_avg": null,
+            "rewrite_token_delta_avg": null,
+            "virtual_cap_apply_ratio": 0.0,
+            "virtual_cap_old_avg": null,
+            "virtual_cap_new_avg": null,
+            "virtual_cap_target_set": 5.0,
+            "virtual_cap_helper_calls": 101.0,
+            "virtual_cap_prefill_calls": 10.0,
+            "virtual_cap_target_hits": 5.0,
+            "request_traces": {
+              "repeat_phase1_only_4:long_b": [
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 0,
+                  "uncached": 2,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 2,
+                  "num_computed_tokens": 0
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2,
+                  "uncached": 416,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 416,
+                  "num_computed_tokens": 2
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 418,
+                  "uncached": 512,
+                  "cached": 0,
+                  "target_chunk": 512
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 512,
+                  "num_computed_tokens": 418
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 930,
+                  "uncached": 512,
+                  "cached": 0,
+                  "target_chunk": 512
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 512,
+                  "num_computed_tokens": 930
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1442,
+                  "uncached": 510,
+                  "cached": 0,
+                  "target_chunk": 510
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 510,
+                  "num_computed_tokens": 1442
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1952,
+                  "uncached": 510,
+                  "cached": 0,
+                  "target_chunk": 510
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 510,
+                  "num_computed_tokens": 1952
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2462,
+                  "uncached": 418,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 418,
+                  "num_computed_tokens": 2462
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2880,
+                  "uncached": 1,
+                  "cached": 0,
+                  "prefill_to_decode": true
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2880
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2881,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2881
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2882,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2882
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2883,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2883
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2884,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2884
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2885,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2885
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2886,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2886
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2887,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2887
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2888,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2888
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2889,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2889
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2890,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2890
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2891,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2891
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2892,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2892
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2893,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2893
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2894,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2894
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2895,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2895
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2896,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2896
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2897,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2897
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2898,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2898
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2899,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2899
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2900,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2900
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2901,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2901
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2902,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2902
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2903,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2903
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2904,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2904
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2905,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2905
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2906,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2906
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2907,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2907
+                }
+              ]
+            },
+            "probe_total": 79.0,
+            "probe_slice_eligible_ratio": 0.12658227848101267,
+            "probe_best_lt_long_ratio": 0.12658227848101267,
+            "probe_short_avg": 158.73417721518987,
+            "probe_long_avg": 377.7721518987342,
+            "probe_baseline_avg": 1536.0,
+            "probe_best_avg": 598.0,
+            "probe_queue_avg": 0.5063291139240507,
+            "probe_wait_us_avg": 74853.70394549792,
+            "proposal_scheduler_avg": 1147.142857142857,
+            "proposal_direct_avg": 498.0,
+            "proposal_cohort_target_avg": 468.42857142857144,
+            "proposal_direct_win_ratio": 0.1076923076923077,
+            "probe_reasons": {
+              "ingress_virtual_override": 7,
+              "candidate": 7,
+              "apply": 5,
+              "best_chunk_ge_long": 2,
+              "no_need_wave_slice": 58
+            }
+          },
+          "phase2": {
+            "attempts": 0,
+            "applied": 0,
+            "apply_ratio": 0.0,
+            "v1_true_unbind_applied": 0,
+            "v1_true_unbind_ratio": 0.0,
+            "reasons": {}
+          },
+          "ttft_ms_all": {
+            "count": 3.0,
+            "p50": 244.2256072536111,
+            "p95": 450.21742857061327,
+            "p99": 468.5278126876801
+          },
+          "ttft_ms_short": {
+            "count": 0.0,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          },
+          "slowdown_all": {
+            "count": 3.0,
+            "p50": 18.08942302957991,
+            "p95": 25.3271200816028,
+            "p99": 25.970470930671503
+          },
+          "slowdown_short": {
+            "count": 0.0,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          }
+        },
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "base_ttft_short_p99_ms": 267.0717224664986,
+        "wave_ttft_short_p99_ms": 266.01466563530266,
+        "ttft_improve_ratio": 1.003973678776963,
+        "base_round_wall_ms": 1808.65320796147,
+        "wave_round_wall_ms": 1803.8247558288276,
+        "round_wall_improve_ratio": 1.0026767856007297,
+        "text_match_rate": 0.6666666666666666,
+        "mismatch_details": [
+          {
+            "req_id": "short_b",
+            "common_prefix_chars": 1,
+            "base_preview": "\n\nObserved examples: 10+20=30. 20+30=50. 30+40=70. 40+50=90. The first addend grows by 10 each step and the second addend also grows",
+            "wave_preview": "\nThe first addend grows by 10 each step and the second addend also grows by 10. Observed examples: 10+20=30. 20+30=50. 30+40=70. 40+50"
+          }
+        ],
+        "error_rate": 0.33333333333333337,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 0.33333333333333337,
+        "base_semantic_pass_rate": 0.3333333333333333,
+        "wave_semantic_pass_rate": 0.3333333333333333,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "empty"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 6.0,
+            "reason": "topic_summary"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "empty"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 6.0,
+            "reason": "topic_summary"
+          }
+        },
+        "base_texts": {
+          "short_a": "",
+          "short_b": "\n\nObserved examples: 10+20=30. 20+30=50. 30+40=70. 40+50=90. The first addend grows by 10 each step and the second addend also grows",
+          "long_b": " The serving stack must handle heterogeneous LoRA workloads, especially when handling long-tail prompt lengths, fairness constraints, and resource contention."
+        },
+        "wave_texts": {
+          "short_a": "",
+          "short_b": "\nThe first addend grows by 10 each step and the second addend also grows by 10. Observed examples: 10+20=30. 20+30=50. 30+40=70. 40+50",
+          "long_b": " The serving stack must handle heterogeneous LoRA workloads, especially when handling long-tail prompt lengths, fairness constraints, and resource contention."
+        },
+        "scheduler_apply_ratio": 0.07692307692307693,
+        "scheduler_applied": 5,
+        "scheduler_attempts": 65,
+        "baseline_chunk_avg": 1536.0,
+        "chosen_chunk_avg": 511.2,
+        "chosen_vs_baseline_ratio_avg": 0.3333333333333333,
+        "explicit_plan_ratio": 0.07692307692307693,
+        "rewrite_apply_ratio": 0.0,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": 0.0,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": 5.0,
+        "virtual_cap_helper_calls": 101.0,
+        "virtual_cap_prefill_calls": 10.0,
+        "virtual_cap_target_hits": 5.0,
+        "probe_total": 79.0,
+        "probe_slice_eligible_ratio": 0.12658227848101267,
+        "probe_best_lt_long_ratio": 0.12658227848101267,
+        "probe_short_avg": 158.73417721518987,
+        "probe_long_avg": 377.7721518987342,
+        "probe_baseline_avg": 1536.0,
+        "probe_best_avg": 598.0,
+        "probe_queue_avg": 0.5063291139240507,
+        "probe_wait_us_avg": 75020.07786231705,
+        "probe_reasons": {
+          "ingress_virtual_override": 7,
+          "candidate": 7,
+          "apply": 5,
+          "best_chunk_ge_long": 2,
+          "no_need_wave_slice": 58
+        },
+        "hook_report": {
+          "requests": {
+            "total": 3,
+            "finished": 3
+          },
+          "scheduler": {
+            "attempts": 65,
+            "applied": 5,
+            "apply_ratio": 0.07692307692307693,
+            "baseline_chunk_avg": 1536.0,
+            "chosen_chunk_avg": 511.2,
+            "chosen_vs_baseline_ratio_avg": 0.3333333333333333,
+            "explicit_plan_ratio": 0.07692307692307693,
+            "rewrite_applied": 0,
+            "rewrite_apply_ratio": 0.0,
+            "rewrite_group_count": 0,
+            "rewrite_old_chunk_avg": null,
+            "rewrite_new_chunk_avg": null,
+            "rewrite_token_delta_avg": null,
+            "virtual_cap_apply_ratio": 0.0,
+            "virtual_cap_old_avg": null,
+            "virtual_cap_new_avg": null,
+            "virtual_cap_target_set": 5.0,
+            "virtual_cap_helper_calls": 101.0,
+            "virtual_cap_prefill_calls": 10.0,
+            "virtual_cap_target_hits": 5.0,
+            "request_traces": {
+              "repeat_phase1_only_5:long_b": [
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 0,
+                  "uncached": 2,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 2,
+                  "num_computed_tokens": 0
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2,
+                  "uncached": 416,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 416,
+                  "num_computed_tokens": 2
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 418,
+                  "uncached": 512,
+                  "cached": 0,
+                  "target_chunk": 512
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 512,
+                  "num_computed_tokens": 418
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 930,
+                  "uncached": 512,
+                  "cached": 0,
+                  "target_chunk": 512
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 512,
+                  "num_computed_tokens": 930
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1442,
+                  "uncached": 510,
+                  "cached": 0,
+                  "target_chunk": 510
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 510,
+                  "num_computed_tokens": 1442
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1952,
+                  "uncached": 510,
+                  "cached": 0,
+                  "target_chunk": 510
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 510,
+                  "num_computed_tokens": 1952
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2462,
+                  "uncached": 418,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 418,
+                  "num_computed_tokens": 2462
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2880,
+                  "uncached": 1,
+                  "cached": 0,
+                  "prefill_to_decode": true
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2880
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2881,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2881
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2882,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2882
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2883,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2883
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2884,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2884
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2885,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2885
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2886,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2886
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2887,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2887
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2888,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2888
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2889,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2889
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2890,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2890
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2891,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2891
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2892,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2892
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2893,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2893
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2894,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2894
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2895,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2895
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2896,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2896
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2897,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2897
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2898,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2898
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2899,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2899
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2900,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2900
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2901,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2901
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2902,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2902
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2903,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2903
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2904,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2904
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2905,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2905
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2906,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2906
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2907,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2907
+                }
+              ]
+            },
+            "probe_total": 79.0,
+            "probe_slice_eligible_ratio": 0.12658227848101267,
+            "probe_best_lt_long_ratio": 0.12658227848101267,
+            "probe_short_avg": 158.73417721518987,
+            "probe_long_avg": 377.7721518987342,
+            "probe_baseline_avg": 1536.0,
+            "probe_best_avg": 598.0,
+            "probe_queue_avg": 0.5063291139240507,
+            "probe_wait_us_avg": 75020.07786231705,
+            "proposal_scheduler_avg": 1147.142857142857,
+            "proposal_direct_avg": 498.0,
+            "proposal_cohort_target_avg": 468.42857142857144,
+            "proposal_direct_win_ratio": 0.1076923076923077,
+            "probe_reasons": {
+              "ingress_virtual_override": 7,
+              "candidate": 7,
+              "apply": 5,
+              "best_chunk_ge_long": 2,
+              "no_need_wave_slice": 58
+            }
+          },
+          "phase2": {
+            "attempts": 0,
+            "applied": 0,
+            "apply_ratio": 0.0,
+            "v1_true_unbind_applied": 0,
+            "v1_true_unbind_ratio": 0.0,
+            "reasons": {}
+          },
+          "ttft_ms_all": {
+            "count": 3.0,
+            "p50": 246.53796572238207,
+            "p95": 447.8319180663675,
+            "p99": 465.7247138302773
+          },
+          "ttft_ms_short": {
+            "count": 0.0,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          },
+          "slowdown_all": {
+            "count": 3.0,
+            "p50": 18.324372516871588,
+            "p95": 25.023618233542525,
+            "p99": 25.619106741691056
+          },
+          "slowdown_short": {
+            "count": 0.0,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          }
+        },
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      }
+    ],
+    "phase2": [
+      {
+        "repeat_index": 0,
+        "base_ttft_short_p99_ms": 5532.98265314661,
+        "wave_ttft_short_p99_ms": 5473.810961926356,
+        "ttft_improve_ratio": 1.0108099624981257,
+        "base_slowdown_short_p99": 3713.1516470122124,
+        "wave_slowdown_short_p99": 3465.025033327958,
+        "slowdown_improve_ratio": 1.071608894971227,
+        "base_round_wall_ms": 9897.044811863452,
+        "wave_round_wall_ms": 9989.959701895714,
+        "round_wall_improve_ratio": 0.9906991726888918,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "wave_match_rate": 1.0,
+        "wave_error_rate": 0.0,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.20437956204379562,
+        "phase2_applied": 28,
+        "phase2_attempts": 137,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "repeat_index": 1,
+        "base_ttft_short_p99_ms": 5939.3523968802765,
+        "wave_ttft_short_p99_ms": 6033.914572331123,
+        "ttft_improve_ratio": 0.9843282210383841,
+        "base_slowdown_short_p99": 3591.6855079779616,
+        "wave_slowdown_short_p99": 3735.134678560204,
+        "slowdown_improve_ratio": 0.9615946457284003,
+        "base_round_wall_ms": 10844.080639071763,
+        "wave_round_wall_ms": 11029.716745018959,
+        "round_wall_improve_ratio": 0.9831694584513215,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "wave_match_rate": 1.0,
+        "wave_error_rate": 0.0,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.20437956204379562,
+        "phase2_applied": 28,
+        "phase2_attempts": 137,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "repeat_index": 2,
+        "base_ttft_short_p99_ms": 6055.0475775823,
+        "wave_ttft_short_p99_ms": 6099.479586407542,
+        "ttft_improve_ratio": 0.9927154426544426,
+        "base_slowdown_short_p99": 3821.3431349842544,
+        "wave_slowdown_short_p99": 3860.4258993212297,
+        "slowdown_improve_ratio": 0.9898760485614172,
+        "base_round_wall_ms": 10966.40529576689,
+        "wave_round_wall_ms": 11028.81256910041,
+        "round_wall_improve_ratio": 0.9943414331377463,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "wave_match_rate": 1.0,
+        "wave_error_rate": 0.0,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.20437956204379562,
+        "phase2_applied": 28,
+        "phase2_attempts": 137,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "repeat_index": 3,
+        "base_ttft_short_p99_ms": 6079.998827674426,
+        "wave_ttft_short_p99_ms": 6073.181971730664,
+        "ttft_improve_ratio": 1.001122452114146,
+        "base_slowdown_short_p99": 3856.7768467512906,
+        "wave_slowdown_short_p99": 3843.0184756665417,
+        "slowdown_improve_ratio": 1.0035800949622973,
+        "base_round_wall_ms": 11027.374306228012,
+        "wave_round_wall_ms": 10995.580865070224,
+        "round_wall_improve_ratio": 1.0028914744521398,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "wave_match_rate": 1.0,
+        "wave_error_rate": 0.0,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.20437956204379562,
+        "phase2_applied": 28,
+        "phase2_attempts": 137,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "repeat_index": 4,
+        "base_ttft_short_p99_ms": 6042.321073147468,
+        "wave_ttft_short_p99_ms": 6051.269310936332,
+        "ttft_improve_ratio": 0.9985212626758007,
+        "base_slowdown_short_p99": 3805.1705670180704,
+        "wave_slowdown_short_p99": 3834.195475326362,
+        "slowdown_improve_ratio": 0.9924299873350038,
+        "base_round_wall_ms": 10883.572979830205,
+        "wave_round_wall_ms": 10979.677413124591,
+        "round_wall_improve_ratio": 0.991247062215188,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "wave_match_rate": 1.0,
+        "wave_error_rate": 0.0,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.20437956204379562,
+        "phase2_applied": 28,
+        "phase2_attempts": 137,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "repeat_index": 5,
+        "base_ttft_short_p99_ms": 5555.88084186893,
+        "wave_ttft_short_p99_ms": 6053.191307042725,
+        "ttft_improve_ratio": 0.9178432598693538,
+        "base_slowdown_short_p99": 3486.0067252229283,
+        "wave_slowdown_short_p99": 3850.4939049261343,
+        "slowdown_improve_ratio": 0.9053401488996259,
+        "base_round_wall_ms": 10493.97790711373,
+        "wave_round_wall_ms": 10964.83951387927,
+        "round_wall_improve_ratio": 0.9570571364797886,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "wave_match_rate": 1.0,
+        "wave_error_rate": 0.0,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.20437956204379562,
+        "phase2_applied": 28,
+        "phase2_attempts": 137,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      }
+    ],
+    "phase1_chunked_vs_no_chunk": [
+      {
+        "base_ttft_short_p99_ms": 198.72331619262695,
+        "wave_ttft_short_p99_ms": 270.8096191426739,
+        "ttft_improve_ratio": 0.7338118816522952,
+        "base_round_wall_ms": 1612.3778549954295,
+        "wave_round_wall_ms": 1823.524168226868,
+        "round_wall_improve_ratio": 0.8842097533389153,
+        "text_match_rate": 1.0,
+        "mismatch_details": [],
+        "error_rate": 0.0,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 0.0,
+        "base_semantic_pass_rate": 0.3333333333333333,
+        "wave_semantic_pass_rate": 0.3333333333333333,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "empty"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 6.0,
+            "reason": "topic_summary"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "empty"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 6.0,
+            "reason": "topic_summary"
+          }
+        },
+        "base_texts": {
+          "short_a": "",
+          "short_b": "\n\nObserved examples: 10+20=30. 20+30=50. 30+40=70. 40+50=90. The first addend grows by 10 each step and the second addend also grows",
+          "long_b": " The serving stack must handle heterogeneous LoRA workloads, especially when handling long-tail prompt lengths, fairness constraints, and resource contention."
+        },
+        "wave_texts": {
+          "short_a": "",
+          "short_b": "\n\nObserved examples: 10+20=30. 20+30=50. 30+40=70. 40+50=90. The first addend grows by 10 each step and the second addend also grows",
+          "long_b": " The serving stack must handle heterogeneous LoRA workloads, especially when handling long-tail prompt lengths, fairness constraints, and resource contention."
+        },
+        "scheduler_apply_ratio": null,
+        "scheduler_applied": null,
+        "scheduler_attempts": null,
+        "baseline_chunk_avg": null,
+        "chosen_chunk_avg": null,
+        "chosen_vs_baseline_ratio_avg": null,
+        "explicit_plan_ratio": null,
+        "rewrite_apply_ratio": null,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": null,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": null,
+        "virtual_cap_helper_calls": null,
+        "virtual_cap_prefill_calls": null,
+        "virtual_cap_target_hits": null,
+        "probe_total": null,
+        "probe_slice_eligible_ratio": null,
+        "probe_best_lt_long_ratio": null,
+        "probe_short_avg": null,
+        "probe_long_avg": null,
+        "probe_baseline_avg": null,
+        "probe_best_avg": null,
+        "probe_queue_avg": null,
+        "probe_wait_us_avg": null,
+        "probe_reasons": null,
+        "hook_report": {},
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "base_ttft_short_p99_ms": 199.08655574545264,
+        "wave_ttft_short_p99_ms": 268.4291361644864,
+        "ttft_improve_ratio": 0.7416726760371406,
+        "base_round_wall_ms": 1622.1333886496723,
+        "wave_round_wall_ms": 1816.306124906987,
+        "round_wall_improve_ratio": 0.8930947082132104,
+        "text_match_rate": 1.0,
+        "mismatch_details": [],
+        "error_rate": 0.0,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 0.0,
+        "base_semantic_pass_rate": 0.3333333333333333,
+        "wave_semantic_pass_rate": 0.3333333333333333,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "empty"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 6.0,
+            "reason": "topic_summary"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "empty"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 6.0,
+            "reason": "topic_summary"
+          }
+        },
+        "base_texts": {
+          "short_a": "",
+          "short_b": "\n\nObserved examples: 10+20=30. 20+30=50. 30+40=70. 40+50=90. The first addend grows by 10 each step and the second addend also grows",
+          "long_b": " The serving stack must handle heterogeneous LoRA workloads, especially when handling long-tail prompt lengths, fairness constraints, and resource contention."
+        },
+        "wave_texts": {
+          "short_a": "",
+          "short_b": "\n\nObserved examples: 10+20=30. 20+30=50. 30+40=70. 40+50=90. The first addend grows by 10 each step and the second addend also grows",
+          "long_b": " The serving stack must handle heterogeneous LoRA workloads, especially when handling long-tail prompt lengths, fairness constraints, and resource contention."
+        },
+        "scheduler_apply_ratio": null,
+        "scheduler_applied": null,
+        "scheduler_attempts": null,
+        "baseline_chunk_avg": null,
+        "chosen_chunk_avg": null,
+        "chosen_vs_baseline_ratio_avg": null,
+        "explicit_plan_ratio": null,
+        "rewrite_apply_ratio": null,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": null,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": null,
+        "virtual_cap_helper_calls": null,
+        "virtual_cap_prefill_calls": null,
+        "virtual_cap_target_hits": null,
+        "probe_total": null,
+        "probe_slice_eligible_ratio": null,
+        "probe_best_lt_long_ratio": null,
+        "probe_short_avg": null,
+        "probe_long_avg": null,
+        "probe_baseline_avg": null,
+        "probe_best_avg": null,
+        "probe_queue_avg": null,
+        "probe_wait_us_avg": null,
+        "probe_reasons": null,
+        "hook_report": {},
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "base_ttft_short_p99_ms": 197.01149594038725,
+        "wave_ttft_short_p99_ms": 267.5372205255553,
+        "ttft_improve_ratio": 0.7363891108436204,
+        "base_round_wall_ms": 1630.0657573156059,
+        "wave_round_wall_ms": 1809.1851137578487,
+        "round_wall_improve_ratio": 0.9009944559679717,
+        "text_match_rate": 1.0,
+        "mismatch_details": [],
+        "error_rate": 0.0,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 0.0,
+        "base_semantic_pass_rate": 0.3333333333333333,
+        "wave_semantic_pass_rate": 0.3333333333333333,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "empty"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 6.0,
+            "reason": "topic_summary"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "empty"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 6.0,
+            "reason": "topic_summary"
+          }
+        },
+        "base_texts": {
+          "short_a": "",
+          "short_b": "\n\nObserved examples: 10+20=30. 20+30=50. 30+40=70. 40+50=90. The first addend grows by 10 each step and the second addend also grows",
+          "long_b": " The serving stack must handle heterogeneous LoRA workloads, especially when handling long-tail prompt lengths, fairness constraints, and resource contention."
+        },
+        "wave_texts": {
+          "short_a": "",
+          "short_b": "\n\nObserved examples: 10+20=30. 20+30=50. 30+40=70. 40+50=90. The first addend grows by 10 each step and the second addend also grows",
+          "long_b": " The serving stack must handle heterogeneous LoRA workloads, especially when handling long-tail prompt lengths, fairness constraints, and resource contention."
+        },
+        "scheduler_apply_ratio": null,
+        "scheduler_applied": null,
+        "scheduler_attempts": null,
+        "baseline_chunk_avg": null,
+        "chosen_chunk_avg": null,
+        "chosen_vs_baseline_ratio_avg": null,
+        "explicit_plan_ratio": null,
+        "rewrite_apply_ratio": null,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": null,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": null,
+        "virtual_cap_helper_calls": null,
+        "virtual_cap_prefill_calls": null,
+        "virtual_cap_target_hits": null,
+        "probe_total": null,
+        "probe_slice_eligible_ratio": null,
+        "probe_best_lt_long_ratio": null,
+        "probe_short_avg": null,
+        "probe_long_avg": null,
+        "probe_baseline_avg": null,
+        "probe_best_avg": null,
+        "probe_queue_avg": null,
+        "probe_wait_us_avg": null,
+        "probe_reasons": null,
+        "hook_report": {},
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "base_ttft_short_p99_ms": 195.0727947987616,
+        "wave_ttft_short_p99_ms": 266.49526512250304,
+        "ttft_improve_ratio": 0.7319934735391647,
+        "base_round_wall_ms": 1614.9925799109042,
+        "wave_round_wall_ms": 1802.0109361968935,
+        "round_wall_improve_ratio": 0.8962168583279035,
+        "text_match_rate": 1.0,
+        "mismatch_details": [],
+        "error_rate": 0.0,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 0.0,
+        "base_semantic_pass_rate": 0.3333333333333333,
+        "wave_semantic_pass_rate": 0.3333333333333333,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "empty"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 6.0,
+            "reason": "topic_summary"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "empty"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 6.0,
+            "reason": "topic_summary"
+          }
+        },
+        "base_texts": {
+          "short_a": "",
+          "short_b": "\n\nObserved examples: 10+20=30. 20+30=50. 30+40=70. 40+50=90. The first addend grows by 10 each step and the second addend also grows",
+          "long_b": " The serving stack must handle heterogeneous LoRA workloads, especially when handling long-tail prompt lengths, fairness constraints, and resource contention."
+        },
+        "wave_texts": {
+          "short_a": "",
+          "short_b": "\n\nObserved examples: 10+20=30. 20+30=50. 30+40=70. 40+50=90. The first addend grows by 10 each step and the second addend also grows",
+          "long_b": " The serving stack must handle heterogeneous LoRA workloads, especially when handling long-tail prompt lengths, fairness constraints, and resource contention."
+        },
+        "scheduler_apply_ratio": null,
+        "scheduler_applied": null,
+        "scheduler_attempts": null,
+        "baseline_chunk_avg": null,
+        "chosen_chunk_avg": null,
+        "chosen_vs_baseline_ratio_avg": null,
+        "explicit_plan_ratio": null,
+        "rewrite_apply_ratio": null,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": null,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": null,
+        "virtual_cap_helper_calls": null,
+        "virtual_cap_prefill_calls": null,
+        "virtual_cap_target_hits": null,
+        "probe_total": null,
+        "probe_slice_eligible_ratio": null,
+        "probe_best_lt_long_ratio": null,
+        "probe_short_avg": null,
+        "probe_long_avg": null,
+        "probe_baseline_avg": null,
+        "probe_best_avg": null,
+        "probe_queue_avg": null,
+        "probe_wait_us_avg": null,
+        "probe_reasons": null,
+        "hook_report": {},
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "base_ttft_short_p99_ms": 197.15621508657932,
+        "wave_ttft_short_p99_ms": 268.61350066494197,
+        "ttft_improve_ratio": 0.7339773116337303,
+        "base_round_wall_ms": 1623.2323762960732,
+        "wave_round_wall_ms": 1817.2645177692175,
+        "round_wall_improve_ratio": 0.8932284543191717,
+        "text_match_rate": 1.0,
+        "mismatch_details": [],
+        "error_rate": 0.0,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 0.0,
+        "base_semantic_pass_rate": 0.3333333333333333,
+        "wave_semantic_pass_rate": 0.3333333333333333,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "empty"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 6.0,
+            "reason": "topic_summary"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "empty"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 6.0,
+            "reason": "topic_summary"
+          }
+        },
+        "base_texts": {
+          "short_a": "",
+          "short_b": "\n\nObserved examples: 10+20=30. 20+30=50. 30+40=70. 40+50=90. The first addend grows by 10 each step and the second addend also grows",
+          "long_b": " The serving stack must handle heterogeneous LoRA workloads, especially when handling long-tail prompt lengths, fairness constraints, and resource contention."
+        },
+        "wave_texts": {
+          "short_a": "",
+          "short_b": "\n\nObserved examples: 10+20=30. 20+30=50. 30+40=70. 40+50=90. The first addend grows by 10 each step and the second addend also grows",
+          "long_b": " The serving stack must handle heterogeneous LoRA workloads, especially when handling long-tail prompt lengths, fairness constraints, and resource contention."
+        },
+        "scheduler_apply_ratio": null,
+        "scheduler_applied": null,
+        "scheduler_attempts": null,
+        "baseline_chunk_avg": null,
+        "chosen_chunk_avg": null,
+        "chosen_vs_baseline_ratio_avg": null,
+        "explicit_plan_ratio": null,
+        "rewrite_apply_ratio": null,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": null,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": null,
+        "virtual_cap_helper_calls": null,
+        "virtual_cap_prefill_calls": null,
+        "virtual_cap_target_hits": null,
+        "probe_total": null,
+        "probe_slice_eligible_ratio": null,
+        "probe_best_lt_long_ratio": null,
+        "probe_short_avg": null,
+        "probe_long_avg": null,
+        "probe_baseline_avg": null,
+        "probe_best_avg": null,
+        "probe_queue_avg": null,
+        "probe_wait_us_avg": null,
+        "probe_reasons": null,
+        "hook_report": {},
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "base_ttft_short_p99_ms": 198.7372818402946,
+        "wave_ttft_short_p99_ms": 267.0717224664986,
+        "ttft_improve_ratio": 0.7441344969242265,
+        "base_round_wall_ms": 1620.6596451811492,
+        "wave_round_wall_ms": 1808.65320796147,
+        "round_wall_improve_ratio": 0.8960588121853343,
+        "text_match_rate": 1.0,
+        "mismatch_details": [],
+        "error_rate": 0.0,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 0.0,
+        "base_semantic_pass_rate": 0.3333333333333333,
+        "wave_semantic_pass_rate": 0.3333333333333333,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "empty"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 6.0,
+            "reason": "topic_summary"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "empty"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 6.0,
+            "reason": "topic_summary"
+          }
+        },
+        "base_texts": {
+          "short_a": "",
+          "short_b": "\n\nObserved examples: 10+20=30. 20+30=50. 30+40=70. 40+50=90. The first addend grows by 10 each step and the second addend also grows",
+          "long_b": " The serving stack must handle heterogeneous LoRA workloads, especially when handling long-tail prompt lengths, fairness constraints, and resource contention."
+        },
+        "wave_texts": {
+          "short_a": "",
+          "short_b": "\n\nObserved examples: 10+20=30. 20+30=50. 30+40=70. 40+50=90. The first addend grows by 10 each step and the second addend also grows",
+          "long_b": " The serving stack must handle heterogeneous LoRA workloads, especially when handling long-tail prompt lengths, fairness constraints, and resource contention."
+        },
+        "scheduler_apply_ratio": null,
+        "scheduler_applied": null,
+        "scheduler_attempts": null,
+        "baseline_chunk_avg": null,
+        "chosen_chunk_avg": null,
+        "chosen_vs_baseline_ratio_avg": null,
+        "explicit_plan_ratio": null,
+        "rewrite_apply_ratio": null,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": null,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": null,
+        "virtual_cap_helper_calls": null,
+        "virtual_cap_prefill_calls": null,
+        "virtual_cap_target_hits": null,
+        "probe_total": null,
+        "probe_slice_eligible_ratio": null,
+        "probe_best_lt_long_ratio": null,
+        "probe_short_avg": null,
+        "probe_long_avg": null,
+        "probe_baseline_avg": null,
+        "probe_best_avg": null,
+        "probe_queue_avg": null,
+        "probe_wait_us_avg": null,
+        "probe_reasons": null,
+        "hook_report": {},
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      }
+    ],
+    "phase12": [
+      {
+        "repeat_index": 0,
+        "base_ttft_short_p99_ms": 5532.98265314661,
+        "wave_ttft_short_p99_ms": 5602.378931585699,
+        "ttft_improve_ratio": 0.987613069503771,
+        "base_slowdown_short_p99": 3713.1516470122124,
+        "wave_slowdown_short_p99": 2695.751121246442,
+        "slowdown_improve_ratio": 1.3774089224139328,
+        "base_round_wall_ms": 9897.044811863452,
+        "wave_round_wall_ms": 10775.35354020074,
+        "round_wall_improve_ratio": 0.918489103391319,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "wave_match_rate": 1.0,
+        "wave_error_rate": 0.0,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.18181818181818182,
+        "phase2_applied": 24,
+        "phase2_attempts": 132,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "repeat_index": 1,
+        "base_ttft_short_p99_ms": 5939.3523968802765,
+        "wave_ttft_short_p99_ms": 5635.510117807426,
+        "ttft_improve_ratio": 1.0539156656134379,
+        "base_slowdown_short_p99": 3591.6855079779616,
+        "wave_slowdown_short_p99": 2700.6893259786375,
+        "slowdown_improve_ratio": 1.329914356837937,
+        "base_round_wall_ms": 10844.080639071763,
+        "wave_round_wall_ms": 10817.256378941238,
+        "round_wall_improve_ratio": 1.002479765588504,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "wave_match_rate": 1.0,
+        "wave_error_rate": 0.0,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.18181818181818182,
+        "phase2_applied": 24,
+        "phase2_attempts": 132,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "repeat_index": 2,
+        "base_ttft_short_p99_ms": 6055.0475775823,
+        "wave_ttft_short_p99_ms": 5274.103946075775,
+        "ttft_improve_ratio": 1.1480713386560366,
+        "base_slowdown_short_p99": 3821.3431349842544,
+        "wave_slowdown_short_p99": 2684.6255158566246,
+        "slowdown_improve_ratio": 1.4234175725491904,
+        "base_round_wall_ms": 10966.40529576689,
+        "wave_round_wall_ms": 9964.423650875688,
+        "round_wall_improve_ratio": 1.1005559056898535,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "wave_match_rate": 1.0,
+        "wave_error_rate": 0.0,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.18181818181818182,
+        "phase2_applied": 24,
+        "phase2_attempts": 132,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "repeat_index": 3,
+        "base_ttft_short_p99_ms": 6079.998827674426,
+        "wave_ttft_short_p99_ms": 5086.666574631818,
+        "ttft_improve_ratio": 1.1952815735940994,
+        "base_slowdown_short_p99": 3856.7768467512906,
+        "wave_slowdown_short_p99": 2454.395540451085,
+        "slowdown_improve_ratio": 1.5713754295864093,
+        "base_round_wall_ms": 11027.374306228012,
+        "wave_round_wall_ms": 9750.311985146254,
+        "round_wall_improve_ratio": 1.1309765598298034,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "wave_match_rate": 1.0,
+        "wave_error_rate": 0.0,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.18181818181818182,
+        "phase2_applied": 24,
+        "phase2_attempts": 132,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "repeat_index": 4,
+        "base_ttft_short_p99_ms": 6042.321073147468,
+        "wave_ttft_short_p99_ms": 5079.471254628152,
+        "ttft_improve_ratio": 1.1895570956606984,
+        "base_slowdown_short_p99": 3805.1705670180704,
+        "wave_slowdown_short_p99": 2439.7781389830975,
+        "slowdown_improve_ratio": 1.559637946671688,
+        "base_round_wall_ms": 10883.572979830205,
+        "wave_round_wall_ms": 9749.036290682852,
+        "round_wall_improve_ratio": 1.116374240008895,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "wave_match_rate": 1.0,
+        "wave_error_rate": 0.0,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.18181818181818182,
+        "phase2_applied": 24,
+        "phase2_attempts": 132,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "repeat_index": 5,
+        "base_ttft_short_p99_ms": 5555.88084186893,
+        "wave_ttft_short_p99_ms": 5070.751159461215,
+        "ttft_improve_ratio": 1.095672153326345,
+        "base_slowdown_short_p99": 3486.0067252229283,
+        "wave_slowdown_short_p99": 2452.670353741559,
+        "slowdown_improve_ratio": 1.4213107439835972,
+        "base_round_wall_ms": 10493.97790711373,
+        "wave_round_wall_ms": 9735.660464968532,
+        "round_wall_improve_ratio": 1.077890703447786,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "wave_match_rate": 1.0,
+        "wave_error_rate": 0.0,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.18181818181818182,
+        "phase2_applied": 24,
+        "phase2_attempts": 132,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      }
+    ]
+  },
+  "phase1_chunked_vs_no_chunk": {
+    "ttft_improve_ratio": {
+      "count": 6.0,
+      "mean": 0.7369964917716962,
+      "p50": 0.7351832112386754,
+      "p95": 0.7435190417024551,
+      "p99": 0.7440114058798722,
+      "min": 0.7319934735391647,
+      "max": 0.7441344969242265
+    },
+    "round_wall_improve_ratio": {
+      "count": 6.0,
+      "mean": 0.8939671737254177,
+      "p50": 0.894643633252253,
+      "p95": 0.8998000565579547,
+      "p99": 0.9007555760859682,
+      "min": 0.8842097533389153,
+      "max": 0.9009944559679717
+    },
+    "error_rate": {
+      "count": 6.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "baseline_noise_error_rate": {
+      "count": 6.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "incremental_error_rate": {
+      "count": 6.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "base_semantic_pass_rate": {
+      "count": 6.0,
+      "mean": 0.3333333333333333,
+      "p50": 0.3333333333333333,
+      "p95": 0.3333333333333333,
+      "p99": 0.3333333333333333,
+      "min": 0.3333333333333333,
+      "max": 0.3333333333333333
+    },
+    "wave_semantic_pass_rate": {
+      "count": 6.0,
+      "mean": 0.3333333333333333,
+      "p50": 0.3333333333333333,
+      "p95": 0.3333333333333333,
+      "p99": 0.3333333333333333,
+      "min": 0.3333333333333333,
+      "max": 0.3333333333333333
+    },
+    "semantic_pass_delta": {
+      "count": 6.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "scheduler_apply_ratio": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "baseline_chunk_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "chosen_chunk_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "chosen_vs_baseline_ratio_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "explicit_plan_ratio": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "rewrite_apply_ratio": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "rewrite_old_chunk_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "rewrite_new_chunk_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "rewrite_token_delta_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_apply_ratio": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_old_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_new_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_target_set": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_helper_calls": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_prefill_calls": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_target_hits": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_total": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_slice_eligible_ratio": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_best_lt_long_ratio": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_short_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_long_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_baseline_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_best_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_queue_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_wait_us_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    }
+  },
+  "phase12": {
+    "ttft_improve_ratio": {
+      "count": 6.0,
+      "mean": 1.1116851493923983,
+      "p50": 1.1218717459911907,
+      "p95": 1.193850454110749,
+      "p99": 1.1949953496974293,
+      "min": 0.987613069503771,
+      "max": 1.1952815735940994
+    },
+    "slowdown_improve_ratio": {
+      "count": 6.0,
+      "mean": 1.4471774953404593,
+      "p50": 1.4223641582663937,
+      "p95": 1.5684410588577289,
+      "p99": 1.5707885554406733,
+      "min": 1.329914356837937,
+      "max": 1.5713754295864093
+    },
+    "round_wall_improve_ratio": {
+      "count": 6.0,
+      "mean": 1.05779437965936,
+      "p50": 1.0892233045688198,
+      "p95": 1.1273259798745763,
+      "p99": 1.130246443838758,
+      "min": 0.918489103391319,
+      "max": 1.1309765598298034
+    },
+    "wave_error_rate": {
+      "count": 6.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "baseline_noise_error_rate": {
+      "count": 6.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "incremental_error_rate": {
+      "count": 6.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "phase2_apply_ratio": {
+      "count": 6.0,
+      "mean": 0.18181818181818185,
+      "p50": 0.18181818181818182,
+      "p95": 0.18181818181818182,
+      "p99": 0.18181818181818182,
+      "min": 0.18181818181818182,
+      "max": 0.18181818181818182
+    }
+  }
+}

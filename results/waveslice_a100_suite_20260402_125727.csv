@@ -1,0 +1,90 @@
+model,lut_name,status,error,traceback,model_path,adapter_a,adapter_b,effective_max_model_len,stdout_tail,stderr_tail,result_json,token_lengths,phase1_ttft_improve_mean,phase1_wall_improve_mean,phase1_error_mean,phase1_apply_mean,phase2_ttft_improve_mean,phase2_slowdown_improve_mean,phase2_wall_improve_mean,phase2_error_mean,phase2_noise_mean,phase2_incremental_error_mean,phase2_apply_mean,phase12_ttft_improve_mean,phase12_slowdown_improve_mean,phase12_wall_improve_mean,phase12_error_mean,phase12_noise_mean,phase12_incremental_error_mean,phase12_apply_mean
+Deci/DeciLM-7B,Mistral-7B-v0.1,failed,/home/onceas/.cache/huggingface/hub/models--Deci--DeciLM-7B/snapshots/c3c9f4226801dc0433f32aebffe0aac68ee2f051 does not appear to have a file named configuration_decilm.py. Checkout 'https://huggingface.co//home/onceas/.cache/huggingface/hub/models--Deci--DeciLM-7B/snapshots/c3c9f4226801dc0433f32aebffe0aac68ee2f051/tree/main' for available files.,"Traceback (most recent call last):
+  File ""/home/onceas/Arantir/lorekeep/experiments/waveslice_a100_suite.py"", line 356, in main
+    row = _run_model(
+  File ""/home/onceas/Arantir/lorekeep/experiments/waveslice_a100_suite.py"", line 151, in _run_model
+    adapter_a, adapter_b = _ensure_adapters(
+  File ""/home/onceas/Arantir/lorekeep/experiments/waveslice_a100_suite.py"", line 107, in _ensure_adapters
+    generated = build_synthetic_adapters(
+  File ""/home/onceas/Arantir/lorekeep/tools/synthetic_lora_builder.py"", line 173, in build_synthetic_adapters
+    _build_one_adapter(
+  File ""/home/onceas/Arantir/lorekeep/tools/synthetic_lora_builder.py"", line 76, in _build_one_adapter
+    model = AutoModelForCausalLM.from_pretrained(
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/transformers/models/auto/auto_factory.py"", line 549, in from_pretrained
+    config, kwargs = AutoConfig.from_pretrained(
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/transformers/models/auto/configuration_auto.py"", line 1346, in from_pretrained
+    config_class = get_class_from_dynamic_module(
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/transformers/dynamic_module_utils.py"", line 604, in get_class_from_dynamic_module
+    final_module = get_cached_module_file(
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/transformers/dynamic_module_utils.py"", line 406, in get_cached_module_file
+    resolved_module_file = cached_file(
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/transformers/utils/hub.py"", line 322, in cached_file
+    file = cached_files(path_or_repo_id=path_or_repo_id, filenames=[filename], **kwargs)
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/transformers/utils/hub.py"", line 437, in cached_files
+    raise OSError(
+OSError: /home/onceas/.cache/huggingface/hub/models--Deci--DeciLM-7B/snapshots/c3c9f4226801dc0433f32aebffe0aac68ee2f051 does not appear to have a file named configuration_decilm.py. Checkout 'https://huggingface.co//home/onceas/.cache/huggingface/hub/models--Deci--DeciLM-7B/snapshots/c3c9f4226801dc0433f32aebffe0aac68ee2f051/tree/main' for available files.
+",,,,,,,,,,,,,,,,,,,,,,,,,,
+microsoft/phi-2,Mistral-7B-v0.1,ok,,,/home/onceas/.cache/huggingface/hub/models--microsoft--phi-2/snapshots/810d367871c1d460086d9f82db8696f2e0a0fcd0,/tmp/waveslice_synthetic_adapters/phi-2/adapter_rank8_seed7,/tmp/waveslice_synthetic_adapters/phi-2/adapter_rank16_seed11,2048,"
+[Summary] Phase-II
+  ttft_improve_ratio={'count': 3.0, 'mean': 1.2767037597271353, 'p50': 1.0009309743282235, 'p95': 1.7773128391282427, 'p99': 1.8463245604438001, 'min': 0.965602814080493, 'max': 1.8635774907726894}
+  slowdown_improve_ratio={'count': 3.0, 'mean': 0.9777026719649219, 'p50': 0.9845176380692455, 'p95': 0.9871872689055807, 'p99': 0.9874245694243661, 'min': 0.9611064832714579, 'max': 0.9874838945540624}
+  round_wall_improve_ratio={'count': 3.0, 'mean': 1.0972959427899829, 'p50': 0.9839585443590481, 'p95': 1.2981539655132528, 'p99': 1.3260824473936266, 'min': 0.9748647161471808, 'max': 1.33306456786372}
+  wave_error_rate={'count': 3.0, 'mean': 0.16666666666666666, 'p50': 0.25, 'p95': 0.25, 'p99': 0.25, 'min': 0.0, 'max': 0.25}
+  baseline_noise_error_rate={'count': 3.0, 'mean': 0.25, 'p50': 0.25, 'p95': 0.475, 'p99': 0.495, 'min': 0.0, 'max': 0.5}
+  incremental_error_rate={'count': 3.0, 'mean': -0.08333333333333333, 'p50': 0.0, 'p95': 0.0, 'p99': 0.0, 'min': -0.25, 'max': 0.0}
+  phase2_apply_ratio={'count': 3.0, 'mean': 0.04081632653061224, 'p50': 0.04081632653061224, 'p95': 0.04081632653061224, 'p99': 0.04081632653061224, 'min': 0.04081632653061224, 'max': 0.04081632653061224}
+
+[Summary] Phase-I + Phase-II
+  ttft_improve_ratio={'count': 3.0, 'mean': 1.5236803843375128, 'p50': 1.180228416341343, 'p95': 2.1319409710938197, 'p99': 2.2165376426273733, 'min': 1.1531259261604336, 'max': 2.2376868105107617}
+  slowdown_improve_ratio={'count': 3.0, 'mean': 1.4173198888073089, 'p50': 1.4114955616779143, 'p95': 1.4367402630869852, 'p99': 1.4389842365455694, 'min': 1.400918874833797, 'max': 1.4395452299102154}
+  round_wall_improve_ratio={'count': 3.0, 'mean': 1.1574263895816765, 'p50': 1.0400880253097218, 'p95': 1.3699211421196331, 'p99': 1.3992396413916253, 'min': 1.0256218772256842, 'max': 1.4065692662096234}
+  wave_error_rate={'count': 3.0, 'mean': 0.16666666666666666, 'p50': 0.0, 'p95': 0.44999999999999996, 'p99': 0.49, 'min': 0.0, 'max': 0.5}
+  baseline_noise_error_rate={'count': 3.0, 'mean': 0.25, 'p50': 0.25, 'p95': 0.475, 'p99': 0.495, 'min': 0.0, 'max': 0.5}
+  incremental_error_rate={'count': 3.0, 'mean': -0.08333333333333333, 'p50': 0.0, 'p95': 0.0, 'p99': 0.0, 'min': -0.25, 'max': 0.0}
+  phase2_apply_ratio={'count': 3.0, 'mean': 0.06521739130434782, 'p50': 0.06521739130434782, 'p95': 0.06521739130434782, 'p99': 0.06521739130434782, 'min': 0.06521739130434782, 'max': 0.06521739130434782}
+
+[Output] results/waveslice_a100_suite_20260402_125727/phi-2_repeated_eval.json","
+
+Loading safetensors checkpoint shards:   0% Completed | 0/2 [00:00<?, ?it/s]
+
+Loading safetensors checkpoint shards:  50% Completed | 1/2 [00:00<00:00,  2.75it/s]
+
+Loading safetensors checkpoint shards: 100% Completed | 2/2 [00:02<00:00,  1.26s/it]
+
+Loading safetensors checkpoint shards: 100% Completed | 2/2 [00:02<00:00,  1.12s/it]
+
+
+Loading safetensors checkpoint shards:   0% Completed | 0/2 [00:00<?, ?it/s]
+
+Loading safetensors checkpoint shards:  50% Completed | 1/2 [00:00<00:00,  2.75it/s]
+
+Loading safetensors checkpoint shards: 100% Completed | 2/2 [00:02<00:00,  1.24s/it]
+
+Loading safetensors checkpoint shards: 100% Completed | 2/2 [00:02<00:00,  1.11s/it]
+
+[rank0]:[W402 13:26:48.621270860 ProcessGroupNCCL.cpp:1479] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())",results/waveslice_a100_suite_20260402_125727/phi-2_repeated_eval.json,"{'short_a': 509, 'short_b': 1152, 'long_b': 1916}",1.4186926507627404,0.9908058711731874,0.0,0.1111111111111111,1.2767037597271353,0.9777026719649219,1.0972959427899829,0.16666666666666666,0.25,-0.08333333333333333,0.04081632653061224,1.5236803843375128,1.4173198888073089,1.1574263895816765,0.16666666666666666,0.25,-0.08333333333333333,0.06521739130434782
+baichuan-inc/Baichuan2-7B-Chat,Mistral-7B-v0.1,failed,/home/onceas/.cache/huggingface/hub/models--baichuan-inc--Baichuan2-7B-Chat/snapshots/ea66ced17780ca3db39bc9f8aa601d8463db3da5 does not appear to have a file named configuration_baichuan.py. Checkout 'https://huggingface.co//home/onceas/.cache/huggingface/hub/models--baichuan-inc--Baichuan2-7B-Chat/snapshots/ea66ced17780ca3db39bc9f8aa601d8463db3da5/tree/main' for available files.,"Traceback (most recent call last):
+  File ""/home/onceas/Arantir/lorekeep/experiments/waveslice_a100_suite.py"", line 356, in main
+    row = _run_model(
+  File ""/home/onceas/Arantir/lorekeep/experiments/waveslice_a100_suite.py"", line 151, in _run_model
+    adapter_a, adapter_b = _ensure_adapters(
+  File ""/home/onceas/Arantir/lorekeep/experiments/waveslice_a100_suite.py"", line 107, in _ensure_adapters
+    generated = build_synthetic_adapters(
+  File ""/home/onceas/Arantir/lorekeep/tools/synthetic_lora_builder.py"", line 173, in build_synthetic_adapters
+    _build_one_adapter(
+  File ""/home/onceas/Arantir/lorekeep/tools/synthetic_lora_builder.py"", line 76, in _build_one_adapter
+    model = AutoModelForCausalLM.from_pretrained(
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/transformers/models/auto/auto_factory.py"", line 549, in from_pretrained
+    config, kwargs = AutoConfig.from_pretrained(
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/transformers/models/auto/configuration_auto.py"", line 1346, in from_pretrained
+    config_class = get_class_from_dynamic_module(
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/transformers/dynamic_module_utils.py"", line 604, in get_class_from_dynamic_module
+    final_module = get_cached_module_file(
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/transformers/dynamic_module_utils.py"", line 406, in get_cached_module_file
+    resolved_module_file = cached_file(
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/transformers/utils/hub.py"", line 322, in cached_file
+    file = cached_files(path_or_repo_id=path_or_repo_id, filenames=[filename], **kwargs)
+  File ""/home/onceas/anaconda3/envs/sara/lib/python3.10/site-packages/transformers/utils/hub.py"", line 437, in cached_files
+    raise OSError(
+OSError: /home/onceas/.cache/huggingface/hub/models--baichuan-inc--Baichuan2-7B-Chat/snapshots/ea66ced17780ca3db39bc9f8aa601d8463db3da5 does not appear to have a file named configuration_baichuan.py. Checkout 'https://huggingface.co//home/onceas/.cache/huggingface/hub/models--baichuan-inc--Baichuan2-7B-Chat/snapshots/ea66ced17780ca3db39bc9f8aa601d8463db3da5/tree/main' for available files.
+",,,,,,,,,,,,,,,,,,,,,,,,,,

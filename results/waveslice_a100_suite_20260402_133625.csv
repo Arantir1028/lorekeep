@@ -1,0 +1,15 @@
+model,lut_name,status,error,traceback
+Deci/DeciLM-7B,Mistral-7B-v0.1,failed,name 'trust_remote_code' is not defined,"Traceback (most recent call last):
+  File ""/home/onceas/Arantir/lorekeep/experiments/waveslice_a100_suite.py"", line 358, in main
+    row = _run_model(
+  File ""/home/onceas/Arantir/lorekeep/experiments/waveslice_a100_suite.py"", line 207, in _run_model
+    if trust_remote_code:
+NameError: name 'trust_remote_code' is not defined
+"
+baichuan-inc/Baichuan2-7B-Chat,Mistral-7B-v0.1,failed,name 'trust_remote_code' is not defined,"Traceback (most recent call last):
+  File ""/home/onceas/Arantir/lorekeep/experiments/waveslice_a100_suite.py"", line 358, in main
+    row = _run_model(
+  File ""/home/onceas/Arantir/lorekeep/experiments/waveslice_a100_suite.py"", line 207, in _run_model
+    if trust_remote_code:
+NameError: name 'trust_remote_code' is not defined
+"

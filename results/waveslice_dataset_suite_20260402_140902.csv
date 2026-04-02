@@ -1,0 +1,288 @@
+adapter_a,adapter_b,dataset_long_a_tokens,dataset_long_b_tokens,dataset_short_a_tokens,dataset_short_b_tokens,effective_max_model_len,lut_name,model,model_path,phase12_apply_mean,phase12_incremental_error_mean,phase12_slowdown_improve_mean,phase12_ttft_improve_mean,phase12_wall_improve_mean,result_json,status,stderr_tail,stdout_tail,token_lengths,workload_meta_json,workload_stderr_tail,workload_stdout_tail
+/tmp/waveslice_synthetic_adapters/mistral-7b-v0.1/adapter_rank8_seed7,/tmp/waveslice_synthetic_adapters/mistral-7b-v0.1/adapter_rank16_seed11,2101,2764,110,187,3072,Mistral-7B-v0.1,mistralai/Mistral-7B-v0.1,/home/onceas/.cache/huggingface/hub/models--mistralai--Mistral-7B-v0.1/snapshots/27d67f1b5f57dc0953326b2601d68371d40ea8da,0.9770992366412213,0.0,0.9867544602512178,1.0006548458710762,1.003669257627755,results/waveslice_dataset_suite_20260402_140902/mistral-7b-v0.1_dataset_eval.json,ok,"
+
+Loading safetensors checkpoint shards:   0% Completed | 0/2 [00:00<?, ?it/s]
+
+Loading safetensors checkpoint shards:  50% Completed | 1/2 [00:01<00:01,  1.95s/it]
+
+Loading safetensors checkpoint shards: 100% Completed | 2/2 [00:05<00:00,  2.61s/it]
+
+Loading safetensors checkpoint shards: 100% Completed | 2/2 [00:05<00:00,  2.51s/it]
+
+
+Loading safetensors checkpoint shards:   0% Completed | 0/2 [00:00<?, ?it/s]
+
+Loading safetensors checkpoint shards:  50% Completed | 1/2 [00:01<00:01,  1.95s/it]
+
+Loading safetensors checkpoint shards: 100% Completed | 2/2 [00:05<00:00,  2.63s/it]
+
+Loading safetensors checkpoint shards: 100% Completed | 2/2 [00:05<00:00,  2.53s/it]
+
+[rank0]:[W402 14:16:56.814129981 ProcessGroupNCCL.cpp:1479] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())","
+[Summary] Phase-II
+  ttft_improve_ratio={'count': 3.0, 'mean': 0.981746962616116, 'p50': 0.9830973254419525, 'p95': 0.9871849589173549, 'p99': 0.9875483041151685, 'min': 0.9745044219917739, 'max': 0.9876391404146219}
+  slowdown_improve_ratio={'count': 3.0, 'mean': 0.9791766735114013, 'p50': 0.9789810471767784, 'p95': 0.9842490784988666, 'p99': 0.9847173479497188, 'min': 0.9737145580449935, 'max': 0.9848344153124319}
+  round_wall_improve_ratio={'count': 3.0, 'mean': 0.9788850846790479, 'p50': 0.9780606097488271, 'p95': 0.9843323878724373, 'p99': 0.9848898792612026, 'min': 0.9735653921799227, 'max': 0.985029252108394}
+  wave_error_rate={'count': 3.0, 'mean': 0.75, 'p50': 0.75, 'p95': 0.75, 'p99': 0.75, 'min': 0.75, 'max': 0.75}
+  baseline_noise_error_rate={'count': 3.0, 'mean': 0.75, 'p50': 0.75, 'p95': 0.75, 'p99': 0.75, 'min': 0.75, 'max': 0.75}
+  incremental_error_rate={'count': 3.0, 'mean': 0.0, 'p50': 0.0, 'p95': 0.0, 'p99': 0.0, 'min': 0.0, 'max': 0.0}
+  phase2_apply_ratio={'count': 3.0, 'mean': 0.9343065693430658, 'p50': 0.9343065693430657, 'p95': 0.9343065693430657, 'p99': 0.9343065693430657, 'min': 0.9343065693430657, 'max': 0.9343065693430657}
+
+[Summary] Phase-I + Phase-II
+  ttft_improve_ratio={'count': 3.0, 'mean': 1.0006548458710762, 'p50': 1.0012078757452183, 'p95': 1.0017486397747382, 'p99': 1.0017967076884733, 'min': 0.9989479372011035, 'max': 1.001808724666907}
+  slowdown_improve_ratio={'count': 3.0, 'mean': 0.9867544602512178, 'p50': 0.9857938112925889, 'p95': 0.98846245992768, 'p99': 0.9886996731396881, 'min': 0.9857105930183744, 'max': 0.9887589764426902}
+  round_wall_improve_ratio={'count': 3.0, 'mean': 1.003669257627755, 'p50': 1.0026575709777537, 'p95': 1.0055760860750453, 'p99': 1.005835509639249, 'min': 1.0024498363752115, 'max': 1.0059003655303}
+  wave_error_rate={'count': 3.0, 'mean': 0.75, 'p50': 0.75, 'p95': 0.75, 'p99': 0.75, 'min': 0.75, 'max': 0.75}
+  baseline_noise_error_rate={'count': 3.0, 'mean': 0.75, 'p50': 0.75, 'p95': 0.75, 'p99': 0.75, 'min': 0.75, 'max': 0.75}
+  incremental_error_rate={'count': 3.0, 'mean': 0.0, 'p50': 0.0, 'p95': 0.0, 'p99': 0.0, 'min': 0.0, 'max': 0.0}
+  phase2_apply_ratio={'count': 3.0, 'mean': 0.9770992366412213, 'p50': 0.9770992366412213, 'p95': 0.9770992366412213, 'p99': 0.9770992366412213, 'min': 0.9770992366412213, 'max': 0.9770992366412213}
+
+[Output] results/waveslice_dataset_suite_20260402_140902/mistral-7b-v0.1_dataset_eval.json",,/tmp/waveslice_dataset_workloads/mistral-7b-v0.1_meta.json,,"[Saved] /tmp/waveslice_dataset_workloads/mistral-7b-v0.1_requests.json
+[Saved] /tmp/waveslice_dataset_workloads/mistral-7b-v0.1_lora_requests.json
+[Saved] /tmp/waveslice_dataset_workloads/mistral-7b-v0.1_meta.json"
+/tmp/waveslice_synthetic_adapters/mistral-7b-instruct-v0.2/adapter_rank8_seed7,/tmp/waveslice_synthetic_adapters/mistral-7b-instruct-v0.2/adapter_rank16_seed11,2101,2764,110,187,3072,Mistral-7B-v0.1,mistralai/Mistral-7B-Instruct-v0.2,/home/onceas/.cache/huggingface/hub/models--mistralai--Mistral-7B-Instruct-v0.2/snapshots/63a8b081895390a26e140280378bc85ec8bce07a,0.9770992366412213,-0.08333333333333333,0.8993636983829552,0.9107689791640986,0.9144715034234917,results/waveslice_dataset_suite_20260402_140902/mistral-7b-instruct-v0.2_dataset_eval.json,ok,"Loading safetensors checkpoint shards:  33% Completed | 1/3 [00:01<00:03,  1.90s/it]
+
+Loading safetensors checkpoint shards:  67% Completed | 2/3 [00:03<00:01,  1.65s/it]
+
+Loading safetensors checkpoint shards: 100% Completed | 3/3 [00:04<00:00,  1.59s/it]
+
+Loading safetensors checkpoint shards: 100% Completed | 3/3 [00:04<00:00,  1.63s/it]
+
+
+Loading safetensors checkpoint shards:   0% Completed | 0/3 [00:00<?, ?it/s]
+
+Loading safetensors checkpoint shards:  33% Completed | 1/3 [00:01<00:03,  1.89s/it]
+
+Loading safetensors checkpoint shards:  67% Completed | 2/3 [00:03<00:01,  1.65s/it]
+
+Loading safetensors checkpoint shards: 100% Completed | 3/3 [00:04<00:00,  1.59s/it]
+
+Loading safetensors checkpoint shards: 100% Completed | 3/3 [00:04<00:00,  1.63s/it]
+
+[rank0]:[W402 14:25:19.311652588 ProcessGroupNCCL.cpp:1479] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())","
+[Summary] Phase-II
+  ttft_improve_ratio={'count': 3.0, 'mean': 0.8872492654669983, 'p50': 0.8862106778101809, 'p95': 0.891187009355191, 'p99': 0.8916293499369696, 'min': 0.8837971835083995, 'max': 0.8917399350824143}
+  slowdown_improve_ratio={'count': 3.0, 'mean': 0.8887959720948467, 'p50': 0.8902240620479563, 'p95': 0.8903458854741723, 'p99': 0.8903567142231692, 'min': 0.8858044328261655, 'max': 0.8903594214104185}
+  round_wall_improve_ratio={'count': 3.0, 'mean': 0.88870598693797, 'p50': 0.889912248093318, 'p95': 0.8903632674389022, 'p99': 0.8904033580473985, 'min': 0.8857923320210696, 'max': 0.8904133806995226}
+  wave_error_rate={'count': 3.0, 'mean': 0.75, 'p50': 0.75, 'p95': 0.75, 'p99': 0.75, 'min': 0.75, 'max': 0.75}
+  baseline_noise_error_rate={'count': 3.0, 'mean': 0.75, 'p50': 0.75, 'p95': 0.75, 'p99': 0.75, 'min': 0.75, 'max': 0.75}
+  incremental_error_rate={'count': 3.0, 'mean': 0.0, 'p50': 0.0, 'p95': 0.0, 'p99': 0.0, 'min': 0.0, 'max': 0.0}
+  phase2_apply_ratio={'count': 3.0, 'mean': 0.9343065693430658, 'p50': 0.9343065693430657, 'p95': 0.9343065693430657, 'p99': 0.9343065693430657, 'min': 0.9343065693430657, 'max': 0.9343065693430657}
+
+[Summary] Phase-I + Phase-II
+  ttft_improve_ratio={'count': 3.0, 'mean': 0.9107689791640986, 'p50': 0.910150614633388, 'p95': 0.9121000542731094, 'p99': 0.9122733377966402, 'min': 0.9098396641813851, 'max': 0.9123166586775229}
+  slowdown_improve_ratio={'count': 3.0, 'mean': 0.8993636983829552, 'p50': 0.8980188916663118, 'p95': 0.9017511385726416, 'p99': 0.9020828938532042, 'min': 0.8979063708092087, 'max': 0.9021658326733448}
+  round_wall_improve_ratio={'count': 3.0, 'mean': 0.9144715034234917, 'p50': 0.9129909842424546, 'p95': 0.9171246904523978, 'p99': 0.9174921310043926, 'min': 0.9128395348856291, 'max': 0.9175839911423914}
+  wave_error_rate={'count': 3.0, 'mean': 0.6666666666666666, 'p50': 0.75, 'p95': 0.75, 'p99': 0.75, 'min': 0.5, 'max': 0.75}
+  baseline_noise_error_rate={'count': 3.0, 'mean': 0.75, 'p50': 0.75, 'p95': 0.75, 'p99': 0.75, 'min': 0.75, 'max': 0.75}
+  incremental_error_rate={'count': 3.0, 'mean': -0.08333333333333333, 'p50': 0.0, 'p95': 0.0, 'p99': 0.0, 'min': -0.25, 'max': 0.0}
+  phase2_apply_ratio={'count': 3.0, 'mean': 0.9770992366412213, 'p50': 0.9770992366412213, 'p95': 0.9770992366412213, 'p99': 0.9770992366412213, 'min': 0.9770992366412213, 'max': 0.9770992366412213}
+
+[Output] results/waveslice_dataset_suite_20260402_140902/mistral-7b-instruct-v0.2_dataset_eval.json",,/tmp/waveslice_dataset_workloads/mistral-7b-instruct-v0.2_meta.json,,"[Saved] /tmp/waveslice_dataset_workloads/mistral-7b-instruct-v0.2_requests.json
+[Saved] /tmp/waveslice_dataset_workloads/mistral-7b-instruct-v0.2_lora_requests.json
+[Saved] /tmp/waveslice_dataset_workloads/mistral-7b-instruct-v0.2_meta.json"
+/tmp/waveslice_synthetic_adapters/zephyr-7b-beta/adapter_rank8_seed7,/tmp/waveslice_synthetic_adapters/zephyr-7b-beta/adapter_rank16_seed11,2101,2764,110,187,3072,Mistral-7B-v0.1,HuggingFaceH4/zephyr-7b-beta,/home/onceas/.cache/huggingface/hub/models--HuggingFaceH4--zephyr-7b-beta/snapshots/892b3d7a7b1cf10c7a701c60881cd93df615734c,0.9770992366412213,-0.08333333333333333,1.0105186290402586,1.0238626233891366,1.0278423445745326,results/waveslice_dataset_suite_20260402_140902/zephyr-7b-beta_dataset_eval.json,ok,"
+Loading safetensors checkpoint shards:  12% Completed | 1/8 [00:01<00:08,  1.18s/it]
+
+Loading safetensors checkpoint shards:  25% Completed | 2/8 [00:01<00:05,  1.19it/s]
+
+Loading safetensors checkpoint shards:  38% Completed | 3/8 [00:02<00:02,  1.71it/s]
+
+Loading safetensors checkpoint shards:  50% Completed | 4/8 [00:02<00:02,  1.71it/s]
+
+Loading safetensors checkpoint shards:  62% Completed | 5/8 [00:03<00:01,  1.68it/s]
+
+Loading safetensors checkpoint shards:  75% Completed | 6/8 [00:03<00:01,  1.64it/s]
+
+Loading safetensors checkpoint shards:  88% Completed | 7/8 [00:04<00:00,  1.62it/s]
+
+Loading safetensors checkpoint shards: 100% Completed | 8/8 [00:05<00:00,  1.64it/s]
+
+Loading safetensors checkpoint shards: 100% Completed | 8/8 [00:05<00:00,  1.56it/s]
+
+[rank0]:[W402 14:33:10.373795919 ProcessGroupNCCL.cpp:1479] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())","
+[Summary] Phase-II
+  ttft_improve_ratio={'count': 3.0, 'mean': 1.0006616253152523, 'p50': 0.9997262294449122, 'p95': 1.0026629413127994, 'p99': 1.0029239823677227, 'min': 0.9992694038693914, 'max': 1.0029892426314535}
+  slowdown_improve_ratio={'count': 3.0, 'mean': 0.9996505747479051, 'p50': 0.9978930559670688, 'p95': 1.002657476727469, 'p99': 1.0030809807950603, 'min': 0.9978718114646884, 'max': 1.003186856811958}
+  round_wall_improve_ratio={'count': 3.0, 'mean': 0.9994912199911554, 'p50': 0.9981337604241273, 'p95': 1.0023850572865889, 'p99': 1.0027629503410298, 'min': 0.9974824759446987, 'max': 1.0028574236046401}
+  wave_error_rate={'count': 3.0, 'mean': 0.9166666666666666, 'p50': 1.0, 'p95': 1.0, 'p99': 1.0, 'min': 0.75, 'max': 1.0}
+  baseline_noise_error_rate={'count': 3.0, 'mean': 1.0, 'p50': 1.0, 'p95': 1.0, 'p99': 1.0, 'min': 1.0, 'max': 1.0}
+  incremental_error_rate={'count': 3.0, 'mean': -0.08333333333333333, 'p50': 0.0, 'p95': 0.0, 'p99': 0.0, 'min': -0.25, 'max': 0.0}
+  phase2_apply_ratio={'count': 3.0, 'mean': 0.9343065693430658, 'p50': 0.9343065693430657, 'p95': 0.9343065693430657, 'p99': 0.9343065693430657, 'min': 0.9343065693430657, 'max': 0.9343065693430657}
+
+[Summary] Phase-I + Phase-II
+  ttft_improve_ratio={'count': 3.0, 'mean': 1.0238626233891366, 'p50': 1.0256652276463145, 'p95': 1.0269503835793927, 'p99': 1.027064619662333, 'min': 1.0188294638380273, 'max': 1.0270931786830682}
+  slowdown_improve_ratio={'count': 3.0, 'mean': 1.0105186290402586, 'p50': 1.0091742818429674, 'p95': 1.0171556667694746, 'p99': 1.0178651232073863, 'min': 1.0043391179609438, 'max': 1.0180424873168643}
+  round_wall_improve_ratio={'count': 3.0, 'mean': 1.0278423445745326, 'p50': 1.0264813685744323, 'p95': 1.0342682465364261, 'p99': 1.034960413466381, 'min': 1.0219122099502957, 'max': 1.0351334551988698}
+  wave_error_rate={'count': 3.0, 'mean': 0.9166666666666666, 'p50': 1.0, 'p95': 1.0, 'p99': 1.0, 'min': 0.75, 'max': 1.0}
+  baseline_noise_error_rate={'count': 3.0, 'mean': 1.0, 'p50': 1.0, 'p95': 1.0, 'p99': 1.0, 'min': 1.0, 'max': 1.0}
+  incremental_error_rate={'count': 3.0, 'mean': -0.08333333333333333, 'p50': 0.0, 'p95': 0.0, 'p99': 0.0, 'min': -0.25, 'max': 0.0}
+  phase2_apply_ratio={'count': 3.0, 'mean': 0.9770992366412213, 'p50': 0.9770992366412213, 'p95': 0.9770992366412213, 'p99': 0.9770992366412213, 'min': 0.9770992366412213, 'max': 0.9770992366412213}
+
+[Output] results/waveslice_dataset_suite_20260402_140902/zephyr-7b-beta_dataset_eval.json",,/tmp/waveslice_dataset_workloads/zephyr-7b-beta_meta.json,,"[Saved] /tmp/waveslice_dataset_workloads/zephyr-7b-beta_requests.json
+[Saved] /tmp/waveslice_dataset_workloads/zephyr-7b-beta_lora_requests.json
+[Saved] /tmp/waveslice_dataset_workloads/zephyr-7b-beta_meta.json"
+/tmp/waveslice_synthetic_adapters/openchat-3.5-0106/adapter_rank8_seed7,/tmp/waveslice_synthetic_adapters/openchat-3.5-0106/adapter_rank16_seed11,2101,2764,110,187,3072,Mistral-7B-v0.1,openchat/openchat-3.5-0106,/home/onceas/.cache/huggingface/hub/models--openchat--openchat-3.5-0106/snapshots/ff058fda49726ecf4ea53dc1635f917cdb8ba36b,0.9770992366412213,0.0,1.0041929204208453,1.019072821247442,1.0209621377152105,results/waveslice_dataset_suite_20260402_140902/openchat-3.5-0106_dataset_eval.json,ok,"Loading safetensors checkpoint shards:  33% Completed | 1/3 [00:01<00:03,  1.92s/it]
+
+Loading safetensors checkpoint shards:  67% Completed | 2/3 [00:03<00:01,  1.69s/it]
+
+Loading safetensors checkpoint shards: 100% Completed | 3/3 [00:05<00:00,  1.63s/it]
+
+Loading safetensors checkpoint shards: 100% Completed | 3/3 [00:05<00:00,  1.67s/it]
+
+
+Loading safetensors checkpoint shards:   0% Completed | 0/3 [00:00<?, ?it/s]
+
+Loading safetensors checkpoint shards:  33% Completed | 1/3 [00:01<00:03,  1.90s/it]
+
+Loading safetensors checkpoint shards:  67% Completed | 2/3 [00:03<00:01,  1.68s/it]
+
+Loading safetensors checkpoint shards: 100% Completed | 3/3 [00:04<00:00,  1.63s/it]
+
+Loading safetensors checkpoint shards: 100% Completed | 3/3 [00:04<00:00,  1.66s/it]
+
+[rank0]:[W402 14:42:27.789986261 ProcessGroupNCCL.cpp:1479] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())","
+[Summary] Phase-II
+  ttft_improve_ratio={'count': 3.0, 'mean': 0.9951639533111464, 'p50': 0.9968401321036161, 'p95': 0.9984598010830097, 'p99': 0.9986037716589558, 'min': 0.9900119635268808, 'max': 0.9986397643029423}
+  slowdown_improve_ratio={'count': 3.0, 'mean': 0.9938342005413942, 'p50': 0.9949034414292988, 'p95': 0.9960348592067728, 'p99': 0.9961354296758816, 'min': 0.9904385879017247, 'max': 0.9961605722931588}
+  round_wall_improve_ratio={'count': 3.0, 'mean': 0.9925835176962899, 'p50': 0.9930680363350786, 'p95': 0.994088719593728, 'p99': 0.9941794469944969, 'min': 0.9904803879091022, 'max': 0.9942021288446891}
+  wave_error_rate={'count': 3.0, 'mean': 0.75, 'p50': 0.75, 'p95': 0.75, 'p99': 0.75, 'min': 0.75, 'max': 0.75}
+  baseline_noise_error_rate={'count': 3.0, 'mean': 0.75, 'p50': 0.75, 'p95': 0.75, 'p99': 0.75, 'min': 0.75, 'max': 0.75}
+  incremental_error_rate={'count': 3.0, 'mean': 0.0, 'p50': 0.0, 'p95': 0.0, 'p99': 0.0, 'min': 0.0, 'max': 0.0}
+  phase2_apply_ratio={'count': 3.0, 'mean': 0.9343065693430658, 'p50': 0.9343065693430657, 'p95': 0.9343065693430657, 'p99': 0.9343065693430657, 'min': 0.9343065693430657, 'max': 0.9343065693430657}
+
+[Summary] Phase-I + Phase-II
+  ttft_improve_ratio={'count': 3.0, 'mean': 1.019072821247442, 'p50': 1.0203090806908317, 'p95': 1.0249997659239083, 'p99': 1.0254167157224041, 'min': 1.0113884298794666, 'max': 1.025520953172028}
+  slowdown_improve_ratio={'count': 3.0, 'mean': 1.0041929204208453, 'p50': 1.0045946814496018, 'p95': 1.007344648842305, 'p99': 1.0075890903883231, 'min': 1.0003338790381067, 'max': 1.0076502007748276}
+  round_wall_improve_ratio={'count': 3.0, 'mean': 1.0209621377152105, 'p50': 1.0214358267329038, 'p95': 1.0239608003074765, 'p99': 1.024185242402994, 'min': 1.0172092334858545, 'max': 1.0242413529268735}
+  wave_error_rate={'count': 3.0, 'mean': 0.75, 'p50': 0.75, 'p95': 0.75, 'p99': 0.75, 'min': 0.75, 'max': 0.75}
+  baseline_noise_error_rate={'count': 3.0, 'mean': 0.75, 'p50': 0.75, 'p95': 0.75, 'p99': 0.75, 'min': 0.75, 'max': 0.75}
+  incremental_error_rate={'count': 3.0, 'mean': 0.0, 'p50': 0.0, 'p95': 0.0, 'p99': 0.0, 'min': 0.0, 'max': 0.0}
+  phase2_apply_ratio={'count': 3.0, 'mean': 0.9770992366412213, 'p50': 0.9770992366412213, 'p95': 0.9770992366412213, 'p99': 0.9770992366412213, 'min': 0.9770992366412213, 'max': 0.9770992366412213}
+
+[Output] results/waveslice_dataset_suite_20260402_140902/openchat-3.5-0106_dataset_eval.json",,/tmp/waveslice_dataset_workloads/openchat-3.5-0106_meta.json,,"[Saved] /tmp/waveslice_dataset_workloads/openchat-3.5-0106_requests.json
+[Saved] /tmp/waveslice_dataset_workloads/openchat-3.5-0106_lora_requests.json
+[Saved] /tmp/waveslice_dataset_workloads/openchat-3.5-0106_meta.json"
+/tmp/waveslice_synthetic_adapters/gemma-7b-it/adapter_rank8_seed7,/tmp/waveslice_synthetic_adapters/gemma-7b-it/adapter_rank16_seed11,2569,2900,102,172,3072,Gemma-7B,google/gemma-7b-it,/home/onceas/.cache/huggingface/hub/models--google--gemma-7b-it/snapshots/9c5798d27f588501ce1e108079d2a19e4c3a2353,0.9770992366412213,-0.08333333333333333,1.2530736059593455,0.9432475033218167,0.9764915234005862,results/waveslice_dataset_suite_20260402_140902/gemma-7b-it_dataset_eval.json,ok,"Loading safetensors checkpoint shards:  75% Completed | 3/4 [00:04<00:01,  1.45s/it]
+
+Loading safetensors checkpoint shards: 100% Completed | 4/4 [00:05<00:00,  1.49s/it]
+
+Loading safetensors checkpoint shards: 100% Completed | 4/4 [00:05<00:00,  1.45s/it]
+
+
+Loading safetensors checkpoint shards:   0% Completed | 0/4 [00:00<?, ?it/s]
+
+Loading safetensors checkpoint shards:  25% Completed | 1/4 [00:01<00:03,  1.20s/it]
+
+Loading safetensors checkpoint shards:  50% Completed | 2/4 [00:02<00:02,  1.37s/it]
+
+Loading safetensors checkpoint shards:  75% Completed | 3/4 [00:04<00:01,  1.45s/it]
+
+Loading safetensors checkpoint shards: 100% Completed | 4/4 [00:05<00:00,  1.49s/it]
+
+Loading safetensors checkpoint shards: 100% Completed | 4/4 [00:05<00:00,  1.45s/it]
+
+[rank0]:[W402 14:50:58.059388832 ProcessGroupNCCL.cpp:1479] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())","
+[Summary] Phase-II
+  ttft_improve_ratio={'count': 3.0, 'mean': 0.9209567915522413, 'p50': 0.9204563024921686, 'p95': 0.9227578735153392, 'p99': 0.9229624576062877, 'min': 0.9194004685355301, 'max': 0.9230136036290248}
+  slowdown_improve_ratio={'count': 3.0, 'mean': 0.9867037938912694, 'p50': 0.9870596602856003, 'p95': 0.987411096064651, 'p99': 0.9874423348005666, 'min': 0.985601576903662, 'max': 0.9874501444845456}
+  round_wall_improve_ratio={'count': 3.0, 'mean': 0.9559774322551092, 'p50': 0.9555274008143348, 'p95': 0.9569201303693567, 'p99': 0.9570439285520254, 'min': 0.9553300178533001, 'max': 0.9570748780976925}
+  wave_error_rate={'count': 3.0, 'mean': 0.8333333333333334, 'p50': 0.75, 'p95': 0.975, 'p99': 0.995, 'min': 0.75, 'max': 1.0}
+  baseline_noise_error_rate={'count': 3.0, 'mean': 0.8333333333333334, 'p50': 0.75, 'p95': 0.975, 'p99': 0.995, 'min': 0.75, 'max': 1.0}
+  incremental_error_rate={'count': 3.0, 'mean': 0.0, 'p50': 0.0, 'p95': 0.22499999999999998, 'p99': 0.245, 'min': -0.25, 'max': 0.25}
+  phase2_apply_ratio={'count': 3.0, 'mean': 0.927536231884058, 'p50': 0.927536231884058, 'p95': 0.927536231884058, 'p99': 0.927536231884058, 'min': 0.927536231884058, 'max': 0.927536231884058}
+
+[Summary] Phase-I + Phase-II
+  ttft_improve_ratio={'count': 3.0, 'mean': 0.9432475033218167, 'p50': 0.9433866940787797, 'p95': 0.9447623802955136, 'p99': 0.944884663514779, 'min': 0.9414405815670753, 'max': 0.9449152343195952}
+  slowdown_improve_ratio={'count': 3.0, 'mean': 1.2530736059593455, 'p50': 1.2529104894588963, 'p95': 1.2565127015535786, 'p99': 1.2568328981842172, 'min': 1.249397381077263, 'max': 1.2569129473418768}
+  round_wall_improve_ratio={'count': 3.0, 'mean': 0.9764915234005862, 'p50': 0.9760662887664221, 'p95': 0.9774299822551491, 'p99': 0.977551199454147, 'min': 0.9758267776814399, 'max': 0.9775815037538965}
+  wave_error_rate={'count': 3.0, 'mean': 0.75, 'p50': 0.75, 'p95': 0.975, 'p99': 0.995, 'min': 0.5, 'max': 1.0}
+  baseline_noise_error_rate={'count': 3.0, 'mean': 0.8333333333333334, 'p50': 0.75, 'p95': 0.975, 'p99': 0.995, 'min': 0.75, 'max': 1.0}
+  incremental_error_rate={'count': 3.0, 'mean': -0.08333333333333333, 'p50': -0.25, 'p95': 0.19999999999999996, 'p99': 0.24, 'min': -0.25, 'max': 0.25}
+  phase2_apply_ratio={'count': 3.0, 'mean': 0.9770992366412213, 'p50': 0.9770992366412213, 'p95': 0.9770992366412213, 'p99': 0.9770992366412213, 'min': 0.9770992366412213, 'max': 0.9770992366412213}
+
+[Output] results/waveslice_dataset_suite_20260402_140902/gemma-7b-it_dataset_eval.json",,/tmp/waveslice_dataset_workloads/gemma-7b-it_meta.json,,"[Saved] /tmp/waveslice_dataset_workloads/gemma-7b-it_requests.json
+[Saved] /tmp/waveslice_dataset_workloads/gemma-7b-it_lora_requests.json
+[Saved] /tmp/waveslice_dataset_workloads/gemma-7b-it_meta.json"
+/tmp/waveslice_synthetic_adapters/phi-2/adapter_rank8_seed7,/tmp/waveslice_synthetic_adapters/phi-2/adapter_rank16_seed11,1485,1907,104,173,2048,Mistral-7B-v0.1,microsoft/phi-2,/home/onceas/.cache/huggingface/hub/models--microsoft--phi-2/snapshots/810d367871c1d460086d9f82db8696f2e0a0fcd0,0.9846153846153847,0.16666666666666666,1.002913161919655,1.013269333350767,0.9979464430290491,results/waveslice_dataset_suite_20260402_140902/phi-2_dataset_eval.json,ok,"
+
+Loading safetensors checkpoint shards:   0% Completed | 0/2 [00:00<?, ?it/s]
+
+Loading safetensors checkpoint shards:  50% Completed | 1/2 [00:00<00:00,  2.75it/s]
+
+Loading safetensors checkpoint shards: 100% Completed | 2/2 [00:02<00:00,  1.28s/it]
+
+Loading safetensors checkpoint shards: 100% Completed | 2/2 [00:02<00:00,  1.15s/it]
+
+
+Loading safetensors checkpoint shards:   0% Completed | 0/2 [00:00<?, ?it/s]
+
+Loading safetensors checkpoint shards:  50% Completed | 1/2 [00:00<00:00,  2.72it/s]
+
+Loading safetensors checkpoint shards: 100% Completed | 2/2 [00:02<00:00,  1.30s/it]
+
+Loading safetensors checkpoint shards: 100% Completed | 2/2 [00:02<00:00,  1.16s/it]
+
+[rank0]:[W402 14:58:21.716592694 ProcessGroupNCCL.cpp:1479] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())","
+[Summary] Phase-II
+  ttft_improve_ratio={'count': 3.0, 'mean': 0.9898901293619615, 'p50': 0.9916794622011775, 'p95': 0.9917664800210414, 'p99': 0.9917742149383626, 'min': 0.9862147772170143, 'max': 0.9917761486676929}
+  slowdown_improve_ratio={'count': 3.0, 'mean': 0.9867079313080215, 'p50': 0.9855344694761304, 'p95': 0.9889648238825378, 'p99': 0.9892697442742185, 'min': 0.9852433500757956, 'max': 0.9893459743721387}
+  round_wall_improve_ratio={'count': 3.0, 'mean': 0.9793732976488242, 'p50': 0.9856455877358858, 'p95': 0.988980658901955, 'p99': 0.9892771096722722, 'min': 0.9631230828457354, 'max': 0.9893512223648515}
+  wave_error_rate={'count': 3.0, 'mean': 0.4166666666666667, 'p50': 0.5, 'p95': 0.5, 'p99': 0.5, 'min': 0.25, 'max': 0.5}
+  baseline_noise_error_rate={'count': 3.0, 'mean': 0.16666666666666666, 'p50': 0.25, 'p95': 0.25, 'p99': 0.25, 'min': 0.0, 'max': 0.25}
+  incremental_error_rate={'count': 3.0, 'mean': 0.25, 'p50': 0.25, 'p95': 0.475, 'p99': 0.495, 'min': 0.0, 'max': 0.5}
+  phase2_apply_ratio={'count': 3.0, 'mean': 0.8658235539857962, 'p50': 0.9552238805970149, 'p95': 0.9552238805970149, 'p99': 0.9552238805970149, 'min': 0.6870229007633588, 'max': 0.9552238805970149}
+
+[Summary] Phase-I + Phase-II
+  ttft_improve_ratio={'count': 3.0, 'mean': 1.013269333350767, 'p50': 1.0150742626900098, 'p95': 1.0151801640647378, 'p99': 1.015189577520269, 'min': 1.009541806478139, 'max': 1.015191930884152}
+  slowdown_improve_ratio={'count': 3.0, 'mean': 1.002913161919655, 'p50': 1.0041365618458649, 'p95': 1.0042836144906349, 'p99': 1.0042966858368367, 'min': 1.0003029702397133, 'max': 1.0042999536733872}
+  round_wall_improve_ratio={'count': 3.0, 'mean': 0.9979464430290491, 'p50': 0.9916276774113922, 'p95': 1.0120979272520487, 'p99': 1.0139175050156626, 'min': 0.9878392522191888, 'max': 1.014372399456566}
+  wave_error_rate={'count': 3.0, 'mean': 0.3333333333333333, 'p50': 0.25, 'p95': 0.475, 'p99': 0.495, 'min': 0.25, 'max': 0.5}
+  baseline_noise_error_rate={'count': 3.0, 'mean': 0.16666666666666666, 'p50': 0.25, 'p95': 0.25, 'p99': 0.25, 'min': 0.0, 'max': 0.25}
+  incremental_error_rate={'count': 3.0, 'mean': 0.16666666666666666, 'p50': 0.25, 'p95': 0.25, 'p99': 0.25, 'min': 0.0, 'max': 0.25}
+  phase2_apply_ratio={'count': 3.0, 'mean': 0.9846153846153847, 'p50': 0.9846153846153847, 'p95': 0.9846153846153847, 'p99': 0.9846153846153847, 'min': 0.9846153846153847, 'max': 0.9846153846153847}
+
+[Output] results/waveslice_dataset_suite_20260402_140902/phi-2_dataset_eval.json",,/tmp/waveslice_dataset_workloads/phi-2_meta.json,Token indices sequence length is longer than the specified maximum sequence length for this model (10891 > 2048). Running this sequence through the model will result in indexing errors,"[Saved] /tmp/waveslice_dataset_workloads/phi-2_requests.json
+[Saved] /tmp/waveslice_dataset_workloads/phi-2_lora_requests.json
+[Saved] /tmp/waveslice_dataset_workloads/phi-2_meta.json"
+/tmp/waveslice_synthetic_adapters/baichuan2-7b-chat/adapter_rank8_seed7,/tmp/waveslice_synthetic_adapters/baichuan2-7b-chat/adapter_rank16_seed11,2176,2839,104,175,3072,Mistral-7B-v0.1,baichuan-inc/Baichuan2-7B-Chat,baichuan-inc/Baichuan2-7B-Chat,0.6846153846153845,-0.08333333333333333,0.8816939829087874,0.8707699841000007,0.8906043503057545,results/waveslice_dataset_suite_20260402_140902/baichuan2-7b-chat_dataset_eval.json,ok,"
+Loading pt checkpoint shards: 100% Completed | 1/1 [00:15<00:00, 15.82s/it]
+
+The argument `trust_remote_code` is to be used with Auto classes. It has no effect here and is ignored.
+
+Loading pt checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s]
+
+Loading pt checkpoint shards: 100% Completed | 1/1 [00:15<00:00, 15.93s/it]
+
+Loading pt checkpoint shards: 100% Completed | 1/1 [00:15<00:00, 15.93s/it]
+
+The argument `trust_remote_code` is to be used with Auto classes. It has no effect here and is ignored.
+
+Loading pt checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s]
+
+Loading pt checkpoint shards: 100% Completed | 1/1 [00:16<00:00, 16.11s/it]
+
+Loading pt checkpoint shards: 100% Completed | 1/1 [00:16<00:00, 16.11s/it]
+
+[rank0]:[W402 15:10:35.028125187 ProcessGroupNCCL.cpp:1479] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())","
+[Summary] Phase-II
+  ttft_improve_ratio={'count': 3.0, 'mean': 0.9978104105204489, 'p50': 0.9969799996378602, 'p95': 1.0002349452756991, 'p99': 1.0005242737768403, 'min': 0.9958546260213609, 'max': 1.0005966059021256}
+  slowdown_improve_ratio={'count': 3.0, 'mean': 0.9974389922568374, 'p50': 0.9961202460205231, 'p95': 0.9999599537422907, 'p99': 1.0003012610953368, 'min': 0.9958101428163909, 'max': 1.0003865879335982}
+  round_wall_improve_ratio={'count': 3.0, 'mean': 0.9981232944777161, 'p50': 0.999047734462559, 'p95': 0.9998049693009979, 'p99': 0.9998722790644148, 'min': 0.9954330424653202, 'max': 0.999889106505269}
+  wave_error_rate={'count': 3.0, 'mean': 0.08333333333333333, 'p50': 0.0, 'p95': 0.22499999999999998, 'p99': 0.245, 'min': 0.0, 'max': 0.25}
+  baseline_noise_error_rate={'count': 3.0, 'mean': 0.25, 'p50': 0.25, 'p95': 0.475, 'p99': 0.495, 'min': 0.0, 'max': 0.5}
+  incremental_error_rate={'count': 3.0, 'mean': -0.16666666666666666, 'p50': 0.0, 'p95': 0.0, 'p99': 0.0, 'min': -0.5, 'max': 0.0}
+  phase2_apply_ratio={'count': 3.0, 'mean': 0.6917293233082707, 'p50': 0.6917293233082706, 'p95': 0.6917293233082706, 'p99': 0.6917293233082706, 'min': 0.6917293233082706, 'max': 0.6917293233082706}
+
+[Summary] Phase-I + Phase-II
+  ttft_improve_ratio={'count': 3.0, 'mean': 0.8707699841000007, 'p50': 0.8694884952962829, 'p95': 0.8744472667106055, 'p99': 0.8748880463918786, 'min': 0.8678232156915221, 'max': 0.8749982413121968}
+  slowdown_improve_ratio={'count': 3.0, 'mean': 0.8816939829087874, 'p50': 0.8802451758753831, 'p95': 0.8858355871024254, 'p99': 0.8863325125448291, 'min': 0.878380028945549, 'max': 0.8864567439054301}
+  round_wall_improve_ratio={'count': 3.0, 'mean': 0.8906043503057545, 'p50': 0.8914067475115295, 'p95': 0.8936557102956217, 'p99': 0.8938556180986522, 'min': 0.886500708356324, 'max': 0.8939055950494098}
+  wave_error_rate={'count': 3.0, 'mean': 0.16666666666666666, 'p50': 0.25, 'p95': 0.25, 'p99': 0.25, 'min': 0.0, 'max': 0.25}
+  baseline_noise_error_rate={'count': 3.0, 'mean': 0.25, 'p50': 0.25, 'p95': 0.475, 'p99': 0.495, 'min': 0.0, 'max': 0.5}
+  incremental_error_rate={'count': 3.0, 'mean': -0.08333333333333333, 'p50': 0.0, 'p95': 0.0, 'p99': 0.0, 'min': -0.25, 'max': 0.0}
+  phase2_apply_ratio={'count': 3.0, 'mean': 0.6846153846153845, 'p50': 0.6846153846153846, 'p95': 0.6846153846153846, 'p99': 0.6846153846153846, 'min': 0.6846153846153846, 'max': 0.6846153846153846}
+
+[Output] results/waveslice_dataset_suite_20260402_140902/baichuan2-7b-chat_dataset_eval.json",,/tmp/waveslice_dataset_workloads/baichuan2-7b-chat_meta.json,Token indices sequence length is longer than the specified maximum sequence length for this model (11492 > 4096). Running this sequence through the model will result in indexing errors,"[Saved] /tmp/waveslice_dataset_workloads/baichuan2-7b-chat_requests.json
+[Saved] /tmp/waveslice_dataset_workloads/baichuan2-7b-chat_lora_requests.json
+[Saved] /tmp/waveslice_dataset_workloads/baichuan2-7b-chat_meta.json"

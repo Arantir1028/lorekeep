@@ -193,6 +193,7 @@ def run_lora_effectiveness_check(
     max_new_tokens: int,
     phase2_consistency_mode: str,
     phase2_dispatch_mode: str,
+    enable_phase1_scheduler: bool,
 ) -> bool:
     _print("LoRA effectiveness check (real vLLM LoRARequest)")
     try:
@@ -206,7 +207,7 @@ def run_lora_effectiveness_check(
 
     try:
         policy = WaveSlicePolicy(
-            enable_phase1_scheduler=False,
+            enable_phase1_scheduler=enable_phase1_scheduler,
             enable_phase2_modelrunner=True,
             enable_metrics_hook=True,
             enable_sjf_reorder=False,
@@ -240,16 +241,39 @@ def run_lora_effectiveness_check(
         sampling = SamplingParams(max_tokens=max_new_tokens, temperature=0.0)
 
         base_id = "base_short"
-        lora_a_id = "lora_short_a"
-        lora_b_id = "lora_long_b"
+        lora_short_a_id = "lora_short_a"
+        lora_mid_b_id = "lora_mid_b"
+        lora_long_a_id = "lora_long_a"
+        lora_long_b_id = "lora_long_b"
+
         short_prompt = "Translate to French: I love machine learning."
-        long_prompt = "Summarize this paragraph: " + ("Artificial intelligence is transforming industry. " * 220)
+        mid_prompt = (
+            "Observed examples: 10+20=30. 20+30=50. 30+40=70. 40+50=90. "
+            * 24
+            + "Task: Continue the pattern with the next three equations and then give one short rule sentence."
+        )
+        long_prompt_a = (
+            "Summarize this paragraph in exactly one sentence: "
+            + ("Artificial intelligence is transforming industry, deployment, and systems engineering. " * 140)
+        )
+        long_prompt_b = (
+            "Summarize this paragraph in exactly one sentence: "
+            + ("Artificial intelligence is transforming industry, deployment, and systems engineering. " * 220)
+        )
 
         engine.add_request(base_id, short_prompt, sampling)
-        engine.add_request(lora_a_id, short_prompt, sampling, lora_request=lora_req_a)
-        engine.add_request(lora_b_id, long_prompt, sampling, lora_request=lora_req_b)
+        engine.add_request(lora_short_a_id, short_prompt, sampling, lora_request=lora_req_a)
+        engine.add_request(lora_mid_b_id, mid_prompt, sampling, lora_request=lora_req_b)
+        engine.add_request(lora_long_a_id, long_prompt_a, sampling, lora_request=lora_req_a)
+        engine.add_request(lora_long_b_id, long_prompt_b, sampling, lora_request=lora_req_b)
 
-        texts: dict[str, str] = {base_id: "", lora_a_id: "", lora_b_id: ""}
+        texts: dict[str, str] = {
+            base_id: "",
+            lora_short_a_id: "",
+            lora_mid_b_id: "",
+            lora_long_a_id: "",
+            lora_long_b_id: "",
+        }
         deadline = time.time() + 240
         while time.time() < deadline and engine.has_unfinished_requests():
             outputs = engine.step()
@@ -259,10 +283,15 @@ def run_lora_effectiveness_check(
 
         report = get_wave_slice_metrics(reset=True)
         print(f"  base_output={texts[base_id]!r}")
-        print(f"  lora_a_output={texts[lora_a_id]!r}")
-        print(f"  lora_b_output={texts[lora_b_id]!r}")
-        print(f"  base_vs_loraA_differ={texts[base_id] != texts[lora_a_id]}")
+        print(f"  lora_short_a_output={texts[lora_short_a_id]!r}")
+        print(f"  lora_mid_b_output={texts[lora_mid_b_id]!r}")
+        print(f"  lora_long_a_output={texts[lora_long_a_id]!r}")
+        print(f"  lora_long_b_output={texts[lora_long_b_id]!r}")
+        print(f"  base_vs_loraShortA_differ={texts[base_id] != texts[lora_short_a_id]}")
         print(f"  report.phase2_apply_ratio={report.get('phase2', {}).get('apply_ratio')}")
+        print(f"  report.phase2_reasons={report.get('phase2', {}).get('reasons')}")
+        print(f"  report.phase1_apply_ratio={report.get('scheduler', {}).get('apply_ratio')}")
+        print(f"  report.phase1_chosen_chunk_avg={report.get('scheduler', {}).get('chosen_chunk_avg')}")
         print(f"  report.ttft_short_p99={report.get('ttft_ms_short', {}).get('p99')}")
         print(f"  report.slowdown_short_p99={report.get('slowdown_short', {}).get('p99')}")
         return True
@@ -326,6 +355,11 @@ def main() -> int:
         default="synchronized",
         help="Phase-II dispatch mode used in LoRA live check.",
     )
+    parser.add_argument(
+        "--enable-phase1-in-lora-live",
+        action="store_true",
+        help="Run LoRA live validation with current Phase-I scheduler enabled together with Phase-II.",
+    )
     args = parser.parse_args()
 
     ok = True
@@ -377,6 +411,7 @@ def main() -> int:
                     max_new_tokens=args.max_new_tokens,
                     phase2_consistency_mode=args.phase2_consistency_mode,
                     phase2_dispatch_mode=args.phase2_dispatch_mode,
+                    enable_phase1_scheduler=args.enable_phase1_in_lora_live,
                 ) and ok
 
     _print("DONE")

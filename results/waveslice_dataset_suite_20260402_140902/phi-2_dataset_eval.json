@@ -1,0 +1,2927 @@
+{
+  "config": {
+    "model_name": "Mistral-7B-v0.1",
+    "model_path": "/home/onceas/.cache/huggingface/hub/models--microsoft--phi-2/snapshots/810d367871c1d460086d9f82db8696f2e0a0fcd0",
+    "max_new_tokens": 64,
+    "timeout_sec": 240,
+    "warmup_iters": 2,
+    "repeats": 3,
+    "short_repeat": 16,
+    "short_a_repeat": 16,
+    "short_b_repeat": 16,
+    "long_repeat": 320,
+    "max_model_len": 2048,
+    "max_num_batched_tokens": 1536,
+    "gpu_memory_utilization": 0.6,
+    "phase1_objective_mode": "fair_escape",
+    "phase1_baseline_mode": "both",
+    "include_strict": false,
+    "phase2_dispatch_mode": "synchronized",
+    "adapter_a": "/tmp/waveslice_synthetic_adapters/phi-2/adapter_rank8_seed7",
+    "adapter_b": "/tmp/waveslice_synthetic_adapters/phi-2/adapter_rank16_seed11"
+  },
+  "token_lengths": {
+    "short_a": 104,
+    "short_b": 173,
+    "long_b": 1907
+  },
+  "phase1_baseline_chunked_raw": {
+    "ttft_short_p99_ms": {
+      "count": 3.0,
+      "mean": 68.38115506495039,
+      "p50": 68.15836811438203,
+      "p95": 68.77766964025795,
+      "p99": 68.83271866478026,
+      "min": 68.1386161595583,
+      "max": 68.84648092091084
+    },
+    "round_wall_ms": {
+      "count": 3.0,
+      "mean": 1429.1345748739939,
+      "p50": 1431.1588332057,
+      "p95": 1431.8956339266151,
+      "p99": 1431.9611273240298,
+      "min": 1424.267390742898,
+      "max": 1431.9775006733835
+    },
+    "timeout_rate": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    }
+  },
+  "phase1_baseline_no_chunk_raw": {
+    "ttft_short_p99_ms": {
+      "count": 3.0,
+      "mean": 35.6903614786764,
+      "p50": 36.31128277629614,
+      "p95": 36.3509283401072,
+      "p99": 36.35445239022374,
+      "min": 34.40446825698018,
+      "max": 36.355333402752876
+    },
+    "round_wall_ms": {
+      "count": 3.0,
+      "mean": 1198.2912983124454,
+      "p50": 1197.753380984068,
+      "p95": 1202.6944814715534,
+      "p99": 1203.1336904037744,
+      "min": 1193.877021316439,
+      "max": 1203.2434926368296
+    },
+    "timeout_rate": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    }
+  },
+  "phase1": {
+    "ttft_improve_ratio": {
+      "count": 3.0,
+      "mean": 1.831237348192795,
+      "p50": 1.825160399696575,
+      "p95": 1.851776021772741,
+      "p99": 1.854141854846178,
+      "min": 1.8138183317672725,
+      "max": 1.8547333131145374
+    },
+    "round_wall_improve_ratio": {
+      "count": 3.0,
+      "mean": 1.2055149113600379,
+      "p50": 1.2091363098517935,
+      "p95": 1.2097580013764768,
+      "p99": 1.2098132628453375,
+      "min": 1.1975813460157676,
+      "max": 1.2098270782125526
+    },
+    "error_rate": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "baseline_noise_error_rate": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "incremental_error_rate": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "base_semantic_pass_rate": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "wave_semantic_pass_rate": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "semantic_pass_delta": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "scheduler_apply_ratio": {
+      "count": 3.0,
+      "mean": 0.09375,
+      "p50": 0.09375,
+      "p95": 0.09375,
+      "p99": 0.09375,
+      "min": 0.09375,
+      "max": 0.09375
+    },
+    "baseline_chunk_avg": {
+      "count": 3.0,
+      "mean": 1536.0,
+      "p50": 1536.0,
+      "p95": 1536.0,
+      "p99": 1536.0,
+      "min": 1536.0,
+      "max": 1536.0
+    },
+    "chosen_chunk_avg": {
+      "count": 3.0,
+      "mean": 320.0,
+      "p50": 320.0,
+      "p95": 320.0,
+      "p99": 320.0,
+      "min": 320.0,
+      "max": 320.0
+    },
+    "chosen_vs_baseline_ratio_avg": {
+      "count": 3.0,
+      "mean": 0.25,
+      "p50": 0.25,
+      "p95": 0.25,
+      "p99": 0.25,
+      "min": 0.25,
+      "max": 0.25
+    },
+    "explicit_plan_ratio": {
+      "count": 3.0,
+      "mean": 0.09375,
+      "p50": 0.09375,
+      "p95": 0.09375,
+      "p99": 0.09375,
+      "min": 0.09375,
+      "max": 0.09375
+    },
+    "rewrite_apply_ratio": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "rewrite_old_chunk_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "rewrite_new_chunk_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "rewrite_token_delta_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_apply_ratio": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "virtual_cap_old_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_new_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_target_set": {
+      "count": 3.0,
+      "mean": 6.0,
+      "p50": 6.0,
+      "p95": 6.0,
+      "p99": 6.0,
+      "min": 6.0,
+      "max": 6.0
+    },
+    "virtual_cap_helper_calls": {
+      "count": 3.0,
+      "mean": 157.0,
+      "p50": 157.0,
+      "p95": 157.0,
+      "p99": 157.0,
+      "min": 157.0,
+      "max": 157.0
+    },
+    "virtual_cap_prefill_calls": {
+      "count": 3.0,
+      "mean": 9.0,
+      "p50": 9.0,
+      "p95": 9.0,
+      "p99": 9.0,
+      "min": 9.0,
+      "max": 9.0
+    },
+    "virtual_cap_target_hits": {
+      "count": 3.0,
+      "mean": 6.0,
+      "p50": 6.0,
+      "p95": 6.0,
+      "p99": 6.0,
+      "min": 6.0,
+      "max": 6.0
+    },
+    "probe_total": {
+      "count": 3.0,
+      "mean": 78.0,
+      "p50": 78.0,
+      "p95": 78.0,
+      "p99": 78.0,
+      "min": 78.0,
+      "max": 78.0
+    },
+    "probe_slice_eligible_ratio": {
+      "count": 3.0,
+      "mean": 0.15384615384615385,
+      "p50": 0.15384615384615385,
+      "p95": 0.15384615384615385,
+      "p99": 0.15384615384615385,
+      "min": 0.15384615384615385,
+      "max": 0.15384615384615385
+    },
+    "probe_best_lt_long_ratio": {
+      "count": 3.0,
+      "mean": 0.15384615384615385,
+      "p50": 0.15384615384615385,
+      "p95": 0.15384615384615385,
+      "p99": 0.15384615384615385,
+      "min": 0.15384615384615385,
+      "max": 0.15384615384615385
+    },
+    "probe_short_avg": {
+      "count": 3.0,
+      "mean": 28.0,
+      "p50": 28.0,
+      "p95": 28.0,
+      "p99": 28.0,
+      "min": 28.0,
+      "max": 28.0
+    },
+    "probe_long_avg": {
+      "count": 3.0,
+      "mean": 254.7307692307692,
+      "p50": 254.73076923076923,
+      "p95": 254.73076923076923,
+      "p99": 254.73076923076923,
+      "min": 254.73076923076923,
+      "max": 254.73076923076923
+    },
+    "probe_baseline_avg": {
+      "count": 3.0,
+      "mean": 1536.0,
+      "p50": 1536.0,
+      "p95": 1536.0,
+      "p99": 1536.0,
+      "min": 1536.0,
+      "max": 1536.0
+    },
+    "probe_best_avg": {
+      "count": 3.0,
+      "mean": 289.14285714285717,
+      "p50": 289.14285714285717,
+      "p95": 289.14285714285717,
+      "p99": 289.14285714285717,
+      "min": 289.14285714285717,
+      "max": 289.14285714285717
+    },
+    "probe_queue_avg": {
+      "count": 3.0,
+      "mean": 0.6538461538461539,
+      "p50": 0.6538461538461539,
+      "p95": 0.6538461538461539,
+      "p99": 0.6538461538461539,
+      "min": 0.6538461538461539,
+      "max": 0.6538461538461539
+    },
+    "probe_wait_us_avg": {
+      "count": 3.0,
+      "mean": 24017.798594939406,
+      "p50": 24022.01065650353,
+      "p95": 24107.52773284912,
+      "p99": 24115.129250746504,
+      "min": 23914.355498093824,
+      "max": 24117.02963022085
+    }
+  },
+  "phase2": {
+    "ttft_improve_ratio": {
+      "count": 3.0,
+      "mean": 0.9898901293619615,
+      "p50": 0.9916794622011775,
+      "p95": 0.9917664800210414,
+      "p99": 0.9917742149383626,
+      "min": 0.9862147772170143,
+      "max": 0.9917761486676929
+    },
+    "slowdown_improve_ratio": {
+      "count": 3.0,
+      "mean": 0.9867079313080215,
+      "p50": 0.9855344694761304,
+      "p95": 0.9889648238825378,
+      "p99": 0.9892697442742185,
+      "min": 0.9852433500757956,
+      "max": 0.9893459743721387
+    },
+    "round_wall_improve_ratio": {
+      "count": 3.0,
+      "mean": 0.9793732976488242,
+      "p50": 0.9856455877358858,
+      "p95": 0.988980658901955,
+      "p99": 0.9892771096722722,
+      "min": 0.9631230828457354,
+      "max": 0.9893512223648515
+    },
+    "wave_error_rate": {
+      "count": 3.0,
+      "mean": 0.4166666666666667,
+      "p50": 0.5,
+      "p95": 0.5,
+      "p99": 0.5,
+      "min": 0.25,
+      "max": 0.5
+    },
+    "baseline_noise_error_rate": {
+      "count": 3.0,
+      "mean": 0.16666666666666666,
+      "p50": 0.25,
+      "p95": 0.25,
+      "p99": 0.25,
+      "min": 0.0,
+      "max": 0.25
+    },
+    "incremental_error_rate": {
+      "count": 3.0,
+      "mean": 0.25,
+      "p50": 0.25,
+      "p95": 0.475,
+      "p99": 0.495,
+      "min": 0.0,
+      "max": 0.5
+    },
+    "phase2_apply_ratio": {
+      "count": 3.0,
+      "mean": 0.8658235539857962,
+      "p50": 0.9552238805970149,
+      "p95": 0.9552238805970149,
+      "p99": 0.9552238805970149,
+      "min": 0.6870229007633588,
+      "max": 0.9552238805970149
+    }
+  },
+  "per_repeat": {
+    "phase1": [
+      {
+        "base_ttft_short_p99_ms": 68.1386161595583,
+        "wave_ttft_short_p99_ms": 36.73768928274512,
+        "ttft_improve_ratio": 1.8547333131145374,
+        "base_round_wall_ms": 1424.267390742898,
+        "wave_round_wall_ms": 1189.2865528352559,
+        "round_wall_improve_ratio": 1.1975813460157676,
+        "text_match_rate": 1.0,
+        "mismatch_details": [],
+        "error_rate": 0.0,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 0.0,
+        "base_semantic_pass_rate": 0.0,
+        "wave_semantic_pass_rate": 0.0,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.5,
+            "reason": "not_french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "off_topic_or_outline"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.5,
+            "reason": "not_french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "off_topic_or_outline"
+          }
+        },
+        "base_texts": {
+          "short_a": "\n\nThank you for your help!\n\nReply 1:\n\nTo authenticate with Kubernetes using OAuth2, you need to follow these steps:\n\n1. Create an OAuth2 client with the credentials from your provider.\n2. Use the client to obtain an access token.",
+          "short_b": "\n\nAnswer:\nSenate Bill 535, introduced by Senator Ricardo Lara, aims to allocate a quarter of the proceeds from the Greenhouse Gas Reduction Fund to projects that specifically benefit disadvantaged communities. This means that a portion of the funds generated from reducing greenhouse gas emissions will be directed towards initiatives that address the unique challenges faced",
+          "long_b": "\n\nAnswer: The Buckeyes' record in their first game of the season was 1-0.\n"
+        },
+        "wave_texts": {
+          "short_a": "\n\nThank you for your help!\n\nReply 1:\n\nTo authenticate with Kubernetes using OAuth2, you need to follow these steps:\n\n1. Create an OAuth2 client with the credentials from your provider.\n2. Use the client to obtain an access token.",
+          "short_b": "\n\nAnswer:\nSenate Bill 535, introduced by Senator Ricardo Lara, aims to allocate a quarter of the proceeds from the Greenhouse Gas Reduction Fund to projects that specifically benefit disadvantaged communities. This means that a portion of the funds generated from reducing greenhouse gas emissions will be directed towards initiatives that address the unique challenges faced",
+          "long_b": "\n\nAnswer: The Buckeyes' record in their first game of the season was 1-0.\n"
+        },
+        "scheduler_apply_ratio": 0.09375,
+        "scheduler_applied": 6,
+        "scheduler_attempts": 64,
+        "baseline_chunk_avg": 1536.0,
+        "chosen_chunk_avg": 320.0,
+        "chosen_vs_baseline_ratio_avg": 0.25,
+        "explicit_plan_ratio": 0.09375,
+        "rewrite_apply_ratio": 0.0,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": 0.0,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": 6.0,
+        "virtual_cap_helper_calls": 157.0,
+        "virtual_cap_prefill_calls": 9.0,
+        "virtual_cap_target_hits": 6.0,
+        "probe_total": 78.0,
+        "probe_slice_eligible_ratio": 0.15384615384615385,
+        "probe_best_lt_long_ratio": 0.15384615384615385,
+        "probe_short_avg": 28.0,
+        "probe_long_avg": 254.73076923076923,
+        "probe_baseline_avg": 1536.0,
+        "probe_best_avg": 289.14285714285717,
+        "probe_queue_avg": 0.6538461538461539,
+        "probe_wait_us_avg": 23914.355498093824,
+        "probe_reasons": {
+          "ingress_virtual_override": 7,
+          "candidate": 7,
+          "apply": 6,
+          "best_chunk_ge_long": 1,
+          "no_need_wave_slice": 57
+        },
+        "hook_report": {
+          "requests": {
+            "total": 3,
+            "finished": 3
+          },
+          "scheduler": {
+            "attempts": 64,
+            "applied": 6,
+            "apply_ratio": 0.09375,
+            "baseline_chunk_avg": 1536.0,
+            "chosen_chunk_avg": 320.0,
+            "chosen_vs_baseline_ratio_avg": 0.25,
+            "explicit_plan_ratio": 0.09375,
+            "rewrite_applied": 0,
+            "rewrite_apply_ratio": 0.0,
+            "rewrite_group_count": 0,
+            "rewrite_old_chunk_avg": null,
+            "rewrite_new_chunk_avg": null,
+            "rewrite_token_delta_avg": null,
+            "virtual_cap_apply_ratio": 0.0,
+            "virtual_cap_old_avg": null,
+            "virtual_cap_new_avg": null,
+            "virtual_cap_target_set": 6.0,
+            "virtual_cap_helper_calls": 157.0,
+            "virtual_cap_prefill_calls": 9.0,
+            "virtual_cap_target_hits": 6.0,
+            "request_traces": {
+              "repeat_phase1_only_0:long_b": [
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 0,
+                  "uncached": 289,
+                  "cached": 0,
+                  "target_chunk": 384
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 289,
+                  "num_computed_tokens": 0
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 289,
+                  "uncached": 384,
+                  "cached": 0,
+                  "target_chunk": 384
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 384,
+                  "num_computed_tokens": 289
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 673,
+                  "uncached": 384,
+                  "cached": 0,
+                  "target_chunk": 384
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 384,
+                  "num_computed_tokens": 673
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1057,
+                  "uncached": 256,
+                  "cached": 0,
+                  "target_chunk": 256
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 256,
+                  "num_computed_tokens": 1057
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1313,
+                  "uncached": 256,
+                  "cached": 0,
+                  "target_chunk": 256
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 256,
+                  "num_computed_tokens": 1313
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1569,
+                  "uncached": 256,
+                  "cached": 0,
+                  "target_chunk": 256
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 256,
+                  "num_computed_tokens": 1569
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1825,
+                  "uncached": 82,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 82,
+                  "num_computed_tokens": 1825
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1907,
+                  "uncached": 1,
+                  "cached": 0,
+                  "prefill_to_decode": true
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1907
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1908,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1908
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1909,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1909
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1910,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1910
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1911,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1911
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1912,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1912
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1913,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1913
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1914,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1914
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1915,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1915
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1916,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1916
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1917,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1917
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1918,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1918
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1919,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1919
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1920,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1920
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1921,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1921
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1922,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1922
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1923,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1923
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1924,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1924
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1925,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1925
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1926,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1926
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1927,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1927
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1928,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1928
+                }
+              ]
+            },
+            "probe_total": 78.0,
+            "probe_slice_eligible_ratio": 0.15384615384615385,
+            "probe_best_lt_long_ratio": 0.15384615384615385,
+            "probe_short_avg": 28.0,
+            "probe_long_avg": 254.73076923076923,
+            "probe_baseline_avg": 1536.0,
+            "probe_best_avg": 289.14285714285717,
+            "probe_queue_avg": 0.6538461538461539,
+            "probe_wait_us_avg": 23914.355498093824,
+            "proposal_scheduler_avg": 819.4285714285714,
+            "proposal_direct_avg": 286.0,
+            "proposal_cohort_target_avg": 291.57142857142856,
+            "proposal_direct_win_ratio": 0.09375,
+            "probe_reasons": {
+              "ingress_virtual_override": 7,
+              "candidate": 7,
+              "apply": 6,
+              "best_chunk_ge_long": 1,
+              "no_need_wave_slice": 57
+            }
+          },
+          "phase2": {
+            "attempts": 0,
+            "applied": 0,
+            "apply_ratio": 0.0,
+            "v1_true_unbind_applied": 0,
+            "v1_true_unbind_ratio": 0.0,
+            "reasons": {}
+          },
+          "ttft_ms_all": {
+            "count": 3.0,
+            "p50": 35.66288389265537,
+            "p95": 175.90017560869455,
+            "p99": 188.36571265012026
+          },
+          "ttft_ms_short": {
+            "count": 2.0,
+            "p50": 35.0487120449543,
+            "p95": 35.601466707885265,
+            "p99": 35.65060045570135
+          },
+          "slowdown_all": {
+            "count": 3.0,
+            "p50": 439.0054822924904,
+            "p95": 439.41079497343134,
+            "p99": 439.44682276729276
+          },
+          "slowdown_short": {
+            "count": 2.0,
+            "p50": 439.2306560041243,
+            "p95": 439.43331234459475,
+            "p99": 439.45132624152546
+          }
+        },
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "base_ttft_short_p99_ms": 68.15836811438203,
+        "wave_ttft_short_p99_ms": 37.34376886859536,
+        "ttft_improve_ratio": 1.825160399696575,
+        "base_round_wall_ms": 1431.1588332057,
+        "wave_round_wall_ms": 1183.6207560263574,
+        "round_wall_improve_ratio": 1.2091363098517935,
+        "text_match_rate": 1.0,
+        "mismatch_details": [],
+        "error_rate": 0.0,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 0.0,
+        "base_semantic_pass_rate": 0.0,
+        "wave_semantic_pass_rate": 0.0,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.5,
+            "reason": "not_french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "off_topic_or_outline"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.5,
+            "reason": "not_french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "off_topic_or_outline"
+          }
+        },
+        "base_texts": {
+          "short_a": "\n\nThank you for your help!\n\nReply 1:\n\nTo authenticate with Kubernetes using OAuth2, you need to follow these steps:\n\n1. Create an OAuth2 client with the credentials from your provider.\n2. Use the client to obtain an access token.",
+          "short_b": "\n\nAnswer:\nSenate Bill 535, introduced by Senator Ricardo Lara, aims to allocate a quarter of the proceeds from the Greenhouse Gas Reduction Fund to projects that specifically benefit disadvantaged communities. This means that a portion of the funds generated from reducing greenhouse gas emissions will be directed towards initiatives that address the unique challenges faced",
+          "long_b": "\n\nAnswer: The Buckeyes' record in their first game of the season was 1-0.\n"
+        },
+        "wave_texts": {
+          "short_a": "\n\nThank you for your help!\n\nReply 1:\n\nTo authenticate with Kubernetes using OAuth2, you need to follow these steps:\n\n1. Create an OAuth2 client with the credentials from your provider.\n2. Use the client to obtain an access token.",
+          "short_b": "\n\nAnswer:\nSenate Bill 535, introduced by Senator Ricardo Lara, aims to allocate a quarter of the proceeds from the Greenhouse Gas Reduction Fund to projects that specifically benefit disadvantaged communities. This means that a portion of the funds generated from reducing greenhouse gas emissions will be directed towards initiatives that address the unique challenges faced",
+          "long_b": "\n\nAnswer: The Buckeyes' record in their first game of the season was 1-0.\n"
+        },
+        "scheduler_apply_ratio": 0.09375,
+        "scheduler_applied": 6,
+        "scheduler_attempts": 64,
+        "baseline_chunk_avg": 1536.0,
+        "chosen_chunk_avg": 320.0,
+        "chosen_vs_baseline_ratio_avg": 0.25,
+        "explicit_plan_ratio": 0.09375,
+        "rewrite_apply_ratio": 0.0,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": 0.0,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": 6.0,
+        "virtual_cap_helper_calls": 157.0,
+        "virtual_cap_prefill_calls": 9.0,
+        "virtual_cap_target_hits": 6.0,
+        "probe_total": 78.0,
+        "probe_slice_eligible_ratio": 0.15384615384615385,
+        "probe_best_lt_long_ratio": 0.15384615384615385,
+        "probe_short_avg": 28.0,
+        "probe_long_avg": 254.73076923076923,
+        "probe_baseline_avg": 1536.0,
+        "probe_best_avg": 289.14285714285717,
+        "probe_queue_avg": 0.6538461538461539,
+        "probe_wait_us_avg": 24022.01065650353,
+        "probe_reasons": {
+          "ingress_virtual_override": 7,
+          "candidate": 7,
+          "apply": 6,
+          "best_chunk_ge_long": 1,
+          "no_need_wave_slice": 57
+        },
+        "hook_report": {
+          "requests": {
+            "total": 3,
+            "finished": 3
+          },
+          "scheduler": {
+            "attempts": 64,
+            "applied": 6,
+            "apply_ratio": 0.09375,
+            "baseline_chunk_avg": 1536.0,
+            "chosen_chunk_avg": 320.0,
+            "chosen_vs_baseline_ratio_avg": 0.25,
+            "explicit_plan_ratio": 0.09375,
+            "rewrite_applied": 0,
+            "rewrite_apply_ratio": 0.0,
+            "rewrite_group_count": 0,
+            "rewrite_old_chunk_avg": null,
+            "rewrite_new_chunk_avg": null,
+            "rewrite_token_delta_avg": null,
+            "virtual_cap_apply_ratio": 0.0,
+            "virtual_cap_old_avg": null,
+            "virtual_cap_new_avg": null,
+            "virtual_cap_target_set": 6.0,
+            "virtual_cap_helper_calls": 157.0,
+            "virtual_cap_prefill_calls": 9.0,
+            "virtual_cap_target_hits": 6.0,
+            "request_traces": {
+              "repeat_phase1_only_1:long_b": [
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 0,
+                  "uncached": 289,
+                  "cached": 0,
+                  "target_chunk": 384
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 289,
+                  "num_computed_tokens": 0
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 289,
+                  "uncached": 384,
+                  "cached": 0,
+                  "target_chunk": 384
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 384,
+                  "num_computed_tokens": 289
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 673,
+                  "uncached": 384,
+                  "cached": 0,
+                  "target_chunk": 384
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 384,
+                  "num_computed_tokens": 673
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1057,
+                  "uncached": 256,
+                  "cached": 0,
+                  "target_chunk": 256
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 256,
+                  "num_computed_tokens": 1057
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1313,
+                  "uncached": 256,
+                  "cached": 0,
+                  "target_chunk": 256
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 256,
+                  "num_computed_tokens": 1313
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1569,
+                  "uncached": 256,
+                  "cached": 0,
+                  "target_chunk": 256
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 256,
+                  "num_computed_tokens": 1569
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1825,
+                  "uncached": 82,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 82,
+                  "num_computed_tokens": 1825
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1907,
+                  "uncached": 1,
+                  "cached": 0,
+                  "prefill_to_decode": true
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1907
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1908,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1908
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1909,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1909
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1910,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1910
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1911,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1911
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1912,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1912
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1913,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1913
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1914,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1914
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1915,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1915
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1916,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1916
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1917,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1917
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1918,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1918
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1919,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1919
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1920,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1920
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1921,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1921
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1922,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1922
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1923,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1923
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1924,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1924
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1925,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1925
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1926,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1926
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1927,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1927
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1928,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1928
+                }
+              ]
+            },
+            "probe_total": 78.0,
+            "probe_slice_eligible_ratio": 0.15384615384615385,
+            "probe_best_lt_long_ratio": 0.15384615384615385,
+            "probe_short_avg": 28.0,
+            "probe_long_avg": 254.73076923076923,
+            "probe_baseline_avg": 1536.0,
+            "probe_best_avg": 289.14285714285717,
+            "probe_queue_avg": 0.6538461538461539,
+            "probe_wait_us_avg": 24022.01065650353,
+            "proposal_scheduler_avg": 819.4285714285714,
+            "proposal_direct_avg": 286.0,
+            "proposal_cohort_target_avg": 291.57142857142856,
+            "proposal_direct_win_ratio": 0.09375,
+            "probe_reasons": {
+              "ingress_virtual_override": 7,
+              "candidate": 7,
+              "apply": 6,
+              "best_chunk_ge_long": 1,
+              "no_need_wave_slice": 57
+            }
+          },
+          "phase2": {
+            "attempts": 0,
+            "applied": 0,
+            "apply_ratio": 0.0,
+            "v1_true_unbind_applied": 0,
+            "v1_true_unbind_ratio": 0.0,
+            "reasons": {}
+          },
+          "ttft_ms_all": {
+            "count": 3.0,
+            "p50": 35.9748019836843,
+            "p95": 172.05632012337446,
+            "p99": 184.1524550691247
+          },
+          "ttft_ms_short": {
+            "count": 2.0,
+            "p50": 35.361795919016004,
+            "p95": 35.91350137721747,
+            "p99": 35.962541862390935
+          },
+          "slowdown_all": {
+            "count": 3.0,
+            "p50": 436.9360842484117,
+            "p95": 437.3406275898784,
+            "p99": 437.3765869980088
+          },
+          "slowdown_short": {
+            "count": 2.0,
+            "p50": 437.16083054922655,
+            "p95": 437.3631022199599,
+            "p99": 437.38108192402507
+          }
+        },
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "base_ttft_short_p99_ms": 68.84648092091084,
+        "wave_ttft_short_p99_ms": 37.956657353788614,
+        "ttft_improve_ratio": 1.8138183317672725,
+        "base_round_wall_ms": 1431.9775006733835,
+        "wave_round_wall_ms": 1183.6216319352388,
+        "round_wall_improve_ratio": 1.2098270782125526,
+        "text_match_rate": 1.0,
+        "mismatch_details": [],
+        "error_rate": 0.0,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 0.0,
+        "base_semantic_pass_rate": 0.0,
+        "wave_semantic_pass_rate": 0.0,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.5,
+            "reason": "not_french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "off_topic_or_outline"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.5,
+            "reason": "not_french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "off_topic_or_outline"
+          }
+        },
+        "base_texts": {
+          "short_a": "\n\nThank you for your help!\n\nReply 1:\n\nTo authenticate with Kubernetes using OAuth2, you need to follow these steps:\n\n1. Create an OAuth2 client with the credentials from your provider.\n2. Use the client to obtain an access token.",
+          "short_b": "\n\nAnswer:\nSenate Bill 535, introduced by Senator Ricardo Lara, aims to allocate a quarter of the proceeds from the Greenhouse Gas Reduction Fund to projects that specifically benefit disadvantaged communities. This means that a portion of the funds generated from reducing greenhouse gas emissions will be directed towards initiatives that address the unique challenges faced",
+          "long_b": "\n\nAnswer: The Buckeyes' record in their first game of the season was 1-0.\n"
+        },
+        "wave_texts": {
+          "short_a": "\n\nThank you for your help!\n\nReply 1:\n\nTo authenticate with Kubernetes using OAuth2, you need to follow these steps:\n\n1. Create an OAuth2 client with the credentials from your provider.\n2. Use the client to obtain an access token.",
+          "short_b": "\n\nAnswer:\nSenate Bill 535, introduced by Senator Ricardo Lara, aims to allocate a quarter of the proceeds from the Greenhouse Gas Reduction Fund to projects that specifically benefit disadvantaged communities. This means that a portion of the funds generated from reducing greenhouse gas emissions will be directed towards initiatives that address the unique challenges faced",
+          "long_b": "\n\nAnswer: The Buckeyes' record in their first game of the season was 1-0.\n"
+        },
+        "scheduler_apply_ratio": 0.09375,
+        "scheduler_applied": 6,
+        "scheduler_attempts": 64,
+        "baseline_chunk_avg": 1536.0,
+        "chosen_chunk_avg": 320.0,
+        "chosen_vs_baseline_ratio_avg": 0.25,
+        "explicit_plan_ratio": 0.09375,
+        "rewrite_apply_ratio": 0.0,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": 0.0,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": 6.0,
+        "virtual_cap_helper_calls": 157.0,
+        "virtual_cap_prefill_calls": 9.0,
+        "virtual_cap_target_hits": 6.0,
+        "probe_total": 78.0,
+        "probe_slice_eligible_ratio": 0.15384615384615385,
+        "probe_best_lt_long_ratio": 0.15384615384615385,
+        "probe_short_avg": 28.0,
+        "probe_long_avg": 254.73076923076923,
+        "probe_baseline_avg": 1536.0,
+        "probe_best_avg": 289.14285714285717,
+        "probe_queue_avg": 0.6538461538461539,
+        "probe_wait_us_avg": 24117.02963022085,
+        "probe_reasons": {
+          "ingress_virtual_override": 7,
+          "candidate": 7,
+          "apply": 6,
+          "best_chunk_ge_long": 1,
+          "no_need_wave_slice": 57
+        },
+        "hook_report": {
+          "requests": {
+            "total": 3,
+            "finished": 3
+          },
+          "scheduler": {
+            "attempts": 64,
+            "applied": 6,
+            "apply_ratio": 0.09375,
+            "baseline_chunk_avg": 1536.0,
+            "chosen_chunk_avg": 320.0,
+            "chosen_vs_baseline_ratio_avg": 0.25,
+            "explicit_plan_ratio": 0.09375,
+            "rewrite_applied": 0,
+            "rewrite_apply_ratio": 0.0,
+            "rewrite_group_count": 0,
+            "rewrite_old_chunk_avg": null,
+            "rewrite_new_chunk_avg": null,
+            "rewrite_token_delta_avg": null,
+            "virtual_cap_apply_ratio": 0.0,
+            "virtual_cap_old_avg": null,
+            "virtual_cap_new_avg": null,
+            "virtual_cap_target_set": 6.0,
+            "virtual_cap_helper_calls": 157.0,
+            "virtual_cap_prefill_calls": 9.0,
+            "virtual_cap_target_hits": 6.0,
+            "request_traces": {
+              "repeat_phase1_only_2:long_b": [
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 0,
+                  "uncached": 289,
+                  "cached": 0,
+                  "target_chunk": 384
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 289,
+                  "num_computed_tokens": 0
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 289,
+                  "uncached": 384,
+                  "cached": 0,
+                  "target_chunk": 384
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 384,
+                  "num_computed_tokens": 289
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 673,
+                  "uncached": 384,
+                  "cached": 0,
+                  "target_chunk": 384
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 384,
+                  "num_computed_tokens": 673
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1057,
+                  "uncached": 256,
+                  "cached": 0,
+                  "target_chunk": 256
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 256,
+                  "num_computed_tokens": 1057
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1313,
+                  "uncached": 256,
+                  "cached": 0,
+                  "target_chunk": 256
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 256,
+                  "num_computed_tokens": 1313
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1569,
+                  "uncached": 256,
+                  "cached": 0,
+                  "target_chunk": 256
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 256,
+                  "num_computed_tokens": 1569
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1825,
+                  "uncached": 82,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 82,
+                  "num_computed_tokens": 1825
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1907,
+                  "uncached": 1,
+                  "cached": 0,
+                  "prefill_to_decode": true
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1907
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1908,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1908
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1909,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1909
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1910,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1910
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1911,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1911
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1912,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1912
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1913,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1913
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1914,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1914
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1915,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1915
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1916,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1916
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1917,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1917
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1918,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1918
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1919,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1919
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1920,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1920
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1921,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1921
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1922,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1922
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1923,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1923
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1924,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1924
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1925,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1925
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1926,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1926
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1927,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1927
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 1928,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 1928
+                }
+              ]
+            },
+            "probe_total": 78.0,
+            "probe_slice_eligible_ratio": 0.15384615384615385,
+            "probe_best_lt_long_ratio": 0.15384615384615385,
+            "probe_short_avg": 28.0,
+            "probe_long_avg": 254.73076923076923,
+            "probe_baseline_avg": 1536.0,
+            "probe_best_avg": 289.14285714285717,
+            "probe_queue_avg": 0.6538461538461539,
+            "probe_wait_us_avg": 24117.02963022085,
+            "proposal_scheduler_avg": 819.4285714285714,
+            "proposal_direct_avg": 286.0,
+            "proposal_cohort_target_avg": 291.57142857142856,
+            "proposal_direct_win_ratio": 0.09375,
+            "probe_reasons": {
+              "ingress_virtual_override": 7,
+              "candidate": 7,
+              "apply": 6,
+              "best_chunk_ge_long": 1,
+              "no_need_wave_slice": 57
+            }
+          },
+          "phase2": {
+            "attempts": 0,
+            "applied": 0,
+            "apply_ratio": 0.0,
+            "v1_true_unbind_applied": 0,
+            "v1_true_unbind_ratio": 0.0,
+            "reasons": {}
+          },
+          "ttft_ms_all": {
+            "count": 3.0,
+            "p50": 36.61743085831404,
+            "p95": 171.85911247506738,
+            "p99": 183.88059528544545
+          },
+          "ttft_ms_short": {
+            "count": 2.0,
+            "p50": 35.91133654117584,
+            "p95": 36.54682142660022,
+            "p99": 36.60330897197127
+          },
+          "slowdown_all": {
+            "count": 3.0,
+            "p50": 437.0567752640722,
+            "p95": 437.52275067754596,
+            "p99": 437.5641707142992
+          },
+          "slowdown_short": {
+            "count": 2.0,
+            "p50": 437.31565049377986,
+            "p95": 437.54863820051673,
+            "p99": 437.56934821889337
+          }
+        },
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      }
+    ],
+    "phase2": [
+      {
+        "repeat_index": 0,
+        "base_ttft_short_p99_ms": 5025.61362657696,
+        "wave_ttft_short_p99_ms": 5067.286235233769,
+        "ttft_improve_ratio": 0.9917761486676929,
+        "base_slowdown_short_p99": 3516.765142267944,
+        "wave_slowdown_short_p99": 3554.636328812843,
+        "slowdown_improve_ratio": 0.9893459743721387,
+        "base_round_wall_ms": 9579.647238366306,
+        "wave_round_wall_ms": 9682.75676202029,
+        "round_wall_improve_ratio": 0.9893512223648515,
+        "baseline_noise_match_rate": 0.75,
+        "baseline_noise_error_rate": 0.25,
+        "wave_match_rate": 0.75,
+        "wave_error_rate": 0.25,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.6870229007633588,
+        "phase2_applied": 90,
+        "phase2_attempts": 131,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "repeat_index": 1,
+        "base_ttft_short_p99_ms": 5023.168201688677,
+        "wave_ttft_short_p99_ms": 5065.314341126941,
+        "ttft_improve_ratio": 0.9916794622011775,
+        "base_slowdown_short_p99": 3516.3544559984393,
+        "wave_slowdown_short_p99": 3569.0212532040164,
+        "slowdown_improve_ratio": 0.9852433500757956,
+        "base_round_wall_ms": 9577.9441408813,
+        "wave_round_wall_ms": 9944.673024117947,
+        "round_wall_improve_ratio": 0.9631230828457354,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "wave_match_rate": 0.5,
+        "wave_error_rate": 0.5,
+        "incremental_error_rate": 0.5,
+        "phase2_apply_ratio": 0.9552238805970149,
+        "phase2_applied": 128,
+        "phase2_attempts": 134,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "repeat_index": 2,
+        "base_ttft_short_p99_ms": 4996.222613672726,
+        "wave_ttft_short_p99_ms": 5066.059370730072,
+        "ttft_improve_ratio": 0.9862147772170143,
+        "base_slowdown_short_p99": 3520.20597048084,
+        "wave_slowdown_short_p99": 3571.8750378685754,
+        "slowdown_improve_ratio": 0.9855344694761304,
+        "base_round_wall_ms": 9808.143840637058,
+        "wave_round_wall_ms": 9950.984372757375,
+        "round_wall_improve_ratio": 0.9856455877358858,
+        "baseline_noise_match_rate": 0.75,
+        "baseline_noise_error_rate": 0.25,
+        "wave_match_rate": 0.5,
+        "wave_error_rate": 0.5,
+        "incremental_error_rate": 0.25,
+        "phase2_apply_ratio": 0.9552238805970149,
+        "phase2_applied": 128,
+        "phase2_attempts": 134,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      }
+    ],
+    "phase1_chunked_vs_no_chunk": [
+      {
+        "base_ttft_short_p99_ms": 34.40446825698018,
+        "wave_ttft_short_p99_ms": 68.1386161595583,
+        "ttft_improve_ratio": 0.5049187992960731,
+        "base_round_wall_ms": 1203.2434926368296,
+        "wave_round_wall_ms": 1424.267390742898,
+        "round_wall_improve_ratio": 0.8448157280419217,
+        "text_match_rate": 1.0,
+        "mismatch_details": [],
+        "error_rate": 0.0,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 0.0,
+        "base_semantic_pass_rate": 0.0,
+        "wave_semantic_pass_rate": 0.0,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.5,
+            "reason": "not_french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "off_topic_or_outline"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.5,
+            "reason": "not_french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "off_topic_or_outline"
+          }
+        },
+        "base_texts": {
+          "short_a": "\n\nThank you for your help!\n\nReply 1:\n\nTo authenticate with Kubernetes using OAuth2, you need to follow these steps:\n\n1. Create an OAuth2 client with the credentials from your provider.\n2. Use the client to obtain an access token.",
+          "short_b": "\n\nAnswer:\nSenate Bill 535, introduced by Senator Ricardo Lara, aims to allocate a quarter of the proceeds from the Greenhouse Gas Reduction Fund to projects that specifically benefit disadvantaged communities. This means that a portion of the funds generated from reducing greenhouse gas emissions will be directed towards initiatives that address the unique challenges faced",
+          "long_b": "\n\nAnswer: The Buckeyes' record in their first game of the season was 1-0.\n"
+        },
+        "wave_texts": {
+          "short_a": "\n\nThank you for your help!\n\nReply 1:\n\nTo authenticate with Kubernetes using OAuth2, you need to follow these steps:\n\n1. Create an OAuth2 client with the credentials from your provider.\n2. Use the client to obtain an access token.",
+          "short_b": "\n\nAnswer:\nSenate Bill 535, introduced by Senator Ricardo Lara, aims to allocate a quarter of the proceeds from the Greenhouse Gas Reduction Fund to projects that specifically benefit disadvantaged communities. This means that a portion of the funds generated from reducing greenhouse gas emissions will be directed towards initiatives that address the unique challenges faced",
+          "long_b": "\n\nAnswer: The Buckeyes' record in their first game of the season was 1-0.\n"
+        },
+        "scheduler_apply_ratio": null,
+        "scheduler_applied": null,
+        "scheduler_attempts": null,
+        "baseline_chunk_avg": null,
+        "chosen_chunk_avg": null,
+        "chosen_vs_baseline_ratio_avg": null,
+        "explicit_plan_ratio": null,
+        "rewrite_apply_ratio": null,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": null,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": null,
+        "virtual_cap_helper_calls": null,
+        "virtual_cap_prefill_calls": null,
+        "virtual_cap_target_hits": null,
+        "probe_total": null,
+        "probe_slice_eligible_ratio": null,
+        "probe_best_lt_long_ratio": null,
+        "probe_short_avg": null,
+        "probe_long_avg": null,
+        "probe_baseline_avg": null,
+        "probe_best_avg": null,
+        "probe_queue_avg": null,
+        "probe_wait_us_avg": null,
+        "probe_reasons": null,
+        "hook_report": {},
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "base_ttft_short_p99_ms": 36.31128277629614,
+        "wave_ttft_short_p99_ms": 68.15836811438203,
+        "ttft_improve_ratio": 0.5327487112860341,
+        "base_round_wall_ms": 1193.877021316439,
+        "wave_round_wall_ms": 1431.1588332057,
+        "round_wall_improve_ratio": 0.834203020388893,
+        "text_match_rate": 1.0,
+        "mismatch_details": [],
+        "error_rate": 0.0,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 0.0,
+        "base_semantic_pass_rate": 0.0,
+        "wave_semantic_pass_rate": 0.0,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.5,
+            "reason": "not_french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "off_topic_or_outline"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.5,
+            "reason": "not_french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "off_topic_or_outline"
+          }
+        },
+        "base_texts": {
+          "short_a": "\n\nThank you for your help!\n\nReply 1:\n\nTo authenticate with Kubernetes using OAuth2, you need to follow these steps:\n\n1. Create an OAuth2 client with the credentials from your provider.\n2. Use the client to obtain an access token.",
+          "short_b": "\n\nAnswer:\nSenate Bill 535, introduced by Senator Ricardo Lara, aims to allocate a quarter of the proceeds from the Greenhouse Gas Reduction Fund to projects that specifically benefit disadvantaged communities. This means that a portion of the funds generated from reducing greenhouse gas emissions will be directed towards initiatives that address the unique challenges faced",
+          "long_b": "\n\nAnswer: The Buckeyes' record in their first game of the season was 1-0.\n"
+        },
+        "wave_texts": {
+          "short_a": "\n\nThank you for your help!\n\nReply 1:\n\nTo authenticate with Kubernetes using OAuth2, you need to follow these steps:\n\n1. Create an OAuth2 client with the credentials from your provider.\n2. Use the client to obtain an access token.",
+          "short_b": "\n\nAnswer:\nSenate Bill 535, introduced by Senator Ricardo Lara, aims to allocate a quarter of the proceeds from the Greenhouse Gas Reduction Fund to projects that specifically benefit disadvantaged communities. This means that a portion of the funds generated from reducing greenhouse gas emissions will be directed towards initiatives that address the unique challenges faced",
+          "long_b": "\n\nAnswer: The Buckeyes' record in their first game of the season was 1-0.\n"
+        },
+        "scheduler_apply_ratio": null,
+        "scheduler_applied": null,
+        "scheduler_attempts": null,
+        "baseline_chunk_avg": null,
+        "chosen_chunk_avg": null,
+        "chosen_vs_baseline_ratio_avg": null,
+        "explicit_plan_ratio": null,
+        "rewrite_apply_ratio": null,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": null,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": null,
+        "virtual_cap_helper_calls": null,
+        "virtual_cap_prefill_calls": null,
+        "virtual_cap_target_hits": null,
+        "probe_total": null,
+        "probe_slice_eligible_ratio": null,
+        "probe_best_lt_long_ratio": null,
+        "probe_short_avg": null,
+        "probe_long_avg": null,
+        "probe_baseline_avg": null,
+        "probe_best_avg": null,
+        "probe_queue_avg": null,
+        "probe_wait_us_avg": null,
+        "probe_reasons": null,
+        "hook_report": {},
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "base_ttft_short_p99_ms": 36.355333402752876,
+        "wave_ttft_short_p99_ms": 68.84648092091084,
+        "ttft_improve_ratio": 0.5280637865066335,
+        "base_round_wall_ms": 1197.753380984068,
+        "wave_round_wall_ms": 1431.9775006733835,
+        "round_wall_improve_ratio": 0.8364331006742967,
+        "text_match_rate": 1.0,
+        "mismatch_details": [],
+        "error_rate": 0.0,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 0.0,
+        "base_semantic_pass_rate": 0.0,
+        "wave_semantic_pass_rate": 0.0,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.5,
+            "reason": "not_french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "off_topic_or_outline"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.5,
+            "reason": "not_french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "off_topic_or_outline"
+          }
+        },
+        "base_texts": {
+          "short_a": "\n\nThank you for your help!\n\nReply 1:\n\nTo authenticate with Kubernetes using OAuth2, you need to follow these steps:\n\n1. Create an OAuth2 client with the credentials from your provider.\n2. Use the client to obtain an access token.",
+          "short_b": "\n\nAnswer:\nSenate Bill 535, introduced by Senator Ricardo Lara, aims to allocate a quarter of the proceeds from the Greenhouse Gas Reduction Fund to projects that specifically benefit disadvantaged communities. This means that a portion of the funds generated from reducing greenhouse gas emissions will be directed towards initiatives that address the unique challenges faced",
+          "long_b": "\n\nAnswer: The Buckeyes' record in their first game of the season was 1-0.\n"
+        },
+        "wave_texts": {
+          "short_a": "\n\nThank you for your help!\n\nReply 1:\n\nTo authenticate with Kubernetes using OAuth2, you need to follow these steps:\n\n1. Create an OAuth2 client with the credentials from your provider.\n2. Use the client to obtain an access token.",
+          "short_b": "\n\nAnswer:\nSenate Bill 535, introduced by Senator Ricardo Lara, aims to allocate a quarter of the proceeds from the Greenhouse Gas Reduction Fund to projects that specifically benefit disadvantaged communities. This means that a portion of the funds generated from reducing greenhouse gas emissions will be directed towards initiatives that address the unique challenges faced",
+          "long_b": "\n\nAnswer: The Buckeyes' record in their first game of the season was 1-0.\n"
+        },
+        "scheduler_apply_ratio": null,
+        "scheduler_applied": null,
+        "scheduler_attempts": null,
+        "baseline_chunk_avg": null,
+        "chosen_chunk_avg": null,
+        "chosen_vs_baseline_ratio_avg": null,
+        "explicit_plan_ratio": null,
+        "rewrite_apply_ratio": null,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": null,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": null,
+        "virtual_cap_helper_calls": null,
+        "virtual_cap_prefill_calls": null,
+        "virtual_cap_target_hits": null,
+        "probe_total": null,
+        "probe_slice_eligible_ratio": null,
+        "probe_best_lt_long_ratio": null,
+        "probe_short_avg": null,
+        "probe_long_avg": null,
+        "probe_baseline_avg": null,
+        "probe_best_avg": null,
+        "probe_queue_avg": null,
+        "probe_wait_us_avg": null,
+        "probe_reasons": null,
+        "hook_report": {},
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      }
+    ],
+    "phase12": [
+      {
+        "repeat_index": 0,
+        "base_ttft_short_p99_ms": 5025.61362657696,
+        "wave_ttft_short_p99_ms": 4950.407379814424,
+        "ttft_improve_ratio": 1.015191930884152,
+        "base_slowdown_short_p99": 3516.765142267944,
+        "wave_slowdown_short_p99": 3515.6999897992746,
+        "slowdown_improve_ratio": 1.0003029702397133,
+        "base_round_wall_ms": 9579.647238366306,
+        "wave_round_wall_ms": 9697.577026672661,
+        "round_wall_improve_ratio": 0.9878392522191888,
+        "baseline_noise_match_rate": 0.75,
+        "baseline_noise_error_rate": 0.25,
+        "wave_match_rate": 0.5,
+        "wave_error_rate": 0.5,
+        "incremental_error_rate": 0.25,
+        "phase2_apply_ratio": 0.9846153846153847,
+        "phase2_applied": 128,
+        "phase2_attempts": 130,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "repeat_index": 1,
+        "base_ttft_short_p99_ms": 5023.168201688677,
+        "wave_ttft_short_p99_ms": 4948.572125528008,
+        "ttft_improve_ratio": 1.0150742626900098,
+        "base_slowdown_short_p99": 3516.3544559984393,
+        "wave_slowdown_short_p99": 3501.8687592994947,
+        "slowdown_improve_ratio": 1.0041365618458649,
+        "base_round_wall_ms": 9577.9441408813,
+        "wave_round_wall_ms": 9658.810820896178,
+        "round_wall_improve_ratio": 0.9916276774113922,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "wave_match_rate": 0.75,
+        "wave_error_rate": 0.25,
+        "incremental_error_rate": 0.25,
+        "phase2_apply_ratio": 0.9846153846153847,
+        "phase2_applied": 128,
+        "phase2_attempts": 130,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "repeat_index": 2,
+        "base_ttft_short_p99_ms": 4996.222613672726,
+        "wave_ttft_short_p99_ms": 4949.000211395323,
+        "ttft_improve_ratio": 1.009541806478139,
+        "base_slowdown_short_p99": 3520.20597048084,
+        "wave_slowdown_short_p99": 3505.134056419225,
+        "slowdown_improve_ratio": 1.0042999536733872,
+        "base_round_wall_ms": 9808.143840637058,
+        "wave_round_wall_ms": 9669.174600858241,
+        "round_wall_improve_ratio": 1.014372399456566,
+        "baseline_noise_match_rate": 0.75,
+        "baseline_noise_error_rate": 0.25,
+        "wave_match_rate": 0.75,
+        "wave_error_rate": 0.25,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.9846153846153847,
+        "phase2_applied": 128,
+        "phase2_attempts": 130,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      }
+    ]
+  },
+  "phase1_chunked_vs_no_chunk": {
+    "ttft_improve_ratio": {
+      "count": 3.0,
+      "mean": 0.5219104323629136,
+      "p50": 0.5280637865066335,
+      "p95": 0.5322802188080941,
+      "p99": 0.532655012790446,
+      "min": 0.5049187992960731,
+      "max": 0.5327487112860341
+    },
+    "round_wall_improve_ratio": {
+      "count": 3.0,
+      "mean": 0.8384839497017037,
+      "p50": 0.8364331006742967,
+      "p95": 0.8439774653051593,
+      "p99": 0.8446480754945692,
+      "min": 0.834203020388893,
+      "max": 0.8448157280419217
+    },
+    "error_rate": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "baseline_noise_error_rate": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "incremental_error_rate": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "base_semantic_pass_rate": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "wave_semantic_pass_rate": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "semantic_pass_delta": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "scheduler_apply_ratio": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "baseline_chunk_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "chosen_chunk_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "chosen_vs_baseline_ratio_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "explicit_plan_ratio": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "rewrite_apply_ratio": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "rewrite_old_chunk_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "rewrite_new_chunk_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "rewrite_token_delta_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_apply_ratio": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_old_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_new_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_target_set": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_helper_calls": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_prefill_calls": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_target_hits": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_total": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_slice_eligible_ratio": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_best_lt_long_ratio": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_short_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_long_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_baseline_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_best_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_queue_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_wait_us_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    }
+  },
+  "phase12": {
+    "ttft_improve_ratio": {
+      "count": 3.0,
+      "mean": 1.013269333350767,
+      "p50": 1.0150742626900098,
+      "p95": 1.0151801640647378,
+      "p99": 1.015189577520269,
+      "min": 1.009541806478139,
+      "max": 1.015191930884152
+    },
+    "slowdown_improve_ratio": {
+      "count": 3.0,
+      "mean": 1.002913161919655,
+      "p50": 1.0041365618458649,
+      "p95": 1.0042836144906349,
+      "p99": 1.0042966858368367,
+      "min": 1.0003029702397133,
+      "max": 1.0042999536733872
+    },
+    "round_wall_improve_ratio": {
+      "count": 3.0,
+      "mean": 0.9979464430290491,
+      "p50": 0.9916276774113922,
+      "p95": 1.0120979272520487,
+      "p99": 1.0139175050156626,
+      "min": 0.9878392522191888,
+      "max": 1.014372399456566
+    },
+    "wave_error_rate": {
+      "count": 3.0,
+      "mean": 0.3333333333333333,
+      "p50": 0.25,
+      "p95": 0.475,
+      "p99": 0.495,
+      "min": 0.25,
+      "max": 0.5
+    },
+    "baseline_noise_error_rate": {
+      "count": 3.0,
+      "mean": 0.16666666666666666,
+      "p50": 0.25,
+      "p95": 0.25,
+      "p99": 0.25,
+      "min": 0.0,
+      "max": 0.25
+    },
+    "incremental_error_rate": {
+      "count": 3.0,
+      "mean": 0.16666666666666666,
+      "p50": 0.25,
+      "p95": 0.25,
+      "p99": 0.25,
+      "min": 0.0,
+      "max": 0.25
+    },
+    "phase2_apply_ratio": {
+      "count": 3.0,
+      "mean": 0.9846153846153847,
+      "p50": 0.9846153846153847,
+      "p95": 0.9846153846153847,
+      "p99": 0.9846153846153847,
+      "min": 0.9846153846153847,
+      "max": 0.9846153846153847
+    }
+  }
+}

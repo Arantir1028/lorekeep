@@ -174,7 +174,7 @@ class WaveScheduler:
         # 1. M/D/1 排队论感知 & 动态 SLA 杠杆
         rho = self.fairness_engine.compute_rho_md1(queue_length)
         if self.fairness_engine.should_elastic_bypass(rho):
-            return S_l
+            return int(baseline_chunk) if baseline_chunk is not None else S_l
         w_fairness = self.fairness_engine.compute_weight(t_wait_us, t_solo_s)
 
         best_S_c = int(baseline_chunk) if baseline_chunk is not None else S_l

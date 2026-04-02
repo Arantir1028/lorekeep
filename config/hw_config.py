@@ -4,7 +4,7 @@ import os
 # 候选的 Token 切分桶
 # Include higher buckets for long-context serving experiments and
 # bucket-limit ablations (e.g., 2048 vs 4096 ceiling).
-BUCKETS = [32, 64, 128, 256, 512, 1024, 2048, 3072, 4096]
+BUCKETS = [32, 64, 128, 256, 288, 320, 352, 384, 448, 512, 768, 1024, 1536, 2048, 3072, 4096]
 BATCH_SIZE = 128
 LORA_RANK = 32
 

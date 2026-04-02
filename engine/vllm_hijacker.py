@@ -49,7 +49,7 @@ class WaveSlicePolicy:
     short_escape_multiplier: int = 12
     max_budget_cap: int = 8192
     enable_sjf_reorder: bool = True
-    enable_tick_hide: bool = True
+    enable_tick_hide: bool = False
     allow_phase1_with_lora: bool = False
     allow_phase1_threshold_with_lora: bool = True
     allow_phase1_budget_with_lora: bool = False
@@ -58,15 +58,22 @@ class WaveSlicePolicy:
     enable_phase1_budget_guidance: bool = True
     enable_phase1_baseline_relative: bool = True
     enable_phase1_explicit_plan: bool = True
+    enable_phase1_direct_explicit_override: bool = True
+    phase1_ingress_direct_authoritative: bool = True
     scheduler_objective_mode: str = "fair_escape"  # fair_escape | pure_gain
     phase1_force_extreme_ratio: float = 6.0
     phase1_force_queue_len: int = 1
     phase1_force_min_chunk: int = 128
+    phase1_ingress_exact_chunk: bool = True
+    phase1_ingress_target_chunk: int = 384
+    phase1_ingress_min_chunk: int = 256
+    phase1_ingress_max_chunk: int = 512
     phase1_target_short_mul: float = 4.0
     phase1_target_long_fraction: float = 0.33
     phase1_budget_short_mass_factor: float = 1.75
     phase1_budget_bonus_tokens: int = 256
     phase1_budget_queue_bonus: int = 64
+    phase1_explicit_budget_cap_tokens: int = 512
     phase1_enable_cohort_mode: bool = False
     phase1_enable_sticky_chunk: bool = False
     phase1_short_cohort_long_fraction: float = 0.4
@@ -78,7 +85,7 @@ class WaveSlicePolicy:
     phase1_sticky_reuse_ratio: float = 0.85
 
     # Phase II (ModelRunner)
-    enable_phase2_modelrunner: bool = True
+    enable_phase2_modelrunner: bool = False
     phase2_enable_mixed_prefill_decode: bool = True
     phase2_min_prefill_count: int = 1
     phase2_min_hetero_ratio: float = 2.0
@@ -87,7 +94,7 @@ class WaveSlicePolicy:
     phase2_consistency_mode: str = "balanced"  # balanced | strict
     phase2_dispatch_mode: str = "synchronized"  # synchronized | async_experimental
     phase2_max_inflight_events: int = 2
-    phase2_enable_v1_true_unbind: bool = True
+    phase2_enable_v1_true_unbind: bool = False
     phase2_lora_rank_aware: bool = True
     phase2_min_lora_count: int = 2
     phase2_min_rank_ratio: float = 1.5
@@ -98,6 +105,10 @@ class WaveSlicePolicy:
     phase2_extreme_long_prefill: int = 512
     phase2_extreme_pressure_ratio: float = 3.0
     phase2_require_rank_hetero: bool = False
+    phase12_joint_coordination: bool = True
+    phase12_joint_min_chunk: int = 512
+    phase12_phase2_requires_recent_phase1: bool = True
+    phase12_phase2_recent_ttl: int = 4
     enable_vllm_lora_compat_patch: bool = True
 
     # Metrics
@@ -131,6 +142,47 @@ class WaveSliceMetrics:
         self._phase2_reason_counter: dict[str, int] = {}
         self._sched_total = 0
         self._sched_applied = 0
+        self._phase1_baseline_chunk_sum = 0.0
+        self._phase1_baseline_chunk_count = 0
+        self._phase1_chosen_chunk_sum = 0.0
+        self._phase1_chosen_chunk_count = 0
+        self._phase1_slice_ratio_sum = 0.0
+        self._phase1_slice_ratio_count = 0
+        self._phase1_explicit_total = 0
+        self._phase1_rewrite_applied = 0
+        self._phase1_rewrite_old_chunk_sum = 0.0
+        self._phase1_rewrite_new_chunk_sum = 0.0
+        self._phase1_rewrite_group_count = 0
+        self._phase1_rewrite_token_delta_sum = 0.0
+        self._phase1_virtual_cap_total = 0
+        self._phase1_virtual_cap_applied = 0
+        self._phase1_virtual_cap_old_sum = 0.0
+        self._phase1_virtual_cap_new_sum = 0.0
+        self._phase1_virtual_cap_target_set = 0
+        self._phase1_virtual_cap_helper_calls = 0
+        self._phase1_virtual_cap_prefill_calls = 0
+        self._phase1_virtual_cap_target_hits = 0
+        self._phase1_probe_total = 0
+        self._phase1_probe_slice_eligible = 0
+        self._phase1_probe_best_lt_long = 0
+        self._phase1_probe_short_sum = 0.0
+        self._phase1_probe_long_sum = 0.0
+        self._phase1_probe_baseline_sum = 0.0
+        self._phase1_probe_baseline_count = 0
+        self._phase1_probe_best_sum = 0.0
+        self._phase1_probe_best_count = 0
+        self._phase1_probe_queue_sum = 0.0
+        self._phase1_probe_wait_us_sum = 0.0
+        self._phase1_probe_reason_counter: dict[str, int] = {}
+        self._phase1_scheduler_prop_sum = 0.0
+        self._phase1_scheduler_prop_count = 0
+        self._phase1_direct_prop_sum = 0.0
+        self._phase1_direct_prop_count = 0
+        self._phase1_cohort_target_sum = 0.0
+        self._phase1_cohort_target_count = 0
+        self._phase1_direct_wins = 0
+        self._phase1_request_traces: dict[str, list[dict[str, Any]]] = {}
+        self._phase1_last_is_prompt: dict[str, bool] = {}
 
     @staticmethod
     def _percentile(values: list[float], p: float) -> Optional[float]:
@@ -158,6 +210,47 @@ class WaveSliceMetrics:
             self._phase2_reason_counter.clear()
             self._sched_total = 0
             self._sched_applied = 0
+            self._phase1_baseline_chunk_sum = 0.0
+            self._phase1_baseline_chunk_count = 0
+            self._phase1_chosen_chunk_sum = 0.0
+            self._phase1_chosen_chunk_count = 0
+            self._phase1_slice_ratio_sum = 0.0
+            self._phase1_slice_ratio_count = 0
+            self._phase1_explicit_total = 0
+            self._phase1_rewrite_applied = 0
+            self._phase1_rewrite_old_chunk_sum = 0.0
+            self._phase1_rewrite_new_chunk_sum = 0.0
+            self._phase1_rewrite_group_count = 0
+            self._phase1_rewrite_token_delta_sum = 0.0
+            self._phase1_virtual_cap_total = 0
+            self._phase1_virtual_cap_applied = 0
+            self._phase1_virtual_cap_old_sum = 0.0
+            self._phase1_virtual_cap_new_sum = 0.0
+            self._phase1_request_traces = {}
+            self._phase1_last_is_prompt = {}
+            self._phase1_virtual_cap_target_set = 0
+            self._phase1_virtual_cap_helper_calls = 0
+            self._phase1_virtual_cap_prefill_calls = 0
+            self._phase1_virtual_cap_target_hits = 0
+            self._phase1_probe_total = 0
+            self._phase1_probe_slice_eligible = 0
+            self._phase1_probe_best_lt_long = 0
+            self._phase1_probe_short_sum = 0.0
+            self._phase1_probe_long_sum = 0.0
+            self._phase1_probe_baseline_sum = 0.0
+            self._phase1_probe_baseline_count = 0
+            self._phase1_probe_best_sum = 0.0
+            self._phase1_probe_best_count = 0
+            self._phase1_probe_queue_sum = 0.0
+            self._phase1_probe_wait_us_sum = 0.0
+            self._phase1_probe_reason_counter = {}
+            self._phase1_scheduler_prop_sum = 0.0
+            self._phase1_scheduler_prop_count = 0
+            self._phase1_direct_prop_sum = 0.0
+            self._phase1_direct_prop_count = 0
+            self._phase1_cohort_target_sum = 0.0
+            self._phase1_cohort_target_count = 0
+            self._phase1_direct_wins = 0
 
     def register_request(
         self,
@@ -204,6 +297,187 @@ class WaveSliceMetrics:
             self._sched_total += 1
             if applied:
                 self._sched_applied += 1
+
+    def record_phase1_choice(
+        self,
+        *,
+        chosen_chunk: Optional[int],
+        baseline_chunk: Optional[int],
+        explicit_plan: bool,
+    ) -> None:
+        with self._lock:
+            if baseline_chunk is not None and baseline_chunk > 0:
+                self._phase1_baseline_chunk_sum += float(baseline_chunk)
+                self._phase1_baseline_chunk_count += 1
+            if chosen_chunk is not None and chosen_chunk > 0:
+                self._phase1_chosen_chunk_sum += float(chosen_chunk)
+                self._phase1_chosen_chunk_count += 1
+            if (
+                chosen_chunk is not None
+                and chosen_chunk > 0
+                and baseline_chunk is not None
+                and baseline_chunk > 0
+            ):
+                self._phase1_slice_ratio_sum += float(chosen_chunk) / float(baseline_chunk)
+                self._phase1_slice_ratio_count += 1
+            if explicit_plan:
+                self._phase1_explicit_total += 1
+
+    def record_phase1_rewrite(
+        self,
+        *,
+        rewritten_groups: int,
+        old_chunk_sum: int,
+        new_chunk_sum: int,
+        token_delta_sum: int,
+    ) -> None:
+        with self._lock:
+            if rewritten_groups <= 0:
+                return
+            self._phase1_rewrite_applied += 1
+            self._phase1_rewrite_group_count += int(rewritten_groups)
+            self._phase1_rewrite_old_chunk_sum += float(max(0, old_chunk_sum))
+            self._phase1_rewrite_new_chunk_sum += float(max(0, new_chunk_sum))
+            self._phase1_rewrite_token_delta_sum += float(max(0, token_delta_sum))
+
+    def record_phase1_virtual_cap(
+        self,
+        *,
+        old_total_tokens: int,
+        new_total_tokens: int,
+        applied: bool,
+    ) -> None:
+        with self._lock:
+            self._phase1_virtual_cap_total += 1
+            if not applied:
+                return
+            self._phase1_virtual_cap_applied += 1
+            self._phase1_virtual_cap_old_sum += float(max(0, old_total_tokens))
+            self._phase1_virtual_cap_new_sum += float(max(0, new_total_tokens))
+
+    def record_phase1_virtual_cap_probe(
+        self,
+        *,
+        target_set: bool = False,
+        helper_called: bool = False,
+        prefill_call: bool = False,
+        target_hit: bool = False,
+    ) -> None:
+        with self._lock:
+            if target_set:
+                self._phase1_virtual_cap_target_set += 1
+            if helper_called:
+                self._phase1_virtual_cap_helper_calls += 1
+            if prefill_call:
+                self._phase1_virtual_cap_prefill_calls += 1
+            if target_hit:
+                self._phase1_virtual_cap_target_hits += 1
+
+    @staticmethod
+    def _trace_request_key(request_id: str) -> bool:
+        rid = str(request_id or "")
+        if not rid:
+            return False
+        return rid == "long_b" or rid.endswith(":long_b")
+
+    def record_phase1_step_trace(
+        self,
+        *,
+        request_id: str,
+        event: str,
+        is_prefill: Optional[bool] = None,
+        token_chunk_size: Optional[int] = None,
+        num_computed_tokens: Optional[int] = None,
+        uncached: Optional[int] = None,
+        cached: Optional[int] = None,
+        target_chunk: Optional[int] = None,
+    ) -> None:
+        if not self._trace_request_key(request_id):
+            return
+        with self._lock:
+            traces = self._phase1_request_traces.setdefault(str(request_id), [])
+            rec: dict[str, Any] = {"event": str(event)}
+            if is_prefill is not None:
+                rec["is_prefill"] = bool(is_prefill)
+            if token_chunk_size is not None:
+                rec["token_chunk_size"] = int(token_chunk_size)
+            if num_computed_tokens is not None:
+                rec["num_computed_tokens"] = int(num_computed_tokens)
+            if uncached is not None:
+                rec["uncached"] = int(uncached)
+            if cached is not None:
+                rec["cached"] = int(cached)
+            if target_chunk is not None:
+                rec["target_chunk"] = int(target_chunk)
+            if is_prefill is not None:
+                prev = self._phase1_last_is_prompt.get(str(request_id))
+                if prev is not None and bool(prev) and not bool(is_prefill):
+                    rec["prefill_to_decode"] = True
+                self._phase1_last_is_prompt[str(request_id)] = bool(is_prefill)
+            traces.append(rec)
+            if len(traces) > 2048:
+                del traces[: len(traces) - 2048]
+
+    def record_phase1_probe(
+        self,
+        *,
+        reason: str,
+        short_len: Optional[int] = None,
+        long_len: Optional[int] = None,
+        baseline_chunk: Optional[int] = None,
+        best_chunk: Optional[int] = None,
+        queue_len: Optional[int] = None,
+        wait_us: Optional[float] = None,
+        slice_eligible: bool = False,
+    ) -> None:
+        with self._lock:
+            self._phase1_probe_total += 1
+            if slice_eligible:
+                self._phase1_probe_slice_eligible += 1
+            if (
+                best_chunk is not None
+                and long_len is not None
+                and int(best_chunk) > 0
+                and int(long_len) > 0
+                and int(best_chunk) < int(long_len)
+            ):
+                self._phase1_probe_best_lt_long += 1
+            if short_len is not None and int(short_len) > 0:
+                self._phase1_probe_short_sum += float(short_len)
+            if long_len is not None and int(long_len) > 0:
+                self._phase1_probe_long_sum += float(long_len)
+            if baseline_chunk is not None and int(baseline_chunk) > 0:
+                self._phase1_probe_baseline_sum += float(baseline_chunk)
+                self._phase1_probe_baseline_count += 1
+            if best_chunk is not None and int(best_chunk) > 0:
+                self._phase1_probe_best_sum += float(best_chunk)
+                self._phase1_probe_best_count += 1
+            if queue_len is not None and int(queue_len) >= 0:
+                self._phase1_probe_queue_sum += float(queue_len)
+            if wait_us is not None and float(wait_us) >= 0.0:
+                self._phase1_probe_wait_us_sum += float(wait_us)
+            self._phase1_probe_reason_counter[reason] = self._phase1_probe_reason_counter.get(reason, 0) + 1
+
+    def record_phase1_proposal(
+        self,
+        *,
+        scheduler_chunk: Optional[int] = None,
+        direct_chunk: Optional[int] = None,
+        cohort_target: Optional[int] = None,
+        direct_won: bool = False,
+    ) -> None:
+        with self._lock:
+            if scheduler_chunk is not None and int(scheduler_chunk) > 0:
+                self._phase1_scheduler_prop_sum += float(scheduler_chunk)
+                self._phase1_scheduler_prop_count += 1
+            if direct_chunk is not None and int(direct_chunk) > 0:
+                self._phase1_direct_prop_sum += float(direct_chunk)
+                self._phase1_direct_prop_count += 1
+            if cohort_target is not None and int(cohort_target) > 0:
+                self._phase1_cohort_target_sum += float(cohort_target)
+                self._phase1_cohort_target_count += 1
+            if direct_won:
+                self._phase1_direct_wins += 1
 
     def record_phase2_decision(self, applied: bool, reason: str) -> None:
         with self._lock:
@@ -281,6 +555,48 @@ class WaveSliceMetrics:
             phase2_reasons = dict(self._phase2_reason_counter)
             sched_total = self._sched_total
             sched_applied = self._sched_applied
+            phase1_baseline_chunk_sum = self._phase1_baseline_chunk_sum
+            phase1_baseline_chunk_count = self._phase1_baseline_chunk_count
+            phase1_chosen_chunk_sum = self._phase1_chosen_chunk_sum
+            phase1_chosen_chunk_count = self._phase1_chosen_chunk_count
+            phase1_slice_ratio_sum = self._phase1_slice_ratio_sum
+            phase1_slice_ratio_count = self._phase1_slice_ratio_count
+            phase1_explicit_total = self._phase1_explicit_total
+            phase1_rewrite_applied = self._phase1_rewrite_applied
+            phase1_rewrite_old_chunk_sum = self._phase1_rewrite_old_chunk_sum
+            phase1_rewrite_new_chunk_sum = self._phase1_rewrite_new_chunk_sum
+            phase1_rewrite_group_count = self._phase1_rewrite_group_count
+            phase1_rewrite_token_delta_sum = self._phase1_rewrite_token_delta_sum
+            phase1_virtual_cap_total = self._phase1_virtual_cap_total
+            phase1_virtual_cap_applied = self._phase1_virtual_cap_applied
+            phase1_virtual_cap_old_sum = self._phase1_virtual_cap_old_sum
+            phase1_virtual_cap_new_sum = self._phase1_virtual_cap_new_sum
+            phase1_virtual_cap_target_set = self._phase1_virtual_cap_target_set
+            phase1_virtual_cap_helper_calls = self._phase1_virtual_cap_helper_calls
+            phase1_virtual_cap_prefill_calls = self._phase1_virtual_cap_prefill_calls
+            phase1_virtual_cap_target_hits = self._phase1_virtual_cap_target_hits
+            phase1_request_traces = {
+                rid: list(rows) for rid, rows in self._phase1_request_traces.items()
+            }
+            phase1_probe_total = self._phase1_probe_total
+            phase1_probe_slice_eligible = self._phase1_probe_slice_eligible
+            phase1_probe_best_lt_long = self._phase1_probe_best_lt_long
+            phase1_probe_short_sum = self._phase1_probe_short_sum
+            phase1_probe_long_sum = self._phase1_probe_long_sum
+            phase1_probe_baseline_sum = self._phase1_probe_baseline_sum
+            phase1_probe_baseline_count = self._phase1_probe_baseline_count
+            phase1_probe_best_sum = self._phase1_probe_best_sum
+            phase1_probe_best_count = self._phase1_probe_best_count
+            phase1_probe_queue_sum = self._phase1_probe_queue_sum
+            phase1_probe_wait_us_sum = self._phase1_probe_wait_us_sum
+            phase1_probe_reason_counter = dict(self._phase1_probe_reason_counter)
+            phase1_scheduler_prop_sum = self._phase1_scheduler_prop_sum
+            phase1_scheduler_prop_count = self._phase1_scheduler_prop_count
+            phase1_direct_prop_sum = self._phase1_direct_prop_sum
+            phase1_direct_prop_count = self._phase1_direct_prop_count
+            phase1_cohort_target_sum = self._phase1_cohort_target_sum
+            phase1_cohort_target_count = self._phase1_cohort_target_count
+            phase1_direct_wins = self._phase1_direct_wins
             req_total = len(self._requests)
             req_finished = sum(1 for r in self._requests.values() if r.finished)
 
@@ -290,6 +606,98 @@ class WaveSliceMetrics:
                 "attempts": sched_total,
                 "applied": sched_applied,
                 "apply_ratio": (sched_applied / sched_total) if sched_total else 0.0,
+                "baseline_chunk_avg": (
+                    phase1_baseline_chunk_sum / phase1_baseline_chunk_count
+                    if phase1_baseline_chunk_count else None
+                ),
+                "chosen_chunk_avg": (
+                    phase1_chosen_chunk_sum / phase1_chosen_chunk_count
+                    if phase1_chosen_chunk_count else None
+                ),
+                "chosen_vs_baseline_ratio_avg": (
+                    phase1_slice_ratio_sum / phase1_slice_ratio_count
+                    if phase1_slice_ratio_count else None
+                ),
+                "explicit_plan_ratio": (
+                    phase1_explicit_total / sched_total if sched_total else 0.0
+                ),
+                "rewrite_applied": phase1_rewrite_applied,
+                "rewrite_apply_ratio": (
+                    phase1_rewrite_applied / sched_total if sched_total else 0.0
+                ),
+                "rewrite_group_count": phase1_rewrite_group_count,
+                "rewrite_old_chunk_avg": (
+                    phase1_rewrite_old_chunk_sum / phase1_rewrite_group_count
+                    if phase1_rewrite_group_count else None
+                ),
+                "rewrite_new_chunk_avg": (
+                    phase1_rewrite_new_chunk_sum / phase1_rewrite_group_count
+                    if phase1_rewrite_group_count else None
+                ),
+                "rewrite_token_delta_avg": (
+                    phase1_rewrite_token_delta_sum / phase1_rewrite_group_count
+                    if phase1_rewrite_group_count else None
+                ),
+                "virtual_cap_apply_ratio": (
+                    phase1_virtual_cap_applied / phase1_virtual_cap_total
+                    if phase1_virtual_cap_total else 0.0
+                ),
+                "virtual_cap_old_avg": (
+                    phase1_virtual_cap_old_sum / phase1_virtual_cap_applied
+                    if phase1_virtual_cap_applied else None
+                ),
+                "virtual_cap_new_avg": (
+                    phase1_virtual_cap_new_sum / phase1_virtual_cap_applied
+                    if phase1_virtual_cap_applied else None
+                ),
+                "virtual_cap_target_set": float(phase1_virtual_cap_target_set),
+                "virtual_cap_helper_calls": float(phase1_virtual_cap_helper_calls),
+                "virtual_cap_prefill_calls": float(phase1_virtual_cap_prefill_calls),
+                "virtual_cap_target_hits": float(phase1_virtual_cap_target_hits),
+                "request_traces": phase1_request_traces,
+                "probe_total": float(phase1_probe_total),
+                "probe_slice_eligible_ratio": (
+                    phase1_probe_slice_eligible / phase1_probe_total if phase1_probe_total else 0.0
+                ),
+                "probe_best_lt_long_ratio": (
+                    phase1_probe_best_lt_long / phase1_probe_total if phase1_probe_total else 0.0
+                ),
+                "probe_short_avg": (
+                    phase1_probe_short_sum / phase1_probe_total if phase1_probe_total else None
+                ),
+                "probe_long_avg": (
+                    phase1_probe_long_sum / phase1_probe_total if phase1_probe_total else None
+                ),
+                "probe_baseline_avg": (
+                    phase1_probe_baseline_sum / phase1_probe_baseline_count
+                    if phase1_probe_baseline_count else None
+                ),
+                "probe_best_avg": (
+                    phase1_probe_best_sum / phase1_probe_best_count
+                    if phase1_probe_best_count else None
+                ),
+                "probe_queue_avg": (
+                    phase1_probe_queue_sum / phase1_probe_total if phase1_probe_total else None
+                ),
+                "probe_wait_us_avg": (
+                    phase1_probe_wait_us_sum / phase1_probe_total if phase1_probe_total else None
+                ),
+                "proposal_scheduler_avg": (
+                    phase1_scheduler_prop_sum / phase1_scheduler_prop_count
+                    if phase1_scheduler_prop_count else None
+                ),
+                "proposal_direct_avg": (
+                    phase1_direct_prop_sum / phase1_direct_prop_count
+                    if phase1_direct_prop_count else None
+                ),
+                "proposal_cohort_target_avg": (
+                    phase1_cohort_target_sum / phase1_cohort_target_count
+                    if phase1_cohort_target_count else None
+                ),
+                "proposal_direct_win_ratio": (
+                    phase1_direct_wins / sched_total if sched_total else 0.0
+                ),
+                "probe_reasons": phase1_probe_reason_counter,
             },
             "phase2": {
                 "attempts": phase2_total,
@@ -314,6 +722,7 @@ class _PatchState:
     brain: WaveScheduler
     policy: WaveSlicePolicy
     model_name: str
+    original_public_schedule: Optional[Callable[..., Any]] = None
     metrics: WaveSliceMetrics = field(default_factory=WaveSliceMetrics)
     slicer: WaveBaseSlicer = field(default_factory=WaveBaseSlicer)
     model_runner_cls: Optional[type] = None
@@ -323,10 +732,20 @@ class _PatchState:
     original_step: Optional[Callable[..., Any]] = None
     logits_processor_lora_cls: Optional[type] = None
     original_lora_get_logits: Optional[Callable[..., Any]] = None
+    sequence_data_cls: Optional[type] = None
+    original_sequence_data_get_len: Optional[Callable[..., Any]] = None
+    original_get_new_uncached_and_cached_tokens: Optional[Callable[..., Any]] = None
     phase1_sticky_req_id: Optional[str] = None
     phase1_sticky_chunk: Optional[int] = None
     phase1_sticky_ttl_left: int = 0
     phase1_explicit_plans: dict[str, list[SlicePlan]] = field(default_factory=dict)
+    phase1_shadow_seq_lens: dict[int, int] = field(default_factory=dict)
+    phase1_virtual_token_caps: dict[str, int] = field(default_factory=dict)
+    phase1_active_prompt_tokens: dict[str, int] = field(default_factory=dict)
+    phase1_ingress_virtuals: dict[str, _Phase1IngressVirtualSlice] = field(default_factory=dict)
+    phase1_public_skip_rewrite_requests: set[str] = field(default_factory=set)
+    phase12_recent_phase1_apply_ttl: int = 0
+    phase12_last_phase1_req_id: Optional[str] = None
 
 
 @dataclass
@@ -355,6 +774,17 @@ class _Phase1CohortStats:
     long_len: int
     long_req_id: Optional[str]
     total_count: int
+
+
+@dataclass(frozen=True)
+class _Phase1IngressVirtualSlice:
+    long_req_id: str
+    representative_short_len: int
+    short_count: int
+    short_token_mass: int
+    short_lengths: list[int]
+    original_long_len: int
+    active_count: int
 
 
 _PATCH_LOCK = threading.RLock()
@@ -439,6 +869,15 @@ def _load_llm_engine_cls() -> type:
     raise RuntimeError("vLLM LLMEngine class not found.") from last_exc
 
 
+def _load_sequence_data_cls() -> type:
+    bootstrap_vllm_runtime()
+    mod = importlib.import_module("vllm.sequence")
+    cls = getattr(mod, "SequenceData", None)
+    if cls is None:
+        raise RuntimeError("vLLM SequenceData class not found.")
+    return cls
+
+
 def _load_logits_processor_lora_cls() -> type:
     bootstrap_vllm_runtime()
     mod = importlib.import_module("vllm.lora.layers")
@@ -473,6 +912,168 @@ def _safe_total_tokens(seq_group: Any) -> Optional[int]:
         return None
 
 
+def _build_sequence_data_get_len_hook(state: _PatchState) -> Callable[..., Any]:
+    original_get_len = state.original_sequence_data_get_len
+    if original_get_len is None:
+        raise RuntimeError("sequence-data hook requested without original get_len")
+
+    @functools.wraps(original_get_len)
+    def _wave_sequence_data_get_len(self: Any, *args: Any, **kwargs: Any) -> Any:
+        try:
+            shadow_len = state.phase1_shadow_seq_lens.get(id(self))
+            if shadow_len is not None and int(shadow_len) > 0:
+                original_len = int(original_get_len(self, *args, **kwargs))
+                return min(original_len, int(shadow_len))
+        except Exception:
+            pass
+        return original_get_len(self, *args, **kwargs)
+
+    _wave_sequence_data_get_len.__wave_slice_seq_len_hook__ = True  # type: ignore[attr-defined]
+    return _wave_sequence_data_get_len
+
+
+def _build_get_num_new_uncached_and_cached_tokens_hook(
+    state: _PatchState,
+) -> Callable[..., Any]:
+    original_impl = state.original_get_new_uncached_and_cached_tokens
+    if original_impl is None:
+        raise RuntimeError("virtual-cap hook requested without original scheduler helper")
+
+    @functools.wraps(original_impl)
+    def _wave_get_num_new_uncached_and_cached_tokens(
+        self: Any,
+        seq_group: Any,
+        status: Any,
+        enable_chunking: bool = False,
+        budget: Any = None,
+        *args: Any,
+        **kwargs: Any,
+        ) -> Any:
+        uncached, cached = original_impl(
+            self,
+            seq_group,
+            status,
+            enable_chunking,
+            budget,
+            *args,
+            **kwargs,
+        )
+        state.metrics.record_phase1_virtual_cap_probe(helper_called=True)
+
+        try:
+            request_id = _safe_request_id(seq_group)
+            target_chunk = state.phase1_virtual_token_caps.get(request_id) if request_id else None
+            is_prefill = bool(seq_group.is_prefill()) if seq_group is not None else False
+        except Exception:
+            target_chunk = None
+            is_prefill = False
+
+        if (
+            target_chunk is None
+            and is_prefill
+            and request_id
+            and bool(state.policy.phase1_ingress_direct_authoritative)
+        ):
+            ingress_virtual = state.phase1_ingress_virtuals.get(str(request_id))
+            if ingress_virtual is not None:
+                try:
+                    seq = _safe_first_seq(seq_group)
+                    total_len = int(seq.get_len()) if seq is not None else int(ingress_virtual.original_long_len)
+                    computed = int(seq.data.get_num_computed_tokens()) if seq is not None else 0
+                    remaining = max(1, total_len - computed)
+                except Exception:
+                    remaining = max(1, int(ingress_virtual.original_long_len))
+                fallback_cohort = _Phase1CohortStats(
+                    representative_short_len=max(1, int(ingress_virtual.representative_short_len)),
+                    short_count=max(1, int(ingress_virtual.short_count)),
+                    short_token_mass=max(1, int(ingress_virtual.short_token_mass)),
+                    short_lengths=[int(v) for v in ingress_virtual.short_lengths]
+                    or [max(1, int(ingress_virtual.representative_short_len))],
+                    long_len=max(1, int(remaining)),
+                    long_req_id=str(request_id),
+                    total_count=max(2, int(ingress_virtual.active_count)),
+                )
+                fallback_target = int(
+                    _phase1_cohort_target_len(fallback_cohort, state.policy)
+                )
+                fallback_target = min(max(1, int(fallback_target)), max(1, int(remaining) - 1))
+                if fallback_target > 0:
+                    target_chunk = _phase1_authoritative_chunk(
+                        state,
+                        target=int(fallback_target),
+                        short_len=int(fallback_cohort.representative_short_len),
+                        upper=max(1, int(remaining) - 1),
+                    )
+
+        if is_prefill:
+            state.metrics.record_phase1_virtual_cap_probe(prefill_call=True)
+        if target_chunk is not None:
+            state.metrics.record_phase1_virtual_cap_probe(target_hit=True)
+        if request_id:
+            computed_tokens = None
+            try:
+                seq = _safe_first_seq(seq_group)
+                if seq is not None:
+                    computed_tokens = int(seq.data.get_num_computed_tokens())
+            except Exception:
+                computed_tokens = None
+            state.metrics.record_phase1_step_trace(
+                request_id=str(request_id),
+                event="virtual_cap_helper",
+                is_prefill=is_prefill,
+                num_computed_tokens=computed_tokens,
+                uncached=int(uncached),
+                cached=int(cached),
+                target_chunk=int(target_chunk) if target_chunk is not None else None,
+            )
+
+        if not is_prefill or target_chunk is None or int(target_chunk) <= 0:
+            return uncached, cached
+
+        try:
+            old_uncached = int(uncached)
+            old_cached = int(cached)
+            old_total = old_uncached + old_cached
+            new_uncached = min(max(0, int(target_chunk)), old_uncached)
+            new_cached = old_cached
+            new_total = new_uncached + new_cached
+            if new_uncached <= 0 or new_uncached >= old_uncached:
+                state.metrics.record_phase1_virtual_cap(
+                    old_total_tokens=old_total,
+                    new_total_tokens=old_total,
+                    applied=False,
+                )
+                return uncached, cached
+            state.metrics.record_phase1_virtual_cap(
+                old_total_tokens=old_total,
+                new_total_tokens=new_uncached + new_cached,
+                applied=True,
+            )
+            logger.info(
+                "[Wave-Slice][P1-virtual-cap] req=%s old_total=%d uncached=%d cached=%d target=%d new_total=%d",
+                str(request_id),
+                old_total,
+                int(uncached),
+                int(cached),
+                int(target_chunk),
+                int(new_uncached + new_cached),
+            )
+            state.metrics.record_phase1_step_trace(
+                request_id=str(request_id),
+                event="virtual_cap_applied",
+                is_prefill=is_prefill,
+                num_computed_tokens=computed_tokens,
+                uncached=int(new_uncached),
+                cached=int(new_cached),
+            )
+            return new_uncached, new_cached
+        except Exception:
+            return uncached, cached
+
+    _wave_get_num_new_uncached_and_cached_tokens.__wave_slice_virtual_cap_hook__ = True  # type: ignore[attr-defined]
+    return _wave_get_num_new_uncached_and_cached_tokens
+
+
 def _safe_remaining_tokens(seq_group: Any) -> Optional[int]:
     seq = _safe_first_seq(seq_group)
     if seq is None:
@@ -489,6 +1090,38 @@ def _safe_remaining_tokens(seq_group: Any) -> Optional[int]:
     except Exception:
         return None
     return max(0, total - done)
+
+
+def _safe_prefill_uncomputed_tokens(seq_group: Any) -> Optional[int]:
+    seq = _safe_first_seq(seq_group)
+    if seq is None:
+        try:
+            is_prefill = bool(getattr(seq_group, "is_prefill")())
+        except Exception:
+            is_prefill = False
+        if not is_prefill:
+            return 0
+        try:
+            total = int(getattr(seq_group, "num_tokens_with_spec"))
+            done = int(getattr(seq_group, "num_computed_tokens"))
+            return max(0, total - done)
+        except Exception:
+            return None
+    try:
+        if not bool(seq.is_prefill()):
+            return 0
+    except Exception:
+        return 0
+    try:
+        return max(0, int(seq.get_num_uncomputed_tokens()))
+    except Exception:
+        pass
+    try:
+        total = int(seq.get_len())
+        done = int(seq.data.get_num_computed_tokens())
+        return max(0, total - done)
+    except Exception:
+        return None
 
 
 def _safe_request_id(seq_group: Any) -> Optional[str]:
@@ -534,12 +1167,12 @@ def _collect_live_lengths(waiting: Iterable[Any], running: Iterable[Any]) -> tup
     max_wait_us = 0.0
     now_s = time.time()
     for sg in waiting:
-        remaining = _safe_remaining_tokens(sg)
+        remaining = _safe_prefill_uncomputed_tokens(sg)
         if remaining and remaining > 0:
             lengths.append(remaining)
             max_wait_us = max(max_wait_us, _safe_wait_us(sg, now_s))
     for sg in running:
-        remaining = _safe_remaining_tokens(sg)
+        remaining = _safe_prefill_uncomputed_tokens(sg)
         if remaining and remaining > 0:
             lengths.append(remaining)
     return lengths, max_wait_us
@@ -550,7 +1183,7 @@ def _collect_live_snapshot(waiting: Iterable[Any], running: Iterable[Any]) -> tu
     max_wait_us = 0.0
     now_s = time.time()
     for sg in list(waiting) + list(running):
-        remaining = _safe_remaining_tokens(sg)
+        remaining = _safe_prefill_uncomputed_tokens(sg)
         if remaining and remaining > 0:
             rem = int(remaining)
             snapshot.append((sg, rem))
@@ -610,6 +1243,137 @@ def _phase1_basic_cohort(snapshot: list[tuple[Any, int]]) -> Optional[_Phase1Coh
     )
 
 
+def _phase1_live_cohort_from_snapshot(
+    snapshot: list[tuple[Any, int]],
+    policy: WaveSlicePolicy,
+) -> Optional[_Phase1CohortStats]:
+    if policy.phase1_enable_cohort_mode:
+        return _phase1_build_cohort(snapshot, policy)
+    return _phase1_basic_cohort(snapshot)
+
+
+def _phase1_maybe_seed_ingress_virtual(
+    state: _PatchState,
+    *,
+    request_id: str,
+    input_tokens: Optional[int],
+) -> None:
+    if input_tokens is None or int(input_tokens) <= 0:
+        return
+    state.phase1_active_prompt_tokens[str(request_id)] = int(input_tokens)
+    positive_items = [
+        (rid, int(tok))
+        for rid, tok in state.phase1_active_prompt_tokens.items()
+        if int(tok) > 0
+    ]
+    if len(positive_items) < 2:
+        return
+    positive = sorted(tok for _, tok in positive_items)
+    if not _need_wave_slice(positive, state.policy):
+        return
+    long_len = positive[-1]
+    short_len = positive[0]
+    long_req_id = None
+    for rid, tok in positive_items:
+        if int(tok) == int(long_len):
+            long_req_id = str(rid)
+            break
+    if long_req_id is None:
+        return
+    state.phase1_ingress_virtuals[long_req_id] = _Phase1IngressVirtualSlice(
+        long_req_id=long_req_id,
+        representative_short_len=int(short_len),
+        short_count=max(1, len(positive) - 1),
+        short_token_mass=int(sum(positive[:-1])) if len(positive) > 1 else int(short_len),
+        short_lengths=[int(v) for v in positive[:-1]] if len(positive) > 1 else [int(short_len)],
+        original_long_len=int(long_len),
+        active_count=len(positive_items),
+    )
+    if bool(state.policy.phase1_ingress_direct_authoritative):
+        seed_cohort = _Phase1CohortStats(
+            representative_short_len=int(short_len),
+            short_count=max(1, len(positive) - 1),
+            short_token_mass=int(sum(positive[:-1])) if len(positive) > 1 else int(short_len),
+            short_lengths=[int(v) for v in positive[:-1]] if len(positive) > 1 else [int(short_len)],
+            long_len=int(long_len),
+            long_req_id=str(long_req_id),
+            total_count=len(positive_items),
+        )
+        ingress_target = int(_phase1_cohort_target_len(seed_cohort, state.policy))
+        ingress_cap = _phase1_authoritative_chunk(
+            state,
+            target=int(ingress_target),
+            short_len=int(short_len),
+            upper=max(1, int(long_len) - 1),
+        )
+        state.phase1_virtual_token_caps[long_req_id] = max(1, int(ingress_cap))
+    logger.info(
+        "[Wave-Slice][P1-ingress-seed] long_req=%s short=%d long=%d active=%d",
+        long_req_id,
+        int(short_len),
+        int(long_len),
+        len(positive_items),
+    )
+
+
+def _phase1_authoritative_chunk(
+    state: _PatchState,
+    *,
+    target: int,
+    short_len: int = 0,
+    upper: Optional[int] = None,
+) -> int:
+    ingress_min = max(1, int(state.policy.phase1_ingress_min_chunk))
+    ingress_max = max(ingress_min, int(state.policy.phase1_ingress_max_chunk))
+    target = max(ingress_min, min(int(target), ingress_max))
+    floor = _phase1_authoritative_short_floor(
+        state,
+        short_len=int(short_len),
+        target=int(target),
+    )
+    if upper is None:
+        upper = max(floor + 1, target)
+    upper = max(floor + 1, int(upper))
+    target = min(target, upper)
+    if bool(state.policy.phase1_ingress_exact_chunk):
+        return max(floor, min(int(target), upper))
+    chunk = int(state.slicer._conservative_map_down(int(target)))
+    return max(floor, min(chunk, upper))
+
+
+def _phase1_authoritative_short_floor(
+    state: _PatchState,
+    *,
+    short_len: int,
+    target: int,
+) -> int:
+    base_floor = max(1, int(short_len))
+    if bool(state.policy.phase1_ingress_exact_chunk):
+        return max(1, min(base_floor, int(target)))
+    return base_floor
+
+
+def _phase1_find_ingress_virtual_candidate(
+    state: _PatchState,
+    *,
+    snapshot: list[tuple[Any, int]],
+) -> Optional[tuple[_Phase1IngressVirtualSlice, Any, int]]:
+    if not state.phase1_ingress_virtuals:
+        return None
+    for seq_group, remaining in snapshot:
+        req_id = _safe_request_id(seq_group)
+        if not req_id:
+            continue
+        candidate = state.phase1_ingress_virtuals.get(str(req_id))
+        if candidate is None:
+            continue
+        rem = int(remaining)
+        if rem <= 0:
+            continue
+        return candidate, seq_group, rem
+    return None
+
+
 def _need_wave_slice(lengths: list[int], policy: WaveSlicePolicy) -> bool:
     if len(lengths) < 2:
         return False
@@ -640,13 +1404,21 @@ def _compute_budget(
     _ = long_len
     if not isinstance(original_budget, int) or original_budget <= 0:
         return None
-    candidate = best_chunk + short_len * policy.short_escape_multiplier
-    candidate = max(
-        candidate,
-        best_chunk
-        + int(max(0.0, float(short_token_mass)) * max(0.0, float(policy.phase1_budget_short_mass_factor)))
-        + int(max(0, queue_len)) * int(max(0, policy.phase1_budget_queue_bonus))
-        + int(max(0, policy.phase1_budget_bonus_tokens)),
+    escape_allowance = short_len * policy.short_escape_multiplier
+    mass_allowance = int(
+        max(0.0, float(short_token_mass))
+        * max(0.0, float(policy.phase1_budget_short_mass_factor))
+    )
+    queue_allowance = int(max(0, queue_len)) * int(
+        max(0, policy.phase1_budget_queue_bonus)
+    )
+    max_inflation = 1024
+    total_inflation = min(
+        max_inflation, escape_allowance + mass_allowance + queue_allowance
+    )
+
+    candidate = best_chunk + total_inflation + int(
+        max(0, policy.phase1_budget_bonus_tokens)
     )
     candidate = max(best_chunk, candidate)
     if baseline_chunk is not None and int(baseline_chunk) > 0:
@@ -654,13 +1426,40 @@ def _compute_budget(
         baseline_ceiling = max(
             best_chunk,
             baseline_chunk
-            + short_len * policy.short_escape_multiplier
-            + int(max(0, queue_len)) * int(max(0, policy.phase1_budget_queue_bonus))
+            + total_inflation
             + int(max(0, policy.phase1_budget_bonus_tokens)),
         )
         candidate = min(candidate, baseline_ceiling)
     candidate = min(candidate, policy.max_budget_cap)
     return max(1, candidate)
+
+
+def _compute_explicit_plan_budget(
+    *,
+    best_chunk: int,
+    short_len: int,
+    short_token_mass: int,
+    policy: WaveSlicePolicy,
+    original_budget: Any,
+    baseline_chunk: Optional[int],
+) -> Optional[int]:
+    if not isinstance(original_budget, int) or original_budget <= 0:
+        return None
+    explicit_inflation = min(
+        int(max(0, policy.phase1_explicit_budget_cap_tokens)),
+        max(
+            short_len,
+            int(
+                max(0.0, float(short_token_mass))
+                * max(0.0, float(policy.phase1_budget_short_mass_factor))
+            ),
+        ),
+    )
+    candidate = max(1, int(best_chunk) + explicit_inflation)
+    if baseline_chunk is not None and int(baseline_chunk) > 0:
+        candidate = min(candidate, int(baseline_chunk))
+    candidate = min(candidate, int(original_budget), int(policy.max_budget_cap))
+    return max(int(best_chunk), candidate)
 
 
 def _phase1_baseline_chunk_proxy(
@@ -833,6 +1632,92 @@ def _phase1_prune_explicit_plans(
     return kept
 
 
+def _phase1_build_direct_explicit_plans(
+    *,
+    state: _PatchState,
+    cohort: _Phase1CohortStats,
+    total_len: int,
+    done_offset: int,
+    remaining_len: int,
+    baseline_chunk: Optional[int],
+) -> list[SlicePlan]:
+    if not bool(state.policy.enable_phase1_direct_explicit_override):
+        return []
+    short_len = max(1, int(cohort.representative_short_len))
+    long_len = max(short_len + 1, int(remaining_len))
+    direct_target = _phase1_cohort_target_len(
+        _Phase1CohortStats(
+            representative_short_len=short_len,
+            short_count=cohort.short_count,
+            short_token_mass=cohort.short_token_mass,
+            short_lengths=list(cohort.short_lengths),
+            long_len=long_len,
+            long_req_id=cohort.long_req_id,
+            total_count=cohort.total_count,
+        ),
+        state.policy,
+    )
+    upper = long_len - 1
+    if baseline_chunk is not None and int(baseline_chunk) > 0:
+        upper = min(upper, int(baseline_chunk) - 1)
+    if upper <= short_len:
+        return []
+    ingress_min = max(1, int(state.policy.phase1_ingress_min_chunk))
+    ingress_max = max(ingress_min, int(state.policy.phase1_ingress_max_chunk))
+    if upper >= ingress_min:
+        direct_target = max(int(direct_target), ingress_min)
+    direct_target = min(int(direct_target), upper)
+    direct_chunk = _phase1_authoritative_chunk(
+        state,
+        target=int(direct_target),
+        short_len=int(short_len),
+        upper=int(upper),
+    )
+    direct_floor = _phase1_authoritative_short_floor(
+        state,
+        short_len=int(short_len),
+        target=int(direct_target),
+    )
+    direct_chunk = max(direct_floor, min(int(direct_chunk), upper))
+    if direct_chunk >= long_len:
+        return []
+    return [
+        state.slicer.make_plan(
+            short_len=short_len,
+            long_total_len=int(total_len),
+            chunk_len=int(direct_chunk),
+            long_offset=int(chunk_offset),
+        )
+        for chunk_offset, _ in state.slicer.iter_long_chunks(
+            long_total_len=int(total_len),
+            chunk_len=int(direct_chunk),
+            start_offset=int(done_offset),
+        )
+    ]
+
+
+def _phase1_direct_chunk_candidate(
+    *,
+    state: _PatchState,
+    cohort: _Phase1CohortStats,
+    total_len: int,
+    done_offset: int,
+    remaining_len: int,
+    baseline_chunk: Optional[int],
+) -> Optional[int]:
+    plans = _phase1_build_direct_explicit_plans(
+        state=state,
+        cohort=cohort,
+        total_len=int(total_len),
+        done_offset=int(done_offset),
+        remaining_len=int(remaining_len),
+        baseline_chunk=baseline_chunk,
+    )
+    if not plans:
+        return None
+    return int(plans[0].chunk_len)
+
+
 def _phase1_explicit_chunk_from_plan(
     *,
     state: _PatchState,
@@ -878,6 +1763,29 @@ def _phase1_explicit_chunk_from_plan(
             start_offset=int(done_offset),
             baseline_chunk=baseline_chunk,
         )
+    direct_plans = _phase1_build_direct_explicit_plans(
+        state=state,
+        cohort=cohort,
+        total_len=int(total_len),
+        done_offset=int(done_offset),
+        remaining_len=int(remaining_len),
+        baseline_chunk=baseline_chunk,
+    )
+    if direct_plans:
+        if bool(state.policy.phase1_ingress_direct_authoritative) and request_id in state.phase1_ingress_virtuals:
+            plans = direct_plans
+            plan_kind = "direct_authoritative"
+        else:
+            first_direct = direct_plans[0]
+            first_plan = plans[0] if plans else None
+            current_chunk = int(first_plan.chunk_len) if first_plan is not None else int(remaining_len)
+            direct_chunk = int(first_direct.chunk_len)
+            ingress_min = max(1, int(state.policy.phase1_ingress_min_chunk))
+            if direct_chunk < current_chunk or (
+                current_chunk < ingress_min <= direct_chunk
+            ):
+                plans = direct_plans
+                plan_kind = "direct"
     if not plans:
         state.phase1_explicit_plans.pop(request_id, None)
         return None
@@ -886,6 +1794,325 @@ def _phase1_explicit_chunk_from_plan(
     active = plans[0]
     chunk_len = max(1, min(int(active.chunk_len), int(remaining_len)))
     return chunk_len, plan_kind
+
+
+def _phase1_rewrite_scheduler_outputs(
+    *,
+    outputs: Any,
+    request_id: Optional[str],
+    target_chunk: int,
+) -> tuple[Any, bool, int, int, int, int]:
+    if outputs is None or not request_id or target_chunk <= 0:
+        return outputs, False, 0, 0, 0, 0
+    scheduled = getattr(outputs, "scheduled_seq_groups", None)
+    if not isinstance(scheduled, list):
+        return outputs, False, 0, 0, 0, 0
+
+    rewritten = False
+    total_delta = 0
+    rewritten_groups = 0
+    old_chunk_sum = 0
+    new_chunk_sum = 0
+    for group in scheduled:
+        seq_group = getattr(group, "seq_group", None)
+        if seq_group is None:
+            continue
+        if _safe_request_id(seq_group) != request_id:
+            continue
+        try:
+            is_prefill = bool(seq_group.is_prefill())
+        except Exception:
+            is_prefill = False
+        if not is_prefill:
+            continue
+        old_chunk = int(getattr(group, "token_chunk_size", 0) or 0)
+        if old_chunk <= 0:
+            continue
+        new_chunk = max(1, min(int(target_chunk), old_chunk))
+        if new_chunk >= old_chunk:
+            continue
+        try:
+            group.token_chunk_size = new_chunk
+            total_delta += old_chunk - new_chunk
+            old_chunk_sum += old_chunk
+            new_chunk_sum += new_chunk
+            rewritten_groups += 1
+            rewritten = True
+        except Exception:
+            continue
+
+    if rewritten and total_delta > 0:
+        try:
+            outputs.num_batched_tokens = max(
+                0, int(getattr(outputs, "num_batched_tokens", 0)) - int(total_delta)
+            )
+        except Exception:
+            pass
+    return outputs, rewritten, rewritten_groups, old_chunk_sum, new_chunk_sum, total_delta
+
+
+def _phase1_rewrite_metadata_list(
+    *,
+    seq_group_metadata_list: Any,
+    request_id: Optional[str],
+    target_chunk: int,
+) -> tuple[Any, bool]:
+    if not isinstance(seq_group_metadata_list, list) or not request_id or target_chunk <= 0:
+        return seq_group_metadata_list, False
+    rewritten = False
+    for meta in seq_group_metadata_list:
+        try:
+            if str(getattr(meta, "request_id", "")) != request_id:
+                continue
+            old_chunk = int(getattr(meta, "token_chunk_size", 0) or 0)
+            if old_chunk <= 0:
+                continue
+            new_chunk = max(1, min(int(target_chunk), old_chunk))
+            if new_chunk >= old_chunk:
+                continue
+            meta.token_chunk_size = new_chunk
+            try:
+                is_prompt = bool(getattr(meta, "is_prompt", False))
+            except Exception:
+                is_prompt = False
+            if is_prompt:
+                try:
+                    setattr(meta, "do_sample", False)
+                except Exception:
+                    pass
+            rewritten = True
+        except Exception:
+            continue
+    return seq_group_metadata_list, rewritten
+
+
+def _phase1_force_public_schedule_rewrite(
+    *,
+    state: _PatchState,
+    scheduler_obj: Any,
+    scheduler_outputs: Any,
+) -> tuple[Any, bool]:
+    if bool(state.policy.phase1_ingress_direct_authoritative):
+        return scheduler_outputs, False
+    scheduled = getattr(scheduler_outputs, "scheduled_seq_groups", None)
+    if not isinstance(scheduled, list) or not scheduled:
+        return scheduler_outputs, False
+    if state.phase1_public_skip_rewrite_requests:
+        for group in scheduled:
+            seq_group = getattr(group, "seq_group", None)
+            req_id = _safe_request_id(seq_group) if seq_group is not None else None
+            if req_id and str(req_id) in state.phase1_public_skip_rewrite_requests:
+                return scheduler_outputs, False
+
+    waiting = list(getattr(scheduler_obj, "waiting", []) or [])
+    running = list(getattr(scheduler_obj, "running", []) or [])
+    snapshot, _ = _collect_live_snapshot(waiting, running)
+    if len(snapshot) <= 1:
+        snapshot = []
+        for group in scheduled:
+            seq_group = getattr(group, "seq_group", None)
+            if seq_group is None:
+                continue
+            try:
+                is_prefill = bool(seq_group.is_prefill())
+            except Exception:
+                is_prefill = False
+            if not is_prefill:
+                continue
+            remaining = _safe_remaining_tokens(seq_group) or 0
+            if remaining > 1:
+                snapshot.append((seq_group, int(remaining)))
+
+    lengths = [rem for _, rem in snapshot]
+    if not _need_wave_slice(lengths, state.policy):
+        return scheduler_outputs, False
+
+    if state.policy.phase1_enable_cohort_mode:
+        cohort = _phase1_build_cohort(snapshot, state.policy)
+    else:
+        cohort = _phase1_basic_cohort(snapshot)
+    if cohort is None or not cohort.long_req_id:
+        return scheduler_outputs, False
+
+    long_seq_group = _phase1_find_seq_group_by_request_id(snapshot, cohort.long_req_id)
+    if long_seq_group is None:
+        return scheduler_outputs, False
+
+    total_len = _safe_total_tokens(long_seq_group)
+    remaining_len = _safe_remaining_tokens(long_seq_group)
+    if total_len is None or remaining_len is None or remaining_len <= 1:
+        return scheduler_outputs, False
+
+    baseline_chunk = None
+    long_present_in_scheduled = False
+    for group in scheduled:
+        seq_group = getattr(group, "seq_group", None)
+        if seq_group is None or _safe_request_id(seq_group) != cohort.long_req_id:
+            continue
+        long_present_in_scheduled = True
+        old_chunk = int(getattr(group, "token_chunk_size", 0) or 0)
+        if old_chunk > 0:
+            baseline_chunk = old_chunk
+            break
+    if not long_present_in_scheduled:
+        return scheduler_outputs, False
+
+    queue_length = max(
+        1,
+        len(getattr(scheduler_obj, "running", []) or [])
+        + len(getattr(scheduler_obj, "waiting", []) or []),
+    )
+    best_chunk = state.slicer.choose_dynamic_chunk(
+        short_len=int(cohort.representative_short_len),
+        long_len=int(remaining_len),
+        scheduler=state.brain,
+        t_wait_us=0.0,
+        queue_length=queue_length,
+        baseline_chunk=baseline_chunk,
+    )
+    direct_plans = _phase1_build_direct_explicit_plans(
+        state=state,
+        cohort=cohort,
+        total_len=int(total_len),
+        done_offset=max(0, int(total_len) - int(remaining_len)),
+        remaining_len=int(remaining_len),
+        baseline_chunk=baseline_chunk,
+    )
+    explicit_plan = False
+    if direct_plans:
+        if bool(state.policy.phase1_ingress_direct_authoritative) and cohort.long_req_id in state.phase1_ingress_virtuals:
+            best_chunk = int(direct_plans[0].chunk_len)
+        else:
+            best_chunk = min(best_chunk, int(direct_plans[0].chunk_len))
+        explicit_plan = True
+
+    upper = int(remaining_len) - 1
+    if baseline_chunk is not None and int(baseline_chunk) > 0:
+        upper = min(upper, int(baseline_chunk) - 1)
+    if upper <= int(cohort.representative_short_len):
+        return scheduler_outputs, False
+    best_chunk = max(int(cohort.representative_short_len), min(int(best_chunk), upper))
+    if baseline_chunk is not None and best_chunk >= int(baseline_chunk):
+        return scheduler_outputs, False
+
+    state.metrics.record_phase1_choice(
+        chosen_chunk=best_chunk,
+        baseline_chunk=baseline_chunk,
+        explicit_plan=explicit_plan,
+    )
+    scheduler_outputs, rewritten, rewritten_groups, old_chunk_sum, new_chunk_sum, token_delta_sum = _phase1_rewrite_scheduler_outputs(
+        outputs=scheduler_outputs,
+        request_id=cohort.long_req_id,
+        target_chunk=best_chunk,
+    )
+    state.metrics.record_phase1_rewrite(
+        rewritten_groups=rewritten_groups,
+        old_chunk_sum=old_chunk_sum,
+        new_chunk_sum=new_chunk_sum,
+        token_delta_sum=token_delta_sum,
+    )
+    if rewritten:
+        logger.info(
+            "[Wave-Slice][P1-public-force] req=%s baseline_chunk=%s chunk=%d explicit_plan=%s groups=%d",
+            str(cohort.long_req_id),
+            str(baseline_chunk) if baseline_chunk is not None else "none",
+            int(best_chunk),
+            str(explicit_plan),
+            int(rewritten_groups),
+        )
+    return scheduler_outputs, rewritten
+
+
+def _phase1_apply_sequence_len_shadow(
+    *,
+    state: _PatchState,
+    seq_group: Any,
+    target_chunk: int,
+) -> bool:
+    if target_chunk <= 0 or seq_group is None:
+        return False
+    shadowed = False
+    try:
+        seqs = list(seq_group.get_seqs())
+    except Exception:
+        seqs = []
+    for seq in seqs:
+        try:
+            if bool(seq.is_finished()):
+                continue
+        except Exception:
+            pass
+        data = getattr(seq, "data", None)
+        if data is None:
+            continue
+        try:
+            computed = int(data.get_num_computed_tokens())
+            total = int(data.get_len())
+        except Exception:
+            continue
+        shadow_len = max(computed + 1, min(total, computed + int(target_chunk)))
+        state.phase1_shadow_seq_lens[id(data)] = int(shadow_len)
+        shadowed = True
+    return shadowed
+
+
+def _phase1_rewrite_schedule_tuple(
+    *,
+    state: _PatchState,
+    scheduler_obj: Any,
+    seq_group_metadata_list: list[Any],
+    scheduler_outputs: Any,
+) -> tuple[list[Any], Any, bool]:
+    del state, scheduler_obj
+    scheduled = getattr(scheduler_outputs, "scheduled_seq_groups", None)
+    if not isinstance(scheduled, list) or not isinstance(seq_group_metadata_list, list):
+        return seq_group_metadata_list, scheduler_outputs, False
+
+    chunk_by_request: dict[str, int] = {}
+    for group in scheduled:
+        seq_group = getattr(group, "seq_group", None)
+        if seq_group is None:
+            continue
+        request_id = _safe_request_id(seq_group)
+        if not request_id:
+            continue
+        chunk = int(getattr(group, "token_chunk_size", 0) or 0)
+        if chunk <= 0:
+            continue
+        prev = chunk_by_request.get(request_id)
+        if prev is None or chunk < prev:
+            chunk_by_request[request_id] = chunk
+
+    rewritten = False
+    rewrite_count = 0
+    for meta in seq_group_metadata_list:
+        try:
+            request_id = str(getattr(meta, "request_id", "") or "")
+            if not request_id:
+                continue
+            target_chunk = chunk_by_request.get(request_id)
+            if target_chunk is None or target_chunk <= 0:
+                continue
+            old_chunk = int(getattr(meta, "token_chunk_size", 0) or 0)
+            if old_chunk <= 0 or target_chunk >= old_chunk:
+                continue
+            meta.token_chunk_size = int(target_chunk)
+            try:
+                if bool(getattr(meta, "is_prompt", False)):
+                    setattr(meta, "do_sample", False)
+            except Exception:
+                pass
+            rewritten = True
+            rewrite_count += 1
+        except Exception:
+            continue
+
+    if rewritten:
+        logger.info(
+            "[Wave-Slice][P1-public-schedule] aligned_metadata=%d",
+            int(rewrite_count),
+        )
+    return seq_group_metadata_list, scheduler_outputs, rewritten
 
 
 def _compute_long_prefill_threshold(
@@ -909,10 +2136,41 @@ def _compute_long_prefill_threshold(
     return max(1, threshold)
 
 
-def _estimate_prompt_tokens(prompt_or_ids: Any) -> Optional[int]:
+def _estimate_prompt_tokens(
+    prompt_or_ids: Any,
+    *,
+    engine_self: Any = None,
+    lora_request: Any = None,
+) -> Optional[int]:
     if prompt_or_ids is None:
         return None
+    if isinstance(prompt_or_ids, dict):
+        prompt_token_ids = prompt_or_ids.get("prompt_token_ids")
+        if isinstance(prompt_token_ids, (list, tuple)):
+            return len(prompt_token_ids)
+        prompt_text = prompt_or_ids.get("prompt")
+        if isinstance(prompt_text, str):
+            prompt_or_ids = prompt_text
     if isinstance(prompt_or_ids, str):
+        if engine_self is not None:
+            try:
+                tokenizer = engine_self.get_tokenizer(lora_request=lora_request)
+            except Exception:
+                tokenizer = None
+            if tokenizer is not None:
+                try:
+                    encoded = tokenizer.encode(prompt_or_ids, add_special_tokens=False)
+                    if isinstance(encoded, (list, tuple)):
+                        return len(encoded)
+                except TypeError:
+                    try:
+                        encoded = tokenizer.encode(prompt_or_ids)
+                        if isinstance(encoded, (list, tuple)):
+                            return len(encoded)
+                    except Exception:
+                        pass
+                except Exception:
+                    pass
         return max(1, len(prompt_or_ids.split()))
     if isinstance(prompt_or_ids, (list, tuple)):
         return len(prompt_or_ids)
@@ -1080,20 +2338,19 @@ def _phase2_selective_gate(
     if need_rank_hetero and not lora_rank_hetero:
         return False, ratio, pressure_ratio, lora_rank_hetero
 
+    # Balanced mode should honor the normal Phase-II thresholds. The
+    # "extreme_*" knobs are for optional escalation paths, not the default
+    # selective gate; otherwise balanced mode is silently promoted to a much
+    # stricter policy and almost never applies.
     min_ratio = max(
         float(policy.phase2_min_hetero_ratio),
-        float(policy.phase2_extreme_hetero_ratio),
         3.0 if strict_mode else 0.0,
     )
     min_long_prefill = max(
         int(policy.phase2_min_long_prefill),
-        int(policy.phase2_extreme_long_prefill),
         512 if strict_mode else 0,
     )
-    min_pressure = max(
-        float(policy.phase2_min_pressure_ratio),
-        float(policy.phase2_extreme_pressure_ratio),
-    )
+    min_pressure = float(policy.phase2_min_pressure_ratio)
     selective = ratio >= min_ratio and max_len >= min_long_prefill and pressure_ratio >= min_pressure
     return selective, ratio, pressure_ratio, lora_rank_hetero
 
@@ -1124,6 +2381,62 @@ def _phase2_mixed_escape_ok(
     )
 
 
+def _phase12_collect_prefill_lora_state(seq_groups: list[Any]) -> tuple[list[int], list[int]]:
+    prefill_lens: list[int] = []
+    lora_ranks: list[int] = []
+    for seq_group in seq_groups:
+        remaining = _safe_prefill_uncomputed_tokens(seq_group) or 0
+        if remaining <= 0:
+            continue
+        prefill_lens.append(int(remaining))
+        rank = max(1, _infer_lora_rank(getattr(seq_group, "lora_request", None)) or 1)
+        lora_ranks.append(int(rank))
+    return prefill_lens, lora_ranks
+
+
+def _phase12_joint_phase1_floor(
+    *,
+    state: _PatchState,
+    snapshot: _SchedulerSnapshot,
+    policy: WaveSlicePolicy,
+) -> Optional[int]:
+    if not (policy.enable_phase1_scheduler and policy.enable_phase2_modelrunner):
+        return None
+    if not bool(policy.phase12_joint_coordination):
+        return None
+    seq_groups = list(snapshot.running) + list(snapshot.waiting)
+    prefill_lens, lora_ranks = _phase12_collect_prefill_lora_state(seq_groups)
+    if len(prefill_lens) < max(2, int(policy.phase2_min_prefill_count)):
+        return None
+    selective_ok, _ratio, pressure_ratio, lora_rank_hetero = _phase2_selective_gate(
+        prefill_lens=prefill_lens,
+        lora_ranks=lora_ranks,
+        policy=policy,
+        strict_mode=False,
+    )
+    if not selective_ok:
+        return None
+    if not lora_rank_hetero and pressure_ratio < float(policy.phase2_min_pressure_ratio):
+        return None
+    return max(1, int(policy.phase12_joint_min_chunk))
+
+
+def _phase12_joint_phase2_ready(
+    *,
+    state: _PatchState,
+    policy: WaveSlicePolicy,
+) -> bool:
+    if not (policy.enable_phase1_scheduler and policy.enable_phase2_modelrunner):
+        return True
+    if not bool(policy.phase12_joint_coordination):
+        return True
+    if not bool(policy.phase12_phase2_requires_recent_phase1):
+        return True
+    if state.phase1_virtual_token_caps:
+        return True
+    return int(getattr(state, "phase12_recent_phase1_apply_ttl", 0) or 0) > 0
+
+
 def _extract_prefill_lens(attn_meta: Any) -> list[int]:
     lens_tensor = getattr(attn_meta, "prompt_lens_tensor", None)
     if lens_tensor is None:
@@ -1143,6 +2456,8 @@ def _phase2_decide(
     *,
     runner_self: Optional[Any] = None,
 ) -> _Phase2Decision:
+    with _PATCH_LOCK:
+        state = _PATCH_STATE
     lora_ranks = _extract_phase2_lora_ranks(model_input, runner_self=runner_self)
 
     # vLLM v1 path: GPUModelRunner.execute_model(scheduler_output, ...)
@@ -1161,6 +2476,15 @@ def _phase2_decide(
             policy=policy,
             strict_mode=strict_mode,
         )
+        if state is not None and not _phase12_joint_phase2_ready(state=state, policy=policy):
+            return _Phase2Decision(
+                False,
+                "joint_waiting_for_phase1_v1",
+                prefill_lens,
+                num_prefills,
+                num_decode_tokens,
+                lora_ranks,
+            )
 
         if strict_mode and num_decode_tokens > 0:
             return _Phase2Decision(
@@ -1310,6 +2634,15 @@ def _phase2_decide(
         policy=policy,
         strict_mode=strict_mode,
     )
+    if state is not None and not _phase12_joint_phase2_ready(state=state, policy=policy):
+        return _Phase2Decision(
+            False,
+            "joint_waiting_for_phase1",
+            prefill_lens,
+            num_prefills,
+            num_decode_tokens,
+            lora_ranks,
+        )
 
     if strict_mode and num_decode_tokens > 0:
         return _Phase2Decision(
@@ -1895,25 +3228,89 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                 self.waiting = _sorted_queue_by_remaining(waiting)
                 running = self.running
                 waiting = self.waiting
+            if bool(state.policy.phase1_ingress_direct_authoritative):
+                state.phase1_virtual_token_caps = {
+                    str(req_id): int(chunk)
+                    for req_id, chunk in state.phase1_virtual_token_caps.items()
+                    if str(req_id) in state.phase1_ingress_virtuals and int(chunk) > 0
+                }
+            else:
+                state.phase1_virtual_token_caps.clear()
+            ingress_eager_chunk: Optional[int] = None
+            scheduler_chunk_raw: Optional[int] = None
+            direct_chunk_raw: Optional[int] = None
+            cohort_target_raw: Optional[int] = None
 
             snapshot, max_wait_us = _collect_live_snapshot(waiting, running)
+            ingress_candidate = _phase1_find_ingress_virtual_candidate(
+                state,
+                snapshot=snapshot,
+            )
             lengths = [int(rem) for _, rem in snapshot]
-            if not _need_wave_slice(lengths, state.policy):
-                state.metrics.record_scheduler_decision(False)
-                state.phase1_sticky_req_id = None
-                state.phase1_sticky_chunk = None
-                state.phase1_sticky_ttl_left = 0
-                if not waiting and not running:
-                    state.phase1_explicit_plans.clear()
-                return original_schedule(self, *args, **kwargs)
-
-            if state.policy.phase1_enable_cohort_mode:
-                cohort = _phase1_build_cohort(snapshot, state.policy)
+            cohort = None
+            if ingress_candidate is not None:
+                ingress_virtual, _ingress_seq_group, ingress_remaining = ingress_candidate
+                live_cohort = _phase1_live_cohort_from_snapshot(snapshot, state.policy)
+                if live_cohort is not None:
+                    cohort = _Phase1CohortStats(
+                        representative_short_len=max(1, int(live_cohort.representative_short_len)),
+                        short_count=max(1, int(live_cohort.short_count)),
+                        short_token_mass=max(1, int(live_cohort.short_token_mass)),
+                        short_lengths=[int(v) for v in live_cohort.short_lengths] or [max(1, int(live_cohort.representative_short_len))],
+                        long_len=max(1, int(ingress_remaining)),
+                        long_req_id=str(ingress_virtual.long_req_id),
+                        total_count=max(int(live_cohort.total_count), int(ingress_virtual.active_count), 2),
+                    )
+                else:
+                    cohort = _Phase1CohortStats(
+                        representative_short_len=int(ingress_virtual.representative_short_len),
+                        short_count=max(1, int(ingress_virtual.short_count)),
+                        short_token_mass=int(ingress_virtual.short_token_mass),
+                        short_lengths=[int(v) for v in ingress_virtual.short_lengths] or [int(ingress_virtual.representative_short_len)],
+                        long_len=max(1, int(ingress_remaining)),
+                        long_req_id=str(ingress_virtual.long_req_id),
+                        total_count=max(2, int(ingress_virtual.active_count)),
+                    )
+                state.metrics.record_phase1_probe(
+                    reason="ingress_virtual_override",
+                    short_len=int(cohort.representative_short_len),
+                    long_len=int(cohort.long_len),
+                    queue_len=len(lengths),
+                    wait_us=max_wait_us,
+                    slice_eligible=False,
+                )
             else:
-                cohort = _phase1_basic_cohort(snapshot)
-            if cohort is None:
-                state.metrics.record_scheduler_decision(False)
-                return original_schedule(self, *args, **kwargs)
+                if not _need_wave_slice(lengths, state.policy):
+                    state.metrics.record_phase1_probe(
+                        reason="no_need_wave_slice",
+                        short_len=min(lengths) if lengths else None,
+                        long_len=max(lengths) if lengths else None,
+                        queue_len=len(lengths),
+                        wait_us=max_wait_us,
+                        slice_eligible=False,
+                    )
+                    state.metrics.record_scheduler_decision(False)
+                    state.phase1_sticky_req_id = None
+                    state.phase1_sticky_chunk = None
+                    state.phase1_sticky_ttl_left = 0
+                    if not waiting and not running:
+                        state.phase1_explicit_plans.clear()
+                    return original_schedule(self, *args, **kwargs)
+
+                cohort = _phase1_live_cohort_from_snapshot(snapshot, state.policy)
+                if cohort is None:
+                    state.metrics.record_phase1_probe(
+                        reason="no_cohort",
+                        short_len=min(lengths) if lengths else None,
+                        long_len=max(lengths) if lengths else None,
+                        queue_len=len(lengths),
+                        wait_us=max_wait_us,
+                        slice_eligible=False,
+                    )
+                    state.metrics.record_scheduler_decision(False)
+                    return original_schedule(self, *args, **kwargs)
+
+            long_seq_group = _phase1_find_seq_group_by_request_id(snapshot, cohort.long_req_id)
 
             short_len = int(cohort.representative_short_len)
             long_len = int(cohort.long_len)
@@ -1926,6 +3323,47 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                 scheduler_cfg=scheduler_cfg,
                 policy=state.policy,
             )
+            explicit_plan_kind = None
+            if (
+                ingress_candidate is not None
+                and bool(state.policy.phase1_ingress_direct_authoritative)
+                and cohort.long_req_id
+            ):
+                upper = max(short_len + 1, long_len - 1)
+                ingress_min = max(1, int(state.policy.phase1_ingress_min_chunk))
+                cohort_target_raw = int(_phase1_cohort_target_len(cohort, state.policy))
+                eager_target = min(upper, int(cohort_target_raw))
+                if upper >= ingress_min:
+                    eager_target = max(eager_target, ingress_min)
+                eager_chunk = _phase1_authoritative_chunk(
+                    state,
+                    target=int(eager_target),
+                    short_len=int(short_len),
+                    upper=int(upper),
+                )
+                eager_floor = _phase1_authoritative_short_floor(
+                    state,
+                    short_len=int(short_len),
+                    target=int(eager_target),
+                )
+                ingress_eager_chunk = max(eager_floor, min(int(eager_chunk), upper))
+                direct_cap_chunk = _phase1_direct_chunk_candidate(
+                    state=state,
+                    cohort=cohort,
+                    total_len=max(1, int(_safe_total_tokens(long_seq_group) or long_len)),
+                    done_offset=max(
+                        0,
+                        int((_safe_total_tokens(long_seq_group) or long_len) - long_len),
+                    ),
+                    remaining_len=int(long_len),
+                    baseline_chunk=baseline_chunk,
+                )
+                state.phase1_virtual_token_caps[str(cohort.long_req_id)] = int(
+                    direct_cap_chunk
+                    if direct_cap_chunk is not None
+                    else ingress_eager_chunk
+                )
+
             best_chunk = state.slicer.choose_dynamic_chunk(
                 short_len=short_len,
                 long_len=long_len,
@@ -1934,7 +3372,8 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                 queue_length=adjusted_queue_len,
                 baseline_chunk=baseline_chunk,
             )
-            explicit_plan_kind = None
+            scheduler_chunk_raw = int(best_chunk)
+            cohort_target_raw = int(_phase1_cohort_target_len(cohort, state.policy))
             explicit_chunk = _phase1_explicit_chunk_from_plan(
                 state=state,
                 cohort=cohort,
@@ -1944,7 +3383,24 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                 baseline_chunk=baseline_chunk,
             )
             if explicit_chunk is not None:
+                direct_chunk_raw = int(explicit_chunk[0])
                 best_chunk, explicit_plan_kind = explicit_chunk
+            elif ingress_eager_chunk is not None:
+                capped_chunk = min(int(best_chunk), int(ingress_eager_chunk))
+                if capped_chunk < int(best_chunk):
+                    best_chunk = int(capped_chunk)
+                    explicit_plan_kind = "ingress_authoritative_cap"
+            state.metrics.record_phase1_proposal(
+                scheduler_chunk=scheduler_chunk_raw,
+                direct_chunk=direct_chunk_raw,
+                cohort_target=cohort_target_raw,
+                direct_won=bool(
+                    direct_chunk_raw is not None
+                    and scheduler_chunk_raw is not None
+                    and int(best_chunk) == int(direct_chunk_raw)
+                    and int(direct_chunk_raw) < int(scheduler_chunk_raw)
+                ),
+            )
             reused_sticky = False
             if state.policy.phase1_enable_sticky_chunk:
                 best_chunk, reused_sticky = _phase1_apply_sticky_chunk(
@@ -1953,14 +3409,48 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                     chosen_chunk=best_chunk,
                     slicer=state.slicer,
                 )
-            best_chunk, forced_chunk = _maybe_force_phase1_chunk(
-                cohort=cohort,
-                queue_len=queue_len,
-                chosen_chunk=best_chunk,
-                slicer=state.slicer,
+            joint_floor_chunk = _phase12_joint_phase1_floor(
+                state=state,
+                snapshot=snapshot,
                 policy=state.policy,
             )
+            if joint_floor_chunk is not None:
+                best_chunk = max(int(best_chunk), int(joint_floor_chunk))
+            forced_chunk = False
+            if explicit_plan_kind in {"direct_authoritative", "ingress_authoritative_eager"}:
+                best_chunk = max(
+                    int(best_chunk),
+                    max(1, int(state.policy.phase1_ingress_min_chunk)),
+                )
+            else:
+                best_chunk, forced_chunk = _maybe_force_phase1_chunk(
+                    cohort=cohort,
+                    queue_len=queue_len,
+                    chosen_chunk=best_chunk,
+                    slicer=state.slicer,
+                    policy=state.policy,
+                )
+            state.metrics.record_phase1_probe(
+                reason="candidate",
+                short_len=short_len,
+                long_len=long_len,
+                baseline_chunk=baseline_chunk,
+                best_chunk=best_chunk,
+                queue_len=queue_len,
+                wait_us=max_wait_us,
+                slice_eligible=bool(best_chunk < long_len),
+            )
             if best_chunk >= long_len:
+                state.metrics.record_phase1_probe(
+                    reason="best_chunk_ge_long",
+                    short_len=short_len,
+                    long_len=long_len,
+                    baseline_chunk=baseline_chunk,
+                    best_chunk=best_chunk,
+                    queue_len=queue_len,
+                    wait_us=max_wait_us,
+                    slice_eligible=False,
+                )
                 state.metrics.record_scheduler_decision(False)
                 _phase1_update_sticky_chunk(
                     state=state,
@@ -1969,20 +3459,40 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                     applied=False,
                 )
                 return original_schedule(self, *args, **kwargs)
-        except Exception:
+        except Exception as exc:
             logger.exception("Wave-Slice Phase I pre-check failed; fallback to original scheduler.")
+            state.metrics.record_phase1_probe(
+                reason=f"precheck_exception:{type(exc).__name__}",
+            )
             state.metrics.record_scheduler_decision(False)
             return original_schedule(self, *args, **kwargs)
 
         hidden_long_tasks: list[Any] = []
         state.metrics.record_scheduler_decision(True)
+        recent_ttl = int(getattr(state, "phase12_recent_phase1_apply_ttl", 0) or 0)
+        if recent_ttl > 0:
+            state.phase12_recent_phase1_apply_ttl = max(0, recent_ttl - 1)
         short_token_mass = _phase1_effective_short_token_mass(
             cohort.short_lengths,
             short_len=short_len,
             best_chunk=best_chunk,
             policy=state.policy,
         )
-        waiting_short_count = sum(1 for sg in waiting if (_safe_remaining_tokens(sg) or 0) <= max(best_chunk, short_len))
+        waiting_short_count = sum(
+            1
+            for sg in waiting
+            if 0 < (_safe_prefill_uncomputed_tokens(sg) or 0) <= max(best_chunk, short_len)
+        )
+        state.metrics.record_phase1_probe(
+            reason="apply",
+            short_len=short_len,
+            long_len=long_len,
+            baseline_chunk=baseline_chunk,
+            best_chunk=best_chunk,
+            queue_len=queue_len,
+            wait_us=max_wait_us,
+            slice_eligible=True,
+        )
         if state.policy.phase1_enable_sticky_chunk:
             _phase1_update_sticky_chunk(
                 state=state,
@@ -1990,8 +3500,35 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                 chosen_chunk=best_chunk,
                 applied=True,
             )
+        state.phase12_recent_phase1_apply_ttl = max(1, int(state.policy.phase12_phase2_recent_ttl))
+        state.phase12_last_phase1_req_id = str(cohort.long_req_id) if cohort.long_req_id else None
+        state.metrics.record_phase1_choice(
+            chosen_chunk=best_chunk,
+            baseline_chunk=baseline_chunk,
+            explicit_plan=explicit_plan_kind is not None,
+        )
 
         try:
+            state.phase1_shadow_seq_lens.clear()
+            if cohort.long_req_id and best_chunk < long_len:
+                state.phase1_virtual_token_caps[str(cohort.long_req_id)] = int(best_chunk)
+                state.phase1_public_skip_rewrite_requests.add(str(cohort.long_req_id))
+                state.metrics.record_phase1_virtual_cap_probe(target_set=True)
+                logger.info(
+                    "[Wave-Slice][P1-virtual-target] req=%s target_chunk=%d long_len=%d baseline_chunk=%s",
+                    str(cohort.long_req_id),
+                    int(best_chunk),
+                    int(long_len),
+                    str(baseline_chunk) if baseline_chunk is not None else "none",
+                )
+            use_seq_len_shadow = not bool(state.policy.phase1_ingress_direct_authoritative)
+            if use_seq_len_shadow and long_seq_group is not None and best_chunk < long_len:
+                _phase1_apply_sequence_len_shadow(
+                    state=state,
+                    seq_group=long_seq_group,
+                    target_chunk=best_chunk,
+                )
+
             if can_phase1_tick_hide and waiting_short_count > 0:
                 first_wait_len = _safe_remaining_tokens(waiting[0]) or 0
                 if first_wait_len > 0 and first_wait_len <= max(best_chunk, short_len):
@@ -2016,16 +3553,26 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
 
             new_budget = None
             if can_phase1_budget and scheduler_cfg is not None:
-                new_budget = _compute_budget(
-                    best_chunk,
-                    short_len,
-                    long_len,
-                    short_token_mass,
-                    queue_len,
-                    state.policy,
-                    original_budget,
-                    baseline_chunk=baseline_chunk,
-                )
+                if explicit_plan_kind is not None:
+                    new_budget = _compute_explicit_plan_budget(
+                        best_chunk=best_chunk,
+                        short_len=short_len,
+                        short_token_mass=short_token_mass,
+                        policy=state.policy,
+                        original_budget=original_budget,
+                        baseline_chunk=baseline_chunk,
+                    )
+                else:
+                    new_budget = _compute_budget(
+                        best_chunk,
+                        short_len,
+                        long_len,
+                        short_token_mass,
+                        queue_len,
+                        state.policy,
+                        original_budget,
+                        baseline_chunk=baseline_chunk,
+                    )
                 if new_budget is not None:
                     scheduler_cfg.max_num_batched_tokens = new_budget
 
@@ -2036,7 +3583,7 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                 short_len,
                 str(baseline_chunk) if baseline_chunk is not None else "none",
                 best_chunk,
-                f"{forced_chunk}|sticky={reused_sticky}",
+                f"{forced_chunk}|sticky={reused_sticky}|joint_floor={joint_floor_chunk}",
                 str(explicit_plan_kind) if explicit_plan_kind is not None else "off",
                 queue_len,
                 short_token_mass,
@@ -2044,8 +3591,29 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                 str(new_threshold) if new_threshold is not None else "unchanged",
                 str(new_budget) if new_budget is not None else "unchanged",
             )
-            return original_schedule(self, *args, **kwargs)
+            outputs = original_schedule(self, *args, **kwargs)
+            outputs, rewritten, rewritten_groups, old_chunk_sum, new_chunk_sum, token_delta_sum = _phase1_rewrite_scheduler_outputs(
+                outputs=outputs,
+                request_id=cohort.long_req_id,
+                target_chunk=best_chunk,
+            )
+            state.metrics.record_phase1_rewrite(
+                rewritten_groups=rewritten_groups,
+                old_chunk_sum=old_chunk_sum,
+                new_chunk_sum=new_chunk_sum,
+                token_delta_sum=token_delta_sum,
+            )
+            if rewritten:
+                logger.info(
+                    "[Wave-Slice][P1-rewrite] req=%s chunk=%d explicit_plan=%s",
+                    str(cohort.long_req_id),
+                    int(best_chunk),
+                    str(explicit_plan_kind) if explicit_plan_kind is not None else "off",
+                )
+            return outputs
         finally:
+            state.phase1_shadow_seq_lens.clear()
+            state.phase1_virtual_token_caps.clear()
             if scheduler_cfg is not None and isinstance(original_budget, int) and original_budget > 0:
                 try:
                     scheduler_cfg.max_num_batched_tokens = original_budget
@@ -2064,6 +3632,173 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
 
     _wave_schedule_hook.__wave_slice_hook__ = True  # type: ignore[attr-defined]
     return _wave_schedule_hook
+
+
+def _build_public_schedule_hook(state: _PatchState) -> Callable[..., Any]:
+    original_public_schedule = state.original_public_schedule
+    if original_public_schedule is None:
+        raise RuntimeError("public schedule hook requested without original_public_schedule")
+    schedule_globals = getattr(original_public_schedule, "__globals__", {})
+    SequenceGroupMetadata = schedule_globals.get("SequenceGroupMetadata")
+    SequenceGroupMetadataDelta = schedule_globals.get("SequenceGroupMetadataDelta")
+    SequenceStatus = schedule_globals.get("SequenceStatus")
+    if SequenceGroupMetadata is None or SequenceGroupMetadataDelta is None or SequenceStatus is None:
+        raise RuntimeError("public schedule hook missing vLLM scheduler globals")
+
+    @functools.wraps(original_public_schedule)
+    def _wave_public_schedule_hook(self: Any, *args: Any, **kwargs: Any) -> Any:
+        try:
+            scheduler_start_time = time.perf_counter()
+            scheduler_outputs = getattr(self, state.scheduler_method_name)(*args, **kwargs)
+            now = time.time()
+
+            if state.policy.enable_phase1_scheduler:
+                scheduler_outputs, _ = _phase1_force_public_schedule_rewrite(
+                    state=state,
+                    scheduler_obj=self,
+                    scheduler_outputs=scheduler_outputs,
+                )
+
+            if not self.cache_config.enable_prefix_caching:
+                common_computed_block_nums = []
+
+            allow_async_output_proc = self.use_async_output_proc
+            seq_group_metadata_list: list[Any] = []
+            for i, scheduled_seq_group in enumerate(scheduler_outputs.scheduled_seq_groups):
+                seq_group = scheduled_seq_group.seq_group
+                token_chunk_size = scheduled_seq_group.token_chunk_size
+                seq_group.maybe_set_first_scheduled_time(now)
+                trace_request_id = _safe_request_id(seq_group)
+                trace_is_prompt = None
+                trace_num_computed_tokens = None
+                try:
+                    trace_is_prompt = bool(seq_group.is_prefill())
+                except Exception:
+                    trace_is_prompt = None
+                try:
+                    seqs_for_trace = seq_group.get_seqs()
+                    if seqs_for_trace:
+                        trace_num_computed_tokens = int(
+                            seqs_for_trace[0].data.get_num_computed_tokens()
+                        )
+                except Exception:
+                    trace_num_computed_tokens = None
+                if trace_request_id:
+                    state.metrics.record_phase1_step_trace(
+                        request_id=str(trace_request_id),
+                        event="public_schedule_group",
+                        is_prefill=trace_is_prompt,
+                        token_chunk_size=int(token_chunk_size),
+                        num_computed_tokens=trace_num_computed_tokens,
+                    )
+
+                seq_group_metadata = self._seq_group_metadata_cache[self.cache_id].get_object()
+                seq_group_metadata.seq_data.clear()
+                seq_group_metadata.block_tables.clear()
+
+                seq_data: dict[int, Any] = {}
+                block_tables: dict[int, list[int]] = {}
+
+                if seq_group.is_encoder_decoder():
+                    encoder_seq = seq_group.get_encoder_seq()
+                    assert encoder_seq is not None
+                    encoder_seq_data = encoder_seq.data
+                    cross_block_table = self.block_manager.get_cross_block_table(seq_group)
+                else:
+                    encoder_seq_data = None
+                    cross_block_table = None
+
+                for seq in seq_group.get_seqs(status=SequenceStatus.RUNNING):
+                    seq_id = seq.seq_id
+                    seq_data[seq_id] = seq.data
+                    block_tables[seq_id] = self.block_manager.get_block_table(seq)
+                    self.block_manager.access_all_blocks_in_seq(seq, now)
+
+                if self.cache_config.enable_prefix_caching:
+                    common_computed_block_nums = self.block_manager.get_common_computed_block_ids(
+                        seq_group.get_seqs(status=SequenceStatus.RUNNING)
+                    )
+
+                do_sample = True
+                is_prompt = seq_group.is_prefill()
+                is_first_prefill = False
+                if is_prompt:
+                    seqs = seq_group.get_seqs()
+                    assert len(seqs) == 1
+                    num_computed_tokens = seqs[0].data.get_num_computed_tokens()
+                    is_first_prefill = num_computed_tokens == 0
+                    if token_chunk_size + num_computed_tokens < seqs[0].data.get_len():
+                        do_sample = False
+
+                if is_first_prefill or not self.scheduler_config.send_delta_data:
+                    seq_group_metadata = SequenceGroupMetadata(
+                        request_id=seq_group.request_id,
+                        is_prompt=is_prompt,
+                        seq_data=seq_data,
+                        sampling_params=seq_group.sampling_params,
+                        block_tables=block_tables,
+                        do_sample=do_sample,
+                        pooling_params=seq_group.pooling_params,
+                        token_chunk_size=token_chunk_size,
+                        lora_request=seq_group.lora_request,
+                        computed_block_nums=common_computed_block_nums,
+                        encoder_seq_data=encoder_seq_data,
+                        cross_block_table=cross_block_table,
+                        state=seq_group.state,
+                        token_type_ids=seq_group.token_type_ids,
+                        multi_modal_data=(
+                            seq_group.multi_modal_data
+                            if scheduler_outputs.num_prefill_groups > 0 else None
+                        ),
+                        multi_modal_placeholders=(
+                            seq_group.multi_modal_placeholders
+                            if scheduler_outputs.num_prefill_groups > 0 else None
+                        ),
+                    )
+                else:
+                    seq_data_delta = {}
+                    for seq_id, data in seq_data.items():
+                        seq_data_delta[seq_id] = data.get_delta_and_reset()
+                    seq_group_metadata = SequenceGroupMetadataDelta(
+                        seq_data_delta,
+                        seq_group.request_id,
+                        block_tables,
+                        is_prompt,
+                        do_sample=do_sample,
+                        token_chunk_size=token_chunk_size,
+                        computed_block_nums=common_computed_block_nums,
+                    )
+                seq_group_metadata_list.append(seq_group_metadata)
+
+                if allow_async_output_proc:
+                    allow_async_output_proc = self._allow_async_output_proc(seq_group)
+
+            for scheduled_seq_group in scheduler_outputs.scheduled_seq_groups:
+                self.block_manager.mark_blocks_as_computed(
+                    scheduled_seq_group.seq_group,
+                    scheduled_seq_group.token_chunk_size,
+                )
+
+            self._seq_group_metadata_cache[self.next_cache_id].reset()
+
+            scheduler_time = time.perf_counter() - scheduler_start_time
+            for seq_group in self.running:
+                if seq_group is not None and seq_group.metrics is not None:
+                    if seq_group.metrics.scheduler_time is not None:
+                        seq_group.metrics.scheduler_time += scheduler_time
+                    else:
+                        seq_group.metrics.scheduler_time = scheduler_time
+
+            self.cache_id = self.next_cache_id
+            return (seq_group_metadata_list, scheduler_outputs, allow_async_output_proc)
+        except Exception:
+            logger.exception("[Wave-Slice] public schedule rewrite failed; fallback to original tuple.")
+            return original_public_schedule(self, *args, **kwargs)
+        finally:
+            state.phase1_public_skip_rewrite_requests.clear()
+
+    _wave_public_schedule_hook.__wave_slice_public_hook__ = True  # type: ignore[attr-defined]
+    return _wave_public_schedule_hook
 
 
 def _safe_import_torch() -> Optional[Any]:
@@ -2223,7 +3958,14 @@ def _build_add_request_hook(state: _PatchState) -> Callable[..., Any]:
             prompt_obj = args[1] if len(args) >= 2 else kwargs.get("prompt")
             if prompt_obj is None:
                 prompt_obj = kwargs.get("prompt_token_ids")
-            input_tokens = _estimate_prompt_tokens(prompt_obj)
+            lora_request = kwargs.get("lora_request")
+            if lora_request is None and len(args) >= 4:
+                lora_request = args[3]
+            input_tokens = _estimate_prompt_tokens(
+                prompt_obj,
+                engine_self=self,
+                lora_request=lora_request,
+            )
             solo_us = _estimate_solo_us(state.brain, input_tokens)
             is_short = (input_tokens is not None) and (input_tokens <= state.policy.metrics_short_request_tokens)
             state.metrics.register_request(
@@ -2232,6 +3974,11 @@ def _build_add_request_hook(state: _PatchState) -> Callable[..., Any]:
                 input_tokens=input_tokens,
                 solo_us=solo_us,
                 is_short=is_short,
+            )
+            _phase1_maybe_seed_ingress_virtual(
+                state,
+                request_id=request_id,
+                input_tokens=input_tokens,
             )
         except Exception:
             logger.exception("Wave-Slice metrics add_request hook failed.")
@@ -2256,6 +4003,9 @@ def _build_step_hook(state: _PatchState) -> Callable[..., Any]:
                         req_id = str(getattr(out, "request_id", ""))
                         if req_id:
                             state.phase1_explicit_plans.pop(req_id, None)
+                            state.phase1_active_prompt_tokens.pop(req_id, None)
+                            state.phase1_ingress_virtuals.pop(req_id, None)
+                            state.phase1_virtual_token_caps.pop(req_id, None)
                 except Exception:
                     continue
             state.metrics.observe_engine_outputs(outputs, now_s=time.perf_counter())
@@ -2469,7 +4219,30 @@ def inject_wave_slice(
             metrics=WaveSliceMetrics(short_threshold_tokens=chosen_policy.metrics_short_request_tokens),
         )
 
+        try:
+            sequence_data_cls = _load_sequence_data_cls()
+            original_get_len = getattr(sequence_data_cls, "get_len", None)
+            if callable(original_get_len):
+                state.sequence_data_cls = sequence_data_cls
+                state.original_sequence_data_get_len = original_get_len
+                sequence_data_cls.get_len = _build_sequence_data_get_len_hook(state)
+        except Exception:
+            logger.exception("[Wave-Slice] failed to install SequenceData.get_len hook.")
+
         setattr(scheduler_cls, scheduler_method_name, _build_scheduler_hook(state))
+        if scheduler_method_name != "schedule":
+            public_schedule = getattr(scheduler_cls, "schedule", None)
+            if callable(public_schedule):
+                state.original_public_schedule = public_schedule
+                setattr(scheduler_cls, "schedule", _build_public_schedule_hook(state))
+        scheduler_helper = getattr(scheduler_cls, "_get_num_new_uncached_and_cached_tokens", None)
+        if callable(scheduler_helper):
+            state.original_get_new_uncached_and_cached_tokens = scheduler_helper
+            setattr(
+                scheduler_cls,
+                "_get_num_new_uncached_and_cached_tokens",
+                _build_get_num_new_uncached_and_cached_tokens_hook(state),
+            )
 
         # Phase II: ModelRunner hook (optional)
         if chosen_policy.enable_phase2_modelrunner:
@@ -2546,12 +4319,34 @@ def uninject_wave_slice() -> None:
                 "[Wave-Slice] failed to restore Scheduler.%s",
                 state.scheduler_method_name,
             )
+        if state.original_public_schedule is not None:
+            try:
+                setattr(state.scheduler_cls, "schedule", state.original_public_schedule)
+            except Exception:
+                logger.exception("[Wave-Slice] failed to restore Scheduler.schedule")
+        if state.original_get_new_uncached_and_cached_tokens is not None:
+            try:
+                setattr(
+                    state.scheduler_cls,
+                    "_get_num_new_uncached_and_cached_tokens",
+                    state.original_get_new_uncached_and_cached_tokens,
+                )
+            except Exception:
+                logger.exception(
+                    "[Wave-Slice] failed to restore Scheduler._get_num_new_uncached_and_cached_tokens"
+                )
 
         if state.model_runner_cls is not None and state.original_execute_model is not None:
             try:
                 state.model_runner_cls.execute_model = state.original_execute_model
             except Exception:
                 logger.exception("[Wave-Slice] failed to restore ModelRunner.execute_model")
+
+        if state.sequence_data_cls is not None and state.original_sequence_data_get_len is not None:
+            try:
+                state.sequence_data_cls.get_len = state.original_sequence_data_get_len
+            except Exception:
+                logger.exception("[Wave-Slice] failed to restore SequenceData.get_len")
 
         if state.llm_engine_cls is not None:
             if state.original_add_request is not None:

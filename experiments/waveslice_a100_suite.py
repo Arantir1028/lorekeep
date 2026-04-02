@@ -35,6 +35,7 @@ class ModelSpec:
     model_id: str
     lut_name: str
     trust_remote_code: bool = False
+    max_model_len_override: Optional[int] = None
 
 
 DEFAULT_MODELS: list[ModelSpec] = [
@@ -45,9 +46,9 @@ DEFAULT_MODELS: list[ModelSpec] = [
     ModelSpec("openchat-3.5-0106", "openchat/openchat-3.5-0106", "Mistral-7B-v0.1"),
     # Distinct architecture families for broader heterogeneity.
     ModelSpec("gemma-7b-it", "google/gemma-7b-it", "Gemma-7B"),
-    ModelSpec("decilm-7b", "Deci/DeciLM-7B", "Mistral-7B-v0.1"),
-    ModelSpec("phi-2", "microsoft/phi-2", "Mistral-7B-v0.1"),
-    ModelSpec("baichuan2-7b-chat", "baichuan-inc/Baichuan2-7B-Chat", "Mistral-7B-v0.1"),
+    ModelSpec("decilm-7b", "Deci/DeciLM-7B", "Mistral-7B-v0.1", trust_remote_code=True),
+    ModelSpec("phi-2", "microsoft/phi-2", "Mistral-7B-v0.1", max_model_len_override=2048),
+    ModelSpec("baichuan2-7b-chat", "baichuan-inc/Baichuan2-7B-Chat", "Mistral-7B-v0.1", trust_remote_code=True),
 ]
 
 
@@ -129,12 +130,13 @@ def _run_model(
     max_num_batched_tokens: int,
     gpu_memory_utilization: float,
     include_strict: bool,
+    include_phase12: bool,
     phase2_dispatch_mode: str,
     results_dir: str,
     dry_run: bool,
 ) -> dict[str, Any]:
     local_snapshot = _resolve_local_snapshot(spec.model_id)
-    model_path = local_snapshot or spec.model_id
+    model_path = spec.model_id if spec.trust_remote_code else (local_snapshot or spec.model_id)
     adapter_dir = os.path.join(adapters_root, _safe_key(spec.key))
 
     if dry_run:
@@ -152,12 +154,15 @@ def _run_model(
         trust_remote_code=spec.trust_remote_code,
     )
 
+    effective_max_model_len = spec.max_model_len_override or max_model_len
+
     row: dict[str, Any] = {
         "model": spec.model_id,
         "lut_name": spec.lut_name,
         "model_path": model_path,
         "adapter_a": adapter_a,
         "adapter_b": adapter_b,
+        "effective_max_model_len": effective_max_model_len,
     }
     os.makedirs(results_dir, exist_ok=True)
     out_json = os.path.join(results_dir, f"{_safe_key(spec.key)}_repeated_eval.json")
@@ -185,7 +190,7 @@ def _run_model(
         "--long-repeat",
         str(long_repeat),
         "--max-model-len",
-        str(max_model_len),
+        str(effective_max_model_len),
         "--max-num-batched-tokens",
         str(max_num_batched_tokens),
         "--gpu-memory-utilization",
@@ -197,6 +202,10 @@ def _run_model(
     ]
     if include_strict:
         cmd.append("--include-strict")
+    if include_phase12:
+        cmd.append("--include-phase12")
+    if spec.trust_remote_code:
+        cmd.append("--trust-remote-code")
 
     proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
     row["status"] = "ok" if proc.returncode == 0 else "failed"
@@ -215,6 +224,7 @@ def _run_model(
     phase1 = summary.get("phase1", {})
     phase2 = summary.get("phase2", {})
     strict = summary.get("phase2_strict", {})
+    phase12 = summary.get("phase12", {})
     row["phase1_ttft_improve_mean"] = (phase1.get("ttft_improve_ratio") or {}).get("mean")
     row["phase1_wall_improve_mean"] = (phase1.get("round_wall_improve_ratio") or {}).get("mean")
     row["phase1_error_mean"] = (phase1.get("error_rate") or {}).get("mean")
@@ -226,6 +236,14 @@ def _run_model(
     row["phase2_noise_mean"] = (phase2.get("baseline_noise_error_rate") or {}).get("mean")
     row["phase2_incremental_error_mean"] = (phase2.get("incremental_error_rate") or {}).get("mean")
     row["phase2_apply_mean"] = (phase2.get("phase2_apply_ratio") or {}).get("mean")
+    if include_phase12:
+        row["phase12_ttft_improve_mean"] = (phase12.get("ttft_improve_ratio") or {}).get("mean")
+        row["phase12_slowdown_improve_mean"] = (phase12.get("slowdown_improve_ratio") or {}).get("mean")
+        row["phase12_wall_improve_mean"] = (phase12.get("round_wall_improve_ratio") or {}).get("mean")
+        row["phase12_error_mean"] = (phase12.get("wave_error_rate") or {}).get("mean")
+        row["phase12_noise_mean"] = (phase12.get("baseline_noise_error_rate") or {}).get("mean")
+        row["phase12_incremental_error_mean"] = (phase12.get("incremental_error_rate") or {}).get("mean")
+        row["phase12_apply_mean"] = (phase12.get("phase2_apply_ratio") or {}).get("mean")
     if include_strict:
         row["phase2_strict_ttft_improve_mean"] = (strict.get("ttft_improve_ratio") or {}).get("mean")
         row["phase2_strict_slowdown_improve_mean"] = (strict.get("slowdown_improve_ratio") or {}).get("mean")
@@ -291,6 +309,7 @@ def main() -> int:
     parser.add_argument("--max-num-batched-tokens", type=int, default=1536)
     parser.add_argument("--gpu-memory-utilization", type=float, default=0.60)
     parser.add_argument("--include-strict", action="store_true")
+    parser.add_argument("--include-phase12", action="store_true")
     parser.add_argument(
         "--phase2-dispatch-mode",
         choices=["synchronized", "async_experimental"],
@@ -349,6 +368,7 @@ def main() -> int:
                 max_num_batched_tokens=args.max_num_batched_tokens,
                 gpu_memory_utilization=args.gpu_memory_utilization,
                 include_strict=args.include_strict,
+                include_phase12=args.include_phase12,
                 phase2_dispatch_mode=args.phase2_dispatch_mode,
                 results_dir=results_dir,
                 dry_run=args.dry_run,
@@ -359,6 +379,8 @@ def main() -> int:
                 f"phase1_ttft={row.get('phase1_ttft_improve_mean')} "
                 f"phase2_ttft={row.get('phase2_ttft_improve_mean')} "
                 f"phase2_slow={row.get('phase2_slowdown_improve_mean')} "
+                f"phase12_ttft={row.get('phase12_ttft_improve_mean')} "
+                f"phase12_wall={row.get('phase12_wall_improve_mean')} "
                 f"status={row.get('status')}"
             )
         except Exception as exc:

@@ -1,0 +1,4730 @@
+{
+  "config": {
+    "model_name": "Mistral-7B-v0.1",
+    "model_path": "/home/onceas/.cache/huggingface/hub/models--mistralai--Mistral-7B-Instruct-v0.2/snapshots/63a8b081895390a26e140280378bc85ec8bce07a",
+    "max_new_tokens": 64,
+    "timeout_sec": 240,
+    "warmup_iters": 2,
+    "repeats": 3,
+    "short_repeat": 16,
+    "short_a_repeat": 16,
+    "short_b_repeat": 16,
+    "long_repeat": 320,
+    "max_model_len": 3072,
+    "max_num_batched_tokens": 1536,
+    "gpu_memory_utilization": 0.6,
+    "phase1_objective_mode": "fair_escape",
+    "phase1_baseline_mode": "both",
+    "include_strict": false,
+    "phase2_dispatch_mode": "synchronized",
+    "adapter_a": "/tmp/waveslice_synthetic_adapters/mistral-7b-instruct-v0.2/adapter_rank8_seed7",
+    "adapter_b": "/tmp/waveslice_synthetic_adapters/mistral-7b-instruct-v0.2/adapter_rank16_seed11"
+  },
+  "token_lengths": {
+    "short_a": 109,
+    "short_b": 186,
+    "long_b": 2763
+  },
+  "phase1_baseline_chunked_raw": {
+    "ttft_short_p99_ms": {
+      "count": 3.0,
+      "mean": 130.2899851774176,
+      "p50": 130.73182106018066,
+      "p95": 130.8407480828464,
+      "p99": 130.85043048486114,
+      "min": 129.2852833867073,
+      "max": 130.85285108536482
+    },
+    "round_wall_ms": {
+      "count": 3.0,
+      "mean": 1494.9424086759489,
+      "p50": 1491.9965653680265,
+      "p95": 1504.2933432850987,
+      "p99": 1505.3863902110606,
+      "min": 1487.1710087172687,
+      "max": 1505.6596519425511
+    },
+    "timeout_rate": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    }
+  },
+  "phase1_baseline_no_chunk_raw": {
+    "ttft_short_p99_ms": {
+      "count": 3.0,
+      "mean": 263.8722400491436,
+      "p50": 263.45610013231635,
+      "p95": 264.7863551042974,
+      "p99": 264.9045999906957,
+      "min": 263.22645880281925,
+      "max": 264.9341612122953
+    },
+    "round_wall_ms": {
+      "count": 3.0,
+      "mean": 1501.4814746876557,
+      "p50": 1501.845178194344,
+      "p95": 1503.9232808165252,
+      "p99": 1504.108001049608,
+      "min": 1498.4450647607446,
+      "max": 1504.1541811078787
+    },
+    "timeout_rate": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    }
+  },
+  "phase1": {
+    "ttft_improve_ratio": {
+      "count": 3.0,
+      "mean": 1.9259219441925028,
+      "p50": 1.9361684780551005,
+      "p95": 1.9487538949922094,
+      "p99": 1.9498725987199526,
+      "min": 1.8914450798705202,
+      "max": 1.9501522746518882
+    },
+    "round_wall_improve_ratio": {
+      "count": 3.0,
+      "mean": 0.9029203116272008,
+      "p50": 0.9003324039280594,
+      "p95": 0.9089648011003257,
+      "p99": 0.9097321252934161,
+      "min": 0.8985045746118542,
+      "max": 0.9099239563416887
+    },
+    "error_rate": {
+      "count": 3.0,
+      "mean": 1.0,
+      "p50": 1.0,
+      "p95": 1.0,
+      "p99": 1.0,
+      "min": 1.0,
+      "max": 1.0
+    },
+    "baseline_noise_error_rate": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "incremental_error_rate": {
+      "count": 3.0,
+      "mean": 1.0,
+      "p50": 1.0,
+      "p95": 1.0,
+      "p99": 1.0,
+      "min": 1.0,
+      "max": 1.0
+    },
+    "base_semantic_pass_rate": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "wave_semantic_pass_rate": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "semantic_pass_delta": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "scheduler_apply_ratio": {
+      "count": 3.0,
+      "mean": 0.1232876712328767,
+      "p50": 0.1232876712328767,
+      "p95": 0.1232876712328767,
+      "p99": 0.1232876712328767,
+      "min": 0.1232876712328767,
+      "max": 0.1232876712328767
+    },
+    "baseline_chunk_avg": {
+      "count": 3.0,
+      "mean": 1536.0,
+      "p50": 1536.0,
+      "p95": 1536.0,
+      "p99": 1536.0,
+      "min": 1536.0,
+      "max": 1536.0
+    },
+    "chosen_chunk_avg": {
+      "count": 3.0,
+      "mean": 316.44444444444446,
+      "p50": 316.44444444444446,
+      "p95": 316.44444444444446,
+      "p99": 316.44444444444446,
+      "min": 316.44444444444446,
+      "max": 316.44444444444446
+    },
+    "chosen_vs_baseline_ratio_avg": {
+      "count": 3.0,
+      "mean": 0.25,
+      "p50": 0.25,
+      "p95": 0.25,
+      "p99": 0.25,
+      "min": 0.25,
+      "max": 0.25
+    },
+    "explicit_plan_ratio": {
+      "count": 3.0,
+      "mean": 0.1232876712328767,
+      "p50": 0.1232876712328767,
+      "p95": 0.1232876712328767,
+      "p99": 0.1232876712328767,
+      "min": 0.1232876712328767,
+      "max": 0.1232876712328767
+    },
+    "rewrite_apply_ratio": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "rewrite_old_chunk_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "rewrite_new_chunk_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "rewrite_token_delta_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_apply_ratio": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "virtual_cap_old_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_new_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_target_set": {
+      "count": 3.0,
+      "mean": 9.0,
+      "p50": 9.0,
+      "p95": 9.0,
+      "p99": 9.0,
+      "min": 9.0,
+      "max": 9.0
+    },
+    "virtual_cap_helper_calls": {
+      "count": 3.0,
+      "mean": 201.0,
+      "p50": 201.0,
+      "p95": 201.0,
+      "p99": 201.0,
+      "min": 201.0,
+      "max": 201.0
+    },
+    "virtual_cap_prefill_calls": {
+      "count": 3.0,
+      "mean": 12.0,
+      "p50": 12.0,
+      "p95": 12.0,
+      "p99": 12.0,
+      "min": 12.0,
+      "max": 12.0
+    },
+    "virtual_cap_target_hits": {
+      "count": 3.0,
+      "mean": 9.0,
+      "p50": 9.0,
+      "p95": 9.0,
+      "p99": 9.0,
+      "min": 9.0,
+      "max": 9.0
+    },
+    "probe_total": {
+      "count": 3.0,
+      "mean": 93.0,
+      "p50": 93.0,
+      "p95": 93.0,
+      "p99": 93.0,
+      "min": 93.0,
+      "max": 93.0
+    },
+    "probe_slice_eligible_ratio": {
+      "count": 3.0,
+      "mean": 0.19354838709677416,
+      "p50": 0.1935483870967742,
+      "p95": 0.1935483870967742,
+      "p99": 0.1935483870967742,
+      "min": 0.1935483870967742,
+      "max": 0.1935483870967742
+    },
+    "probe_best_lt_long_ratio": {
+      "count": 3.0,
+      "mean": 0.19354838709677416,
+      "p50": 0.1935483870967742,
+      "p95": 0.1935483870967742,
+      "p99": 0.1935483870967742,
+      "min": 0.1935483870967742,
+      "max": 0.1935483870967742
+    },
+    "probe_short_avg": {
+      "count": 3.0,
+      "mean": 35.193548387096776,
+      "p50": 35.193548387096776,
+      "p95": 35.193548387096776,
+      "p99": 35.193548387096776,
+      "min": 35.193548387096776,
+      "max": 35.193548387096776
+    },
+    "probe_long_avg": {
+      "count": 3.0,
+      "mean": 414.2258064516129,
+      "p50": 414.2258064516129,
+      "p95": 414.2258064516129,
+      "p99": 414.2258064516129,
+      "min": 414.2258064516129,
+      "max": 414.2258064516129
+    },
+    "probe_baseline_avg": {
+      "count": 3.0,
+      "mean": 1536.0,
+      "p50": 1536.0,
+      "p95": 1536.0,
+      "p99": 1536.0,
+      "min": 1536.0,
+      "max": 1536.0
+    },
+    "probe_best_avg": {
+      "count": 3.0,
+      "mean": 295.7,
+      "p50": 295.7,
+      "p95": 295.7,
+      "p99": 295.7,
+      "min": 295.7,
+      "max": 295.7
+    },
+    "probe_queue_avg": {
+      "count": 3.0,
+      "mean": 0.7741935483870966,
+      "p50": 0.7741935483870968,
+      "p95": 0.7741935483870968,
+      "p99": 0.7741935483870968,
+      "min": 0.7741935483870968,
+      "max": 0.7741935483870968
+    },
+    "probe_wait_us_avg": {
+      "count": 3.0,
+      "mean": 69894.69835835119,
+      "p50": 69929.97661713632,
+      "p95": 70135.97719130978,
+      "p99": 70154.28835345853,
+      "min": 69595.25231392153,
+      "max": 70158.86614399572
+    }
+  },
+  "phase2": {
+    "ttft_improve_ratio": {
+      "count": 3.0,
+      "mean": 0.8872492654669983,
+      "p50": 0.8862106778101809,
+      "p95": 0.891187009355191,
+      "p99": 0.8916293499369696,
+      "min": 0.8837971835083995,
+      "max": 0.8917399350824143
+    },
+    "slowdown_improve_ratio": {
+      "count": 3.0,
+      "mean": 0.8887959720948467,
+      "p50": 0.8902240620479563,
+      "p95": 0.8903458854741723,
+      "p99": 0.8903567142231692,
+      "min": 0.8858044328261655,
+      "max": 0.8903594214104185
+    },
+    "round_wall_improve_ratio": {
+      "count": 3.0,
+      "mean": 0.88870598693797,
+      "p50": 0.889912248093318,
+      "p95": 0.8903632674389022,
+      "p99": 0.8904033580473985,
+      "min": 0.8857923320210696,
+      "max": 0.8904133806995226
+    },
+    "wave_error_rate": {
+      "count": 3.0,
+      "mean": 0.75,
+      "p50": 0.75,
+      "p95": 0.75,
+      "p99": 0.75,
+      "min": 0.75,
+      "max": 0.75
+    },
+    "baseline_noise_error_rate": {
+      "count": 3.0,
+      "mean": 0.75,
+      "p50": 0.75,
+      "p95": 0.75,
+      "p99": 0.75,
+      "min": 0.75,
+      "max": 0.75
+    },
+    "incremental_error_rate": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "phase2_apply_ratio": {
+      "count": 3.0,
+      "mean": 0.9343065693430658,
+      "p50": 0.9343065693430657,
+      "p95": 0.9343065693430657,
+      "p99": 0.9343065693430657,
+      "min": 0.9343065693430657,
+      "max": 0.9343065693430657
+    }
+  },
+  "per_repeat": {
+    "phase1": [
+      {
+        "base_ttft_short_p99_ms": 130.73182106018066,
+        "wave_ttft_short_p99_ms": 67.03672464936972,
+        "ttft_improve_ratio": 1.9501522746518882,
+        "base_round_wall_ms": 1505.6596519425511,
+        "wave_round_wall_ms": 1654.7093209810555,
+        "round_wall_improve_ratio": 0.9099239563416887,
+        "text_match_rate": 0.0,
+        "mismatch_details": [
+          {
+            "req_id": "long_b",
+            "common_prefix_chars": 287,
+            "base_preview": "\n\nThe report discusses the historical development of the Holman rule in the House of Representatives, which prohibits provisions changing existing law from bein",
+            "wave_preview": "\n\nThe report discusses the historical development of the Holman rule in the House of Representatives, which prohibits provisions changing existing law from bein"
+          },
+          {
+            "req_id": "short_a",
+            "common_prefix_chars": 10,
+            "base_preview": " Here's a moment in my life that comes to mind when I think of true happiness and contentment.\n\nThe sun was setting over the tranquil lake, casting a warm golde",
+            "wave_preview": " Here's a specific moment in my life that comes to mind when I think of true happiness and contentment.\n\nIt was a crisp autumn afternoon, and I was sitting on t"
+          },
+          {
+            "req_id": "short_b",
+            "common_prefix_chars": 93,
+            "base_preview": "\n\nRegarding filtering restaurants based on cuisine types, the app will allow users to select specific cuisine types from a list. The app will then display only ",
+            "wave_preview": "\n\nRegarding filtering restaurants based on cuisine types, the app will allow users to select their preferred cuisine types from a list. The app will then displa"
+          }
+        ],
+        "error_rate": 1.0,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 1.0,
+        "base_semantic_pass_rate": 0.0,
+        "wave_semantic_pass_rate": 0.0,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.5,
+            "reason": "not_french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "off_topic_or_outline"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.5,
+            "reason": "not_french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "off_topic_or_outline"
+          }
+        },
+        "base_texts": {
+          "short_a": " Here's a moment in my life that comes to mind when I think of true happiness and contentment.\n\nThe sun was setting over the tranquil lake, casting a warm golden glow over the water. The gentle lapping of the waves against the shore created a soothing melody that seemed to reson",
+          "short_b": "\n\nRegarding filtering restaurants based on cuisine types, the app will allow users to select specific cuisine types from a list. The app will then display only the restaurants that match the selected cuisine types.\n\nYes, there will be a feature to allow users to reserve tables directly through the app.",
+          "long_b": "\n\nThe report discusses the historical development of the Holman rule in the House of Representatives, which prohibits provisions changing existing law from being included in general appropriations bills except for retrenchments that reduce expenditures. The rule originated in the 1830s to address the problem of"
+        },
+        "wave_texts": {
+          "short_a": " Here's a specific moment in my life that comes to mind when I think of true happiness and contentment.\n\nIt was a crisp autumn afternoon, and I was sitting on the old wooden swing in my grandmother's backyard. The sun was setting, casting a warm golden glow over the garden.",
+          "short_b": "\n\nRegarding filtering restaurants based on cuisine types, the app will allow users to select their preferred cuisine types from a list. The app will then display only the restaurants that match the selected cuisine types.\n\nYes, there will be a feature to allow users to reserve a table directly through the",
+          "long_b": "\n\nThe report discusses the historical development of the Holman rule in the House of Representatives, which prohibits provisions changing existing law from being included in general appropriations bills except for retrenchments that reduce expenditures. The rule originated in the 1830s when the House sought to"
+        },
+        "scheduler_apply_ratio": 0.1232876712328767,
+        "scheduler_applied": 9,
+        "scheduler_attempts": 73,
+        "baseline_chunk_avg": 1536.0,
+        "chosen_chunk_avg": 316.44444444444446,
+        "chosen_vs_baseline_ratio_avg": 0.25,
+        "explicit_plan_ratio": 0.1232876712328767,
+        "rewrite_apply_ratio": 0.0,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": 0.0,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": 9.0,
+        "virtual_cap_helper_calls": 201.0,
+        "virtual_cap_prefill_calls": 12.0,
+        "virtual_cap_target_hits": 9.0,
+        "probe_total": 93.0,
+        "probe_slice_eligible_ratio": 0.1935483870967742,
+        "probe_best_lt_long_ratio": 0.1935483870967742,
+        "probe_short_avg": 35.193548387096776,
+        "probe_long_avg": 414.2258064516129,
+        "probe_baseline_avg": 1536.0,
+        "probe_best_avg": 295.7,
+        "probe_queue_avg": 0.7741935483870968,
+        "probe_wait_us_avg": 69929.97661713632,
+        "probe_reasons": {
+          "ingress_virtual_override": 10,
+          "candidate": 10,
+          "apply": 9,
+          "best_chunk_ge_long": 1,
+          "no_need_wave_slice": 63
+        },
+        "hook_report": {
+          "requests": {
+            "total": 3,
+            "finished": 3
+          },
+          "scheduler": {
+            "attempts": 73,
+            "applied": 9,
+            "apply_ratio": 0.1232876712328767,
+            "baseline_chunk_avg": 1536.0,
+            "chosen_chunk_avg": 316.44444444444446,
+            "chosen_vs_baseline_ratio_avg": 0.25,
+            "explicit_plan_ratio": 0.1232876712328767,
+            "rewrite_applied": 0,
+            "rewrite_apply_ratio": 0.0,
+            "rewrite_group_count": 0,
+            "rewrite_old_chunk_avg": null,
+            "rewrite_new_chunk_avg": null,
+            "rewrite_token_delta_avg": null,
+            "virtual_cap_apply_ratio": 0.0,
+            "virtual_cap_old_avg": null,
+            "virtual_cap_new_avg": null,
+            "virtual_cap_target_set": 9.0,
+            "virtual_cap_helper_calls": 201.0,
+            "virtual_cap_prefill_calls": 12.0,
+            "virtual_cap_target_hits": 9.0,
+            "request_traces": {
+              "repeat_phase1_only_0:long_b": [
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 0,
+                  "uncached": 279,
+                  "cached": 0,
+                  "target_chunk": 384
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 279,
+                  "num_computed_tokens": 0
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 279,
+                  "uncached": 384,
+                  "cached": 0,
+                  "target_chunk": 384
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 384,
+                  "num_computed_tokens": 279
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 663,
+                  "uncached": 384,
+                  "cached": 0,
+                  "target_chunk": 384
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 384,
+                  "num_computed_tokens": 663
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1047,
+                  "uncached": 384,
+                  "cached": 0,
+                  "target_chunk": 384
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 384,
+                  "num_computed_tokens": 1047
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1431,
+                  "uncached": 384,
+                  "cached": 0,
+                  "target_chunk": 384
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 384,
+                  "num_computed_tokens": 1431
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1815,
+                  "uncached": 288,
+                  "cached": 0,
+                  "target_chunk": 288
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 288,
+                  "num_computed_tokens": 1815
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2103,
+                  "uncached": 128,
+                  "cached": 0,
+                  "target_chunk": 128
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 128,
+                  "num_computed_tokens": 2103
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2231,
+                  "uncached": 256,
+                  "cached": 0,
+                  "target_chunk": 256
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 256,
+                  "num_computed_tokens": 2231
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2487,
+                  "uncached": 256,
+                  "cached": 0,
+                  "target_chunk": 256
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 256,
+                  "num_computed_tokens": 2487
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2743,
+                  "uncached": 21,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 21,
+                  "num_computed_tokens": 2743
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2764,
+                  "uncached": 1,
+                  "cached": 0,
+                  "prefill_to_decode": true
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2764
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2765,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2765
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2766,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2766
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2767,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2767
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2768,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2768
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2769,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2769
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2770,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2770
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2771,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2771
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2772,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2772
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2773,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2773
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2774,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2774
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2775,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2775
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2776,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2776
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2777,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2777
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2778,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2778
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2779,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2779
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2780,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2780
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2781,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2781
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2782,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2782
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2783,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2783
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2784,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2784
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2785,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2785
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2786,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2786
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2787,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2787
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2788,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2788
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2789,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2789
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2790,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2790
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2791,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2791
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2792,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2792
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2793,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2793
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2794,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2794
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2795,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2795
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2796,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2796
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2797,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2797
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2798,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2798
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2799,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2799
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2800,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2800
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2801,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2801
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2802,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2802
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2803,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2803
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2804,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2804
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2805,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2805
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2806,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2806
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2807,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2807
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2808,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2808
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2809,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2809
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2810,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2810
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2811,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2811
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2812,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2812
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2813,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2813
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2814,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2814
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2815,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2815
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2816,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2816
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2817,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2817
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2818,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2818
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2819,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2819
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2820,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2820
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2821,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2821
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2822,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2822
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2823,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2823
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2824,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2824
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2825,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2825
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2826,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2826
+                }
+              ]
+            },
+            "probe_total": 93.0,
+            "probe_slice_eligible_ratio": 0.1935483870967742,
+            "probe_best_lt_long_ratio": 0.1935483870967742,
+            "probe_short_avg": 35.193548387096776,
+            "probe_long_avg": 414.2258064516129,
+            "probe_baseline_avg": 1536.0,
+            "probe_best_avg": 295.7,
+            "probe_queue_avg": 0.7741935483870968,
+            "probe_wait_us_avg": 69929.97661713632,
+            "proposal_scheduler_avg": 932.5,
+            "proposal_direct_avg": 299.7,
+            "proposal_cohort_target_avg": 348.3,
+            "proposal_direct_win_ratio": 0.1232876712328767,
+            "probe_reasons": {
+              "ingress_virtual_override": 10,
+              "candidate": 10,
+              "apply": 9,
+              "best_chunk_ge_long": 1,
+              "no_need_wave_slice": 63
+            }
+          },
+          "phase2": {
+            "attempts": 0,
+            "applied": 0,
+            "apply_ratio": 0.0,
+            "v1_true_unbind_applied": 0,
+            "v1_true_unbind_ratio": 0.0,
+            "reasons": {}
+          },
+          "ttft_ms_all": {
+            "count": 3.0,
+            "p50": 65.94863533973694,
+            "p95": 369.6060801856219,
+            "p99": 396.59785306081176
+          },
+          "ttft_ms_short": {
+            "count": 2.0,
+            "p50": 65.30382414348423,
+            "p95": 65.88415422011167,
+            "p99": 65.93573911581188
+          },
+          "slowdown_all": {
+            "count": 3.0,
+            "p50": 545.7971573599168,
+            "p95": 546.2226899785677,
+            "p99": 546.2605151002256
+          },
+          "slowdown_short": {
+            "count": 2.0,
+            "p50": 546.0335643702784,
+            "p95": 546.246330679604,
+            "p99": 546.2652432404328
+          }
+        },
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "base_ttft_short_p99_ms": 129.2852833867073,
+        "wave_ttft_short_p99_ms": 68.3526499196887,
+        "ttft_improve_ratio": 1.8914450798705202,
+        "base_round_wall_ms": 1487.1710087172687,
+        "wave_round_wall_ms": 1655.1624229177833,
+        "round_wall_improve_ratio": 0.8985045746118542,
+        "text_match_rate": 0.0,
+        "mismatch_details": [
+          {
+            "req_id": "long_b",
+            "common_prefix_chars": 287,
+            "base_preview": "\n\nThe report discusses the historical development of the Holman rule in the House of Representatives, which prohibits provisions changing existing law from bein",
+            "wave_preview": "\n\nThe report discusses the historical development of the Holman rule in the House of Representatives, which prohibits provisions changing existing law from bein"
+          },
+          {
+            "req_id": "short_a",
+            "common_prefix_chars": 10,
+            "base_preview": " Here's a moment in my life that comes to mind when I think of true happiness and contentment.\n\nThe sun was setting over the tranquil lake, casting a warm golde",
+            "wave_preview": " Here's a specific moment in my life that comes to mind when I think of true happiness and contentment.\n\nIt was a crisp autumn afternoon, and I was sitting on t"
+          },
+          {
+            "req_id": "short_b",
+            "common_prefix_chars": 93,
+            "base_preview": "\n\nRegarding filtering restaurants based on cuisine types, the app will allow users to select specific cuisine types from a list. The app will then display only ",
+            "wave_preview": "\n\nRegarding filtering restaurants based on cuisine types, the app will allow users to select their preferred cuisine types from a list. The app will then displa"
+          }
+        ],
+        "error_rate": 1.0,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 1.0,
+        "base_semantic_pass_rate": 0.0,
+        "wave_semantic_pass_rate": 0.0,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.5,
+            "reason": "not_french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "off_topic_or_outline"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.5,
+            "reason": "not_french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "off_topic_or_outline"
+          }
+        },
+        "base_texts": {
+          "short_a": " Here's a moment in my life that comes to mind when I think of true happiness and contentment.\n\nThe sun was setting over the tranquil lake, casting a warm golden glow over the water. The gentle lapping of the waves against the shore created a soothing melody that seemed to reson",
+          "short_b": "\n\nRegarding filtering restaurants based on cuisine types, the app will allow users to select specific cuisine types from a list. The app will then display only the restaurants that match the selected cuisine types.\n\nYes, there will be a feature to allow users to reserve tables directly through the app.",
+          "long_b": "\n\nThe report discusses the historical development of the Holman rule in the House of Representatives, which prohibits provisions changing existing law from being included in general appropriations bills except for retrenchments that reduce expenditures. The rule originated in the 1830s to address the problem of"
+        },
+        "wave_texts": {
+          "short_a": " Here's a specific moment in my life that comes to mind when I think of true happiness and contentment.\n\nIt was a crisp autumn afternoon, and I was sitting on the old wooden swing in my grandmother's backyard. The sun was setting, casting a warm golden glow over the garden.",
+          "short_b": "\n\nRegarding filtering restaurants based on cuisine types, the app will allow users to select their preferred cuisine types from a list. The app will then display only the restaurants that match the selected cuisine types.\n\nYes, there will be a feature to allow users to reserve a table directly through the",
+          "long_b": "\n\nThe report discusses the historical development of the Holman rule in the House of Representatives, which prohibits provisions changing existing law from being included in general appropriations bills except for retrenchments that reduce expenditures. The rule originated in the 1830s when the House sought to"
+        },
+        "scheduler_apply_ratio": 0.1232876712328767,
+        "scheduler_applied": 9,
+        "scheduler_attempts": 73,
+        "baseline_chunk_avg": 1536.0,
+        "chosen_chunk_avg": 316.44444444444446,
+        "chosen_vs_baseline_ratio_avg": 0.25,
+        "explicit_plan_ratio": 0.1232876712328767,
+        "rewrite_apply_ratio": 0.0,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": 0.0,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": 9.0,
+        "virtual_cap_helper_calls": 201.0,
+        "virtual_cap_prefill_calls": 12.0,
+        "virtual_cap_target_hits": 9.0,
+        "probe_total": 93.0,
+        "probe_slice_eligible_ratio": 0.1935483870967742,
+        "probe_best_lt_long_ratio": 0.1935483870967742,
+        "probe_short_avg": 35.193548387096776,
+        "probe_long_avg": 414.2258064516129,
+        "probe_baseline_avg": 1536.0,
+        "probe_best_avg": 295.7,
+        "probe_queue_avg": 0.7741935483870968,
+        "probe_wait_us_avg": 70158.86614399572,
+        "probe_reasons": {
+          "ingress_virtual_override": 10,
+          "candidate": 10,
+          "apply": 9,
+          "best_chunk_ge_long": 1,
+          "no_need_wave_slice": 63
+        },
+        "hook_report": {
+          "requests": {
+            "total": 3,
+            "finished": 3
+          },
+          "scheduler": {
+            "attempts": 73,
+            "applied": 9,
+            "apply_ratio": 0.1232876712328767,
+            "baseline_chunk_avg": 1536.0,
+            "chosen_chunk_avg": 316.44444444444446,
+            "chosen_vs_baseline_ratio_avg": 0.25,
+            "explicit_plan_ratio": 0.1232876712328767,
+            "rewrite_applied": 0,
+            "rewrite_apply_ratio": 0.0,
+            "rewrite_group_count": 0,
+            "rewrite_old_chunk_avg": null,
+            "rewrite_new_chunk_avg": null,
+            "rewrite_token_delta_avg": null,
+            "virtual_cap_apply_ratio": 0.0,
+            "virtual_cap_old_avg": null,
+            "virtual_cap_new_avg": null,
+            "virtual_cap_target_set": 9.0,
+            "virtual_cap_helper_calls": 201.0,
+            "virtual_cap_prefill_calls": 12.0,
+            "virtual_cap_target_hits": 9.0,
+            "request_traces": {
+              "repeat_phase1_only_1:long_b": [
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 0,
+                  "uncached": 279,
+                  "cached": 0,
+                  "target_chunk": 384
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 279,
+                  "num_computed_tokens": 0
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 279,
+                  "uncached": 384,
+                  "cached": 0,
+                  "target_chunk": 384
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 384,
+                  "num_computed_tokens": 279
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 663,
+                  "uncached": 384,
+                  "cached": 0,
+                  "target_chunk": 384
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 384,
+                  "num_computed_tokens": 663
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1047,
+                  "uncached": 384,
+                  "cached": 0,
+                  "target_chunk": 384
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 384,
+                  "num_computed_tokens": 1047
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1431,
+                  "uncached": 384,
+                  "cached": 0,
+                  "target_chunk": 384
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 384,
+                  "num_computed_tokens": 1431
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1815,
+                  "uncached": 288,
+                  "cached": 0,
+                  "target_chunk": 288
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 288,
+                  "num_computed_tokens": 1815
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2103,
+                  "uncached": 128,
+                  "cached": 0,
+                  "target_chunk": 128
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 128,
+                  "num_computed_tokens": 2103
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2231,
+                  "uncached": 256,
+                  "cached": 0,
+                  "target_chunk": 256
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 256,
+                  "num_computed_tokens": 2231
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2487,
+                  "uncached": 256,
+                  "cached": 0,
+                  "target_chunk": 256
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 256,
+                  "num_computed_tokens": 2487
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2743,
+                  "uncached": 21,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 21,
+                  "num_computed_tokens": 2743
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2764,
+                  "uncached": 1,
+                  "cached": 0,
+                  "prefill_to_decode": true
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2764
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2765,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2765
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2766,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2766
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2767,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2767
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2768,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2768
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2769,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2769
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2770,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2770
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2771,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2771
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2772,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2772
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2773,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2773
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2774,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2774
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2775,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2775
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2776,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2776
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2777,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2777
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2778,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2778
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2779,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2779
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2780,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2780
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2781,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2781
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2782,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2782
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2783,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2783
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2784,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2784
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2785,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2785
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2786,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2786
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2787,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2787
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2788,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2788
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2789,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2789
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2790,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2790
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2791,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2791
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2792,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2792
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2793,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2793
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2794,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2794
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2795,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2795
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2796,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2796
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2797,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2797
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2798,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2798
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2799,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2799
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2800,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2800
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2801,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2801
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2802,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2802
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2803,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2803
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2804,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2804
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2805,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2805
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2806,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2806
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2807,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2807
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2808,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2808
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2809,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2809
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2810,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2810
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2811,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2811
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2812,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2812
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2813,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2813
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2814,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2814
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2815,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2815
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2816,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2816
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2817,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2817
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2818,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2818
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2819,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2819
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2820,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2820
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2821,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2821
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2822,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2822
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2823,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2823
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2824,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2824
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2825,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2825
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2826,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2826
+                }
+              ]
+            },
+            "probe_total": 93.0,
+            "probe_slice_eligible_ratio": 0.1935483870967742,
+            "probe_best_lt_long_ratio": 0.1935483870967742,
+            "probe_short_avg": 35.193548387096776,
+            "probe_long_avg": 414.2258064516129,
+            "probe_baseline_avg": 1536.0,
+            "probe_best_avg": 295.7,
+            "probe_queue_avg": 0.7741935483870968,
+            "probe_wait_us_avg": 70158.86614399572,
+            "proposal_scheduler_avg": 932.5,
+            "proposal_direct_avg": 299.7,
+            "proposal_cohort_target_avg": 348.3,
+            "proposal_direct_win_ratio": 0.1232876712328767,
+            "probe_reasons": {
+              "ingress_virtual_override": 10,
+              "candidate": 10,
+              "apply": 9,
+              "best_chunk_ge_long": 1,
+              "no_need_wave_slice": 63
+            }
+          },
+          "phase2": {
+            "attempts": 0,
+            "applied": 0,
+            "apply_ratio": 0.0,
+            "v1_true_unbind_applied": 0,
+            "v1_true_unbind_ratio": 0.0,
+            "reasons": {}
+          },
+          "ttft_ms_all": {
+            "count": 3.0,
+            "p50": 67.13845813646913,
+            "p95": 370.6800055690109,
+            "p99": 397.6614764519036
+          },
+          "ttft_ms_short": {
+            "count": 2.0,
+            "p50": 66.43086159601808,
+            "p95": 67.06769848242402,
+            "p99": 67.1243062056601
+          },
+          "slowdown_all": {
+            "count": 3.0,
+            "p50": 546.6737090864312,
+            "p95": 547.1406758676477,
+            "p99": 547.182184025978
+          },
+          "slowdown_short": {
+            "count": 2.0,
+            "p50": 546.933135075996,
+            "p95": 547.1666184666042,
+            "p99": 547.1873725457693
+          }
+        },
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "base_ttft_short_p99_ms": 130.85285108536482,
+        "wave_ttft_short_p99_ms": 67.58340122178197,
+        "ttft_improve_ratio": 1.9361684780551005,
+        "base_round_wall_ms": 1491.9965653680265,
+        "wave_round_wall_ms": 1657.1619091555476,
+        "round_wall_improve_ratio": 0.9003324039280594,
+        "text_match_rate": 0.0,
+        "mismatch_details": [
+          {
+            "req_id": "long_b",
+            "common_prefix_chars": 287,
+            "base_preview": "\n\nThe report discusses the historical development of the Holman rule in the House of Representatives, which prohibits provisions changing existing law from bein",
+            "wave_preview": "\n\nThe report discusses the historical development of the Holman rule in the House of Representatives, which prohibits provisions changing existing law from bein"
+          },
+          {
+            "req_id": "short_a",
+            "common_prefix_chars": 10,
+            "base_preview": " Here's a moment in my life that comes to mind when I think of true happiness and contentment.\n\nThe sun was setting over the tranquil lake, casting a warm golde",
+            "wave_preview": " Here's a specific moment in my life that comes to mind when I think of true happiness and contentment.\n\nIt was a crisp autumn afternoon, and I was sitting on t"
+          },
+          {
+            "req_id": "short_b",
+            "common_prefix_chars": 93,
+            "base_preview": "\n\nRegarding filtering restaurants based on cuisine types, the app will allow users to select specific cuisine types from a list. The app will then display only ",
+            "wave_preview": "\n\nRegarding filtering restaurants based on cuisine types, the app will allow users to select their preferred cuisine types from a list. The app will then displa"
+          }
+        ],
+        "error_rate": 1.0,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 1.0,
+        "base_semantic_pass_rate": 0.0,
+        "wave_semantic_pass_rate": 0.0,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.5,
+            "reason": "not_french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "off_topic_or_outline"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.5,
+            "reason": "not_french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "off_topic_or_outline"
+          }
+        },
+        "base_texts": {
+          "short_a": " Here's a moment in my life that comes to mind when I think of true happiness and contentment.\n\nThe sun was setting over the tranquil lake, casting a warm golden glow over the water. The gentle lapping of the waves against the shore created a soothing melody that seemed to reson",
+          "short_b": "\n\nRegarding filtering restaurants based on cuisine types, the app will allow users to select specific cuisine types from a list. The app will then display only the restaurants that match the selected cuisine types.\n\nYes, there will be a feature to allow users to reserve tables directly through the app.",
+          "long_b": "\n\nThe report discusses the historical development of the Holman rule in the House of Representatives, which prohibits provisions changing existing law from being included in general appropriations bills except for retrenchments that reduce expenditures. The rule originated in the 1830s to address the problem of"
+        },
+        "wave_texts": {
+          "short_a": " Here's a specific moment in my life that comes to mind when I think of true happiness and contentment.\n\nIt was a crisp autumn afternoon, and I was sitting on the old wooden swing in my grandmother's backyard. The sun was setting, casting a warm golden glow over the garden.",
+          "short_b": "\n\nRegarding filtering restaurants based on cuisine types, the app will allow users to select their preferred cuisine types from a list. The app will then display only the restaurants that match the selected cuisine types.\n\nYes, there will be a feature to allow users to reserve a table directly through the",
+          "long_b": "\n\nThe report discusses the historical development of the Holman rule in the House of Representatives, which prohibits provisions changing existing law from being included in general appropriations bills except for retrenchments that reduce expenditures. The rule originated in the 1830s when the House sought to"
+        },
+        "scheduler_apply_ratio": 0.1232876712328767,
+        "scheduler_applied": 9,
+        "scheduler_attempts": 73,
+        "baseline_chunk_avg": 1536.0,
+        "chosen_chunk_avg": 316.44444444444446,
+        "chosen_vs_baseline_ratio_avg": 0.25,
+        "explicit_plan_ratio": 0.1232876712328767,
+        "rewrite_apply_ratio": 0.0,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": 0.0,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": 9.0,
+        "virtual_cap_helper_calls": 201.0,
+        "virtual_cap_prefill_calls": 12.0,
+        "virtual_cap_target_hits": 9.0,
+        "probe_total": 93.0,
+        "probe_slice_eligible_ratio": 0.1935483870967742,
+        "probe_best_lt_long_ratio": 0.1935483870967742,
+        "probe_short_avg": 35.193548387096776,
+        "probe_long_avg": 414.2258064516129,
+        "probe_baseline_avg": 1536.0,
+        "probe_best_avg": 295.7,
+        "probe_queue_avg": 0.7741935483870968,
+        "probe_wait_us_avg": 69595.25231392153,
+        "probe_reasons": {
+          "ingress_virtual_override": 10,
+          "candidate": 10,
+          "apply": 9,
+          "best_chunk_ge_long": 1,
+          "no_need_wave_slice": 63
+        },
+        "hook_report": {
+          "requests": {
+            "total": 3,
+            "finished": 3
+          },
+          "scheduler": {
+            "attempts": 73,
+            "applied": 9,
+            "apply_ratio": 0.1232876712328767,
+            "baseline_chunk_avg": 1536.0,
+            "chosen_chunk_avg": 316.44444444444446,
+            "chosen_vs_baseline_ratio_avg": 0.25,
+            "explicit_plan_ratio": 0.1232876712328767,
+            "rewrite_applied": 0,
+            "rewrite_apply_ratio": 0.0,
+            "rewrite_group_count": 0,
+            "rewrite_old_chunk_avg": null,
+            "rewrite_new_chunk_avg": null,
+            "rewrite_token_delta_avg": null,
+            "virtual_cap_apply_ratio": 0.0,
+            "virtual_cap_old_avg": null,
+            "virtual_cap_new_avg": null,
+            "virtual_cap_target_set": 9.0,
+            "virtual_cap_helper_calls": 201.0,
+            "virtual_cap_prefill_calls": 12.0,
+            "virtual_cap_target_hits": 9.0,
+            "request_traces": {
+              "repeat_phase1_only_2:long_b": [
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 0,
+                  "uncached": 279,
+                  "cached": 0,
+                  "target_chunk": 384
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 279,
+                  "num_computed_tokens": 0
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 279,
+                  "uncached": 384,
+                  "cached": 0,
+                  "target_chunk": 384
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 384,
+                  "num_computed_tokens": 279
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 663,
+                  "uncached": 384,
+                  "cached": 0,
+                  "target_chunk": 384
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 384,
+                  "num_computed_tokens": 663
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1047,
+                  "uncached": 384,
+                  "cached": 0,
+                  "target_chunk": 384
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 384,
+                  "num_computed_tokens": 1047
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1431,
+                  "uncached": 384,
+                  "cached": 0,
+                  "target_chunk": 384
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 384,
+                  "num_computed_tokens": 1431
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1815,
+                  "uncached": 288,
+                  "cached": 0,
+                  "target_chunk": 288
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 288,
+                  "num_computed_tokens": 1815
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2103,
+                  "uncached": 128,
+                  "cached": 0,
+                  "target_chunk": 128
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 128,
+                  "num_computed_tokens": 2103
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2231,
+                  "uncached": 256,
+                  "cached": 0,
+                  "target_chunk": 256
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 256,
+                  "num_computed_tokens": 2231
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2487,
+                  "uncached": 256,
+                  "cached": 0,
+                  "target_chunk": 256
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 256,
+                  "num_computed_tokens": 2487
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2743,
+                  "uncached": 21,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 21,
+                  "num_computed_tokens": 2743
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2764,
+                  "uncached": 1,
+                  "cached": 0,
+                  "prefill_to_decode": true
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2764
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2765,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2765
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2766,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2766
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2767,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2767
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2768,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2768
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2769,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2769
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2770,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2770
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2771,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2771
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2772,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2772
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2773,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2773
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2774,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2774
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2775,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2775
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2776,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2776
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2777,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2777
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2778,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2778
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2779,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2779
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2780,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2780
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2781,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2781
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2782,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2782
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2783,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2783
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2784,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2784
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2785,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2785
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2786,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2786
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2787,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2787
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2788,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2788
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2789,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2789
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2790,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2790
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2791,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2791
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2792,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2792
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2793,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2793
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2794,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2794
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2795,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2795
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2796,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2796
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2797,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2797
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2798,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2798
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2799,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2799
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2800,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2800
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2801,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2801
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2802,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2802
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2803,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2803
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2804,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2804
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2805,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2805
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2806,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2806
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2807,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2807
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2808,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2808
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2809,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2809
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2810,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2810
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2811,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2811
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2812,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2812
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2813,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2813
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2814,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2814
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2815,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2815
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2816,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2816
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2817,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2817
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2818,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2818
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2819,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2819
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2820,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2820
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2821,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2821
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2822,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2822
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2823,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2823
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2824,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2824
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2825,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2825
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2826,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2826
+                }
+              ]
+            },
+            "probe_total": 93.0,
+            "probe_slice_eligible_ratio": 0.1935483870967742,
+            "probe_best_lt_long_ratio": 0.1935483870967742,
+            "probe_short_avg": 35.193548387096776,
+            "probe_long_avg": 414.2258064516129,
+            "probe_baseline_avg": 1536.0,
+            "probe_best_avg": 295.7,
+            "probe_queue_avg": 0.7741935483870968,
+            "probe_wait_us_avg": 69595.25231392153,
+            "proposal_scheduler_avg": 932.5,
+            "proposal_direct_avg": 299.7,
+            "proposal_cohort_target_avg": 348.3,
+            "proposal_direct_win_ratio": 0.1232876712328767,
+            "probe_reasons": {
+              "ingress_virtual_override": 10,
+              "candidate": 10,
+              "apply": 9,
+              "best_chunk_ge_long": 1,
+              "no_need_wave_slice": 63
+            }
+          },
+          "phase2": {
+            "attempts": 0,
+            "applied": 0,
+            "apply_ratio": 0.0,
+            "v1_true_unbind_applied": 0,
+            "v1_true_unbind_ratio": 0.0,
+            "reasons": {}
+          },
+          "ttft_ms_all": {
+            "count": 3.0,
+            "p50": 66.49777898564935,
+            "p95": 370.0080091133713,
+            "p99": 396.98669623583555
+          },
+          "ttft_ms_short": {
+            "count": 2.0,
+            "p50": 65.85454056039453,
+            "p95": 66.43345514312387,
+            "p99": 66.48491421714425
+          },
+          "slowdown_all": {
+            "count": 3.0,
+            "p50": 547.0502190072609,
+            "p95": 547.4747137013765,
+            "p99": 547.5124465630756
+          },
+          "slowdown_short": {
+            "count": 2.0,
+            "p50": 547.2860493928806,
+            "p95": 547.4982967399385,
+            "p99": 547.5171631707881
+          }
+        },
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      }
+    ],
+    "phase2": [
+      {
+        "repeat_index": 0,
+        "base_ttft_short_p99_ms": 5126.37878454756,
+        "wave_ttft_short_p99_ms": 5800.401811869815,
+        "ttft_improve_ratio": 0.8837971835083995,
+        "base_slowdown_short_p99": 3565.1256176298166,
+        "wave_slowdown_short_p99": 4024.7321931492907,
+        "slowdown_improve_ratio": 0.8858044328261655,
+        "base_round_wall_ms": 10068.907257635146,
+        "wave_round_wall_ms": 11367.119463160634,
+        "round_wall_improve_ratio": 0.8857923320210696,
+        "baseline_noise_match_rate": 0.25,
+        "baseline_noise_error_rate": 0.75,
+        "wave_match_rate": 0.25,
+        "wave_error_rate": 0.75,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.9343065693430657,
+        "phase2_applied": 128,
+        "phase2_attempts": 137,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "repeat_index": 1,
+        "base_ttft_short_p99_ms": 5159.142649490386,
+        "wave_ttft_short_p99_ms": 5785.478979377076,
+        "ttft_improve_ratio": 0.8917399350824143,
+        "base_slowdown_short_p99": 3575.3136932528982,
+        "wave_slowdown_short_p99": 4016.195299223777,
+        "slowdown_improve_ratio": 0.8902240620479563,
+        "base_round_wall_ms": 10097.221036907285,
+        "wave_round_wall_ms": 11346.310895867646,
+        "round_wall_improve_ratio": 0.889912248093318,
+        "baseline_noise_match_rate": 0.25,
+        "baseline_noise_error_rate": 0.75,
+        "wave_match_rate": 0.25,
+        "wave_error_rate": 0.75,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.9343065693430657,
+        "phase2_applied": 128,
+        "phase2_attempts": 137,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "repeat_index": 2,
+        "base_ttft_short_p99_ms": 5137.339067342691,
+        "wave_ttft_short_p99_ms": 5796.972656701691,
+        "ttft_improve_ratio": 0.8862106778101809,
+        "base_slowdown_short_p99": 3576.5683615547523,
+        "wave_slowdown_short_p99": 4016.9938965649512,
+        "slowdown_improve_ratio": 0.8903594214104185,
+        "base_round_wall_ms": 10105.125433765352,
+        "wave_round_wall_ms": 11348.802312277257,
+        "round_wall_improve_ratio": 0.8904133806995226,
+        "baseline_noise_match_rate": 0.25,
+        "baseline_noise_error_rate": 0.75,
+        "wave_match_rate": 0.25,
+        "wave_error_rate": 0.75,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.9343065693430657,
+        "phase2_applied": 128,
+        "phase2_attempts": 137,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      }
+    ],
+    "phase1_chunked_vs_no_chunk": [
+      {
+        "base_ttft_short_p99_ms": 263.22645880281925,
+        "wave_ttft_short_p99_ms": 130.73182106018066,
+        "ttft_improve_ratio": 2.013484220354021,
+        "base_round_wall_ms": 1498.4450647607446,
+        "wave_round_wall_ms": 1505.6596519425511,
+        "round_wall_improve_ratio": 0.9952083545756848,
+        "text_match_rate": 0.6666666666666666,
+        "mismatch_details": [
+          {
+            "req_id": "short_b",
+            "common_prefix_chars": 93,
+            "base_preview": "\n\nRegarding filtering restaurants based on cuisine types, the app will allow users to select their preferred cuisine types from a list. The app will then displa",
+            "wave_preview": "\n\nRegarding filtering restaurants based on cuisine types, the app will allow users to select specific cuisine types from a list. The app will then display only "
+          }
+        ],
+        "error_rate": 0.33333333333333337,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 0.33333333333333337,
+        "base_semantic_pass_rate": 0.0,
+        "wave_semantic_pass_rate": 0.0,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.5,
+            "reason": "not_french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "off_topic_or_outline"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.5,
+            "reason": "not_french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "off_topic_or_outline"
+          }
+        },
+        "base_texts": {
+          "short_a": " Here's a moment in my life that comes to mind when I think of true happiness and contentment.\n\nThe sun was setting over the tranquil lake, casting a warm golden glow over the water. The gentle lapping of the waves against the shore created a soothing melody that seemed to reson",
+          "short_b": "\n\nRegarding filtering restaurants based on cuisine types, the app will allow users to select their preferred cuisine types from a list. The app will then display only the restaurants that match the selected cuisine types.\n\nYes, there will be a feature to allow users to reserve a table directly through the",
+          "long_b": "\n\nThe report discusses the historical development of the Holman rule in the House of Representatives, which prohibits provisions changing existing law from being included in general appropriations bills except for retrenchments that reduce expenditures. The rule originated in the 1830s to address the problem of"
+        },
+        "wave_texts": {
+          "short_a": " Here's a moment in my life that comes to mind when I think of true happiness and contentment.\n\nThe sun was setting over the tranquil lake, casting a warm golden glow over the water. The gentle lapping of the waves against the shore created a soothing melody that seemed to reson",
+          "short_b": "\n\nRegarding filtering restaurants based on cuisine types, the app will allow users to select specific cuisine types from a list. The app will then display only the restaurants that match the selected cuisine types.\n\nYes, there will be a feature to allow users to reserve tables directly through the app.",
+          "long_b": "\n\nThe report discusses the historical development of the Holman rule in the House of Representatives, which prohibits provisions changing existing law from being included in general appropriations bills except for retrenchments that reduce expenditures. The rule originated in the 1830s to address the problem of"
+        },
+        "scheduler_apply_ratio": null,
+        "scheduler_applied": null,
+        "scheduler_attempts": null,
+        "baseline_chunk_avg": null,
+        "chosen_chunk_avg": null,
+        "chosen_vs_baseline_ratio_avg": null,
+        "explicit_plan_ratio": null,
+        "rewrite_apply_ratio": null,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": null,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": null,
+        "virtual_cap_helper_calls": null,
+        "virtual_cap_prefill_calls": null,
+        "virtual_cap_target_hits": null,
+        "probe_total": null,
+        "probe_slice_eligible_ratio": null,
+        "probe_best_lt_long_ratio": null,
+        "probe_short_avg": null,
+        "probe_long_avg": null,
+        "probe_baseline_avg": null,
+        "probe_best_avg": null,
+        "probe_queue_avg": null,
+        "probe_wait_us_avg": null,
+        "probe_reasons": null,
+        "hook_report": {},
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "base_ttft_short_p99_ms": 263.45610013231635,
+        "wave_ttft_short_p99_ms": 129.2852833867073,
+        "ttft_improve_ratio": 2.037788781761715,
+        "base_round_wall_ms": 1501.845178194344,
+        "wave_round_wall_ms": 1487.1710087172687,
+        "round_wall_improve_ratio": 1.0098671702118052,
+        "text_match_rate": 0.6666666666666666,
+        "mismatch_details": [
+          {
+            "req_id": "short_b",
+            "common_prefix_chars": 93,
+            "base_preview": "\n\nRegarding filtering restaurants based on cuisine types, the app will allow users to select their preferred cuisine types from a list. The app will then displa",
+            "wave_preview": "\n\nRegarding filtering restaurants based on cuisine types, the app will allow users to select specific cuisine types from a list. The app will then display only "
+          }
+        ],
+        "error_rate": 0.33333333333333337,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 0.33333333333333337,
+        "base_semantic_pass_rate": 0.0,
+        "wave_semantic_pass_rate": 0.0,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.5,
+            "reason": "not_french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "off_topic_or_outline"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.5,
+            "reason": "not_french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "off_topic_or_outline"
+          }
+        },
+        "base_texts": {
+          "short_a": " Here's a moment in my life that comes to mind when I think of true happiness and contentment.\n\nThe sun was setting over the tranquil lake, casting a warm golden glow over the water. The gentle lapping of the waves against the shore created a soothing melody that seemed to reson",
+          "short_b": "\n\nRegarding filtering restaurants based on cuisine types, the app will allow users to select their preferred cuisine types from a list. The app will then display only the restaurants that match the selected cuisine types.\n\nYes, there will be a feature to allow users to reserve a table directly through the",
+          "long_b": "\n\nThe report discusses the historical development of the Holman rule in the House of Representatives, which prohibits provisions changing existing law from being included in general appropriations bills except for retrenchments that reduce expenditures. The rule originated in the 1830s to address the problem of"
+        },
+        "wave_texts": {
+          "short_a": " Here's a moment in my life that comes to mind when I think of true happiness and contentment.\n\nThe sun was setting over the tranquil lake, casting a warm golden glow over the water. The gentle lapping of the waves against the shore created a soothing melody that seemed to reson",
+          "short_b": "\n\nRegarding filtering restaurants based on cuisine types, the app will allow users to select specific cuisine types from a list. The app will then display only the restaurants that match the selected cuisine types.\n\nYes, there will be a feature to allow users to reserve tables directly through the app.",
+          "long_b": "\n\nThe report discusses the historical development of the Holman rule in the House of Representatives, which prohibits provisions changing existing law from being included in general appropriations bills except for retrenchments that reduce expenditures. The rule originated in the 1830s to address the problem of"
+        },
+        "scheduler_apply_ratio": null,
+        "scheduler_applied": null,
+        "scheduler_attempts": null,
+        "baseline_chunk_avg": null,
+        "chosen_chunk_avg": null,
+        "chosen_vs_baseline_ratio_avg": null,
+        "explicit_plan_ratio": null,
+        "rewrite_apply_ratio": null,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": null,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": null,
+        "virtual_cap_helper_calls": null,
+        "virtual_cap_prefill_calls": null,
+        "virtual_cap_target_hits": null,
+        "probe_total": null,
+        "probe_slice_eligible_ratio": null,
+        "probe_best_lt_long_ratio": null,
+        "probe_short_avg": null,
+        "probe_long_avg": null,
+        "probe_baseline_avg": null,
+        "probe_best_avg": null,
+        "probe_queue_avg": null,
+        "probe_wait_us_avg": null,
+        "probe_reasons": null,
+        "hook_report": {},
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "base_ttft_short_p99_ms": 264.9341612122953,
+        "wave_ttft_short_p99_ms": 130.85285108536482,
+        "ttft_improve_ratio": 2.02467243942174,
+        "base_round_wall_ms": 1504.1541811078787,
+        "wave_round_wall_ms": 1491.9965653680265,
+        "round_wall_improve_ratio": 1.0081485547769027,
+        "text_match_rate": 0.6666666666666666,
+        "mismatch_details": [
+          {
+            "req_id": "short_b",
+            "common_prefix_chars": 93,
+            "base_preview": "\n\nRegarding filtering restaurants based on cuisine types, the app will allow users to select their preferred cuisine types from a list. The app will then displa",
+            "wave_preview": "\n\nRegarding filtering restaurants based on cuisine types, the app will allow users to select specific cuisine types from a list. The app will then display only "
+          }
+        ],
+        "error_rate": 0.33333333333333337,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 0.33333333333333337,
+        "base_semantic_pass_rate": 0.0,
+        "wave_semantic_pass_rate": 0.0,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.5,
+            "reason": "not_french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "off_topic_or_outline"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": false,
+            "score": 0.5,
+            "reason": "not_french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "off_topic_or_outline"
+          }
+        },
+        "base_texts": {
+          "short_a": " Here's a moment in my life that comes to mind when I think of true happiness and contentment.\n\nThe sun was setting over the tranquil lake, casting a warm golden glow over the water. The gentle lapping of the waves against the shore created a soothing melody that seemed to reson",
+          "short_b": "\n\nRegarding filtering restaurants based on cuisine types, the app will allow users to select their preferred cuisine types from a list. The app will then display only the restaurants that match the selected cuisine types.\n\nYes, there will be a feature to allow users to reserve a table directly through the",
+          "long_b": "\n\nThe report discusses the historical development of the Holman rule in the House of Representatives, which prohibits provisions changing existing law from being included in general appropriations bills except for retrenchments that reduce expenditures. The rule originated in the 1830s to address the problem of"
+        },
+        "wave_texts": {
+          "short_a": " Here's a moment in my life that comes to mind when I think of true happiness and contentment.\n\nThe sun was setting over the tranquil lake, casting a warm golden glow over the water. The gentle lapping of the waves against the shore created a soothing melody that seemed to reson",
+          "short_b": "\n\nRegarding filtering restaurants based on cuisine types, the app will allow users to select specific cuisine types from a list. The app will then display only the restaurants that match the selected cuisine types.\n\nYes, there will be a feature to allow users to reserve tables directly through the app.",
+          "long_b": "\n\nThe report discusses the historical development of the Holman rule in the House of Representatives, which prohibits provisions changing existing law from being included in general appropriations bills except for retrenchments that reduce expenditures. The rule originated in the 1830s to address the problem of"
+        },
+        "scheduler_apply_ratio": null,
+        "scheduler_applied": null,
+        "scheduler_attempts": null,
+        "baseline_chunk_avg": null,
+        "chosen_chunk_avg": null,
+        "chosen_vs_baseline_ratio_avg": null,
+        "explicit_plan_ratio": null,
+        "rewrite_apply_ratio": null,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": null,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": null,
+        "virtual_cap_helper_calls": null,
+        "virtual_cap_prefill_calls": null,
+        "virtual_cap_target_hits": null,
+        "probe_total": null,
+        "probe_slice_eligible_ratio": null,
+        "probe_best_lt_long_ratio": null,
+        "probe_short_avg": null,
+        "probe_long_avg": null,
+        "probe_baseline_avg": null,
+        "probe_best_avg": null,
+        "probe_queue_avg": null,
+        "probe_wait_us_avg": null,
+        "probe_reasons": null,
+        "hook_report": {},
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      }
+    ],
+    "phase12": [
+      {
+        "repeat_index": 0,
+        "base_ttft_short_p99_ms": 5126.37878454756,
+        "wave_ttft_short_p99_ms": 5632.451049447991,
+        "ttft_improve_ratio": 0.910150614633388,
+        "base_slowdown_short_p99": 3565.1256176298166,
+        "wave_slowdown_short_p99": 3969.9895522404618,
+        "slowdown_improve_ratio": 0.8980188916663118,
+        "base_round_wall_ms": 10068.907257635146,
+        "wave_round_wall_ms": 11028.484871611,
+        "round_wall_improve_ratio": 0.9129909842424546,
+        "baseline_noise_match_rate": 0.25,
+        "baseline_noise_error_rate": 0.75,
+        "wave_match_rate": 0.5,
+        "wave_error_rate": 0.5,
+        "incremental_error_rate": -0.25,
+        "phase2_apply_ratio": 0.9770992366412213,
+        "phase2_applied": 128,
+        "phase2_attempts": 131,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "repeat_index": 1,
+        "base_ttft_short_p99_ms": 5159.142649490386,
+        "wave_ttft_short_p99_ms": 5654.991170465946,
+        "ttft_improve_ratio": 0.9123166586775229,
+        "base_slowdown_short_p99": 3575.3136932528982,
+        "wave_slowdown_short_p99": 3981.8335290691434,
+        "slowdown_improve_ratio": 0.8979063708092087,
+        "base_round_wall_ms": 10097.221036907285,
+        "wave_round_wall_ms": 11061.33186724037,
+        "round_wall_improve_ratio": 0.9128395348856291,
+        "baseline_noise_match_rate": 0.25,
+        "baseline_noise_error_rate": 0.75,
+        "wave_match_rate": 0.25,
+        "wave_error_rate": 0.75,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.9770992366412213,
+        "phase2_applied": 128,
+        "phase2_attempts": 131,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "repeat_index": 2,
+        "base_ttft_short_p99_ms": 5137.339067342691,
+        "wave_ttft_short_p99_ms": 5646.422407804057,
+        "ttft_improve_ratio": 0.9098396641813851,
+        "base_slowdown_short_p99": 3576.5683615547523,
+        "wave_slowdown_short_p99": 3964.4245348512904,
+        "slowdown_improve_ratio": 0.9021658326733448,
+        "base_round_wall_ms": 10105.125433765352,
+        "wave_round_wall_ms": 11012.752545066178,
+        "round_wall_improve_ratio": 0.9175839911423914,
+        "baseline_noise_match_rate": 0.25,
+        "baseline_noise_error_rate": 0.75,
+        "wave_match_rate": 0.25,
+        "wave_error_rate": 0.75,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.9770992366412213,
+        "phase2_applied": 128,
+        "phase2_attempts": 131,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      }
+    ]
+  },
+  "phase1_chunked_vs_no_chunk": {
+    "ttft_improve_ratio": {
+      "count": 3.0,
+      "mean": 2.0253151471791586,
+      "p50": 2.02467243942174,
+      "p95": 2.0364771475277172,
+      "p99": 2.0375264549149152,
+      "min": 2.013484220354021,
+      "max": 2.037788781761715
+    },
+    "round_wall_improve_ratio": {
+      "count": 3.0,
+      "mean": 1.004408026521464,
+      "p50": 1.0081485547769027,
+      "p95": 1.009695308668315,
+      "p99": 1.0098327979031072,
+      "min": 0.9952083545756848,
+      "max": 1.0098671702118052
+    },
+    "error_rate": {
+      "count": 3.0,
+      "mean": 0.3333333333333333,
+      "p50": 0.33333333333333337,
+      "p95": 0.33333333333333337,
+      "p99": 0.33333333333333337,
+      "min": 0.33333333333333337,
+      "max": 0.33333333333333337
+    },
+    "baseline_noise_error_rate": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "incremental_error_rate": {
+      "count": 3.0,
+      "mean": 0.3333333333333333,
+      "p50": 0.33333333333333337,
+      "p95": 0.33333333333333337,
+      "p99": 0.33333333333333337,
+      "min": 0.33333333333333337,
+      "max": 0.33333333333333337
+    },
+    "base_semantic_pass_rate": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "wave_semantic_pass_rate": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "semantic_pass_delta": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "scheduler_apply_ratio": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "baseline_chunk_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "chosen_chunk_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "chosen_vs_baseline_ratio_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "explicit_plan_ratio": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "rewrite_apply_ratio": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "rewrite_old_chunk_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "rewrite_new_chunk_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "rewrite_token_delta_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_apply_ratio": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_old_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_new_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_target_set": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_helper_calls": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_prefill_calls": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_target_hits": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_total": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_slice_eligible_ratio": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_best_lt_long_ratio": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_short_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_long_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_baseline_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_best_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_queue_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_wait_us_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    }
+  },
+  "phase12": {
+    "ttft_improve_ratio": {
+      "count": 3.0,
+      "mean": 0.9107689791640986,
+      "p50": 0.910150614633388,
+      "p95": 0.9121000542731094,
+      "p99": 0.9122733377966402,
+      "min": 0.9098396641813851,
+      "max": 0.9123166586775229
+    },
+    "slowdown_improve_ratio": {
+      "count": 3.0,
+      "mean": 0.8993636983829552,
+      "p50": 0.8980188916663118,
+      "p95": 0.9017511385726416,
+      "p99": 0.9020828938532042,
+      "min": 0.8979063708092087,
+      "max": 0.9021658326733448
+    },
+    "round_wall_improve_ratio": {
+      "count": 3.0,
+      "mean": 0.9144715034234917,
+      "p50": 0.9129909842424546,
+      "p95": 0.9171246904523978,
+      "p99": 0.9174921310043926,
+      "min": 0.9128395348856291,
+      "max": 0.9175839911423914
+    },
+    "wave_error_rate": {
+      "count": 3.0,
+      "mean": 0.6666666666666666,
+      "p50": 0.75,
+      "p95": 0.75,
+      "p99": 0.75,
+      "min": 0.5,
+      "max": 0.75
+    },
+    "baseline_noise_error_rate": {
+      "count": 3.0,
+      "mean": 0.75,
+      "p50": 0.75,
+      "p95": 0.75,
+      "p99": 0.75,
+      "min": 0.75,
+      "max": 0.75
+    },
+    "incremental_error_rate": {
+      "count": 3.0,
+      "mean": -0.08333333333333333,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": -0.25,
+      "max": 0.0
+    },
+    "phase2_apply_ratio": {
+      "count": 3.0,
+      "mean": 0.9770992366412213,
+      "p50": 0.9770992366412213,
+      "p95": 0.9770992366412213,
+      "p99": 0.9770992366412213,
+      "min": 0.9770992366412213,
+      "max": 0.9770992366412213
+    }
+  }
+}

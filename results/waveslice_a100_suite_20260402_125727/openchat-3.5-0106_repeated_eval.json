@@ -1,0 +1,3302 @@
+{
+  "config": {
+    "model_name": "Mistral-7B-v0.1",
+    "model_path": "/home/onceas/.cache/huggingface/hub/models--openchat--openchat-3.5-0106/snapshots/ff058fda49726ecf4ea53dc1635f917cdb8ba36b",
+    "max_new_tokens": 32,
+    "timeout_sec": 300,
+    "warmup_iters": 1,
+    "repeats": 3,
+    "short_repeat": 24,
+    "short_a_repeat": 24,
+    "short_b_repeat": 24,
+    "long_repeat": 360,
+    "max_model_len": 3072,
+    "max_num_batched_tokens": 1536,
+    "gpu_memory_utilization": 0.6,
+    "phase1_objective_mode": "fair_escape",
+    "phase1_baseline_mode": "both",
+    "include_strict": false,
+    "phase2_dispatch_mode": "synchronized",
+    "adapter_a": "/tmp/waveslice_synthetic_adapters/openchat-3.5-0106/adapter_rank8_seed7",
+    "adapter_b": "/tmp/waveslice_synthetic_adapters/openchat-3.5-0106/adapter_rank16_seed11"
+  },
+  "token_lengths": {
+    "short_a": 583,
+    "short_b": 1634,
+    "long_b": 2910
+  },
+  "phase1_baseline_chunked_raw": {
+    "ttft_short_p99_ms": {
+      "count": 3.0,
+      "mean": 262.5080569911127,
+      "p50": 262.16161403339356,
+      "p95": 263.63808248844,
+      "p99": 263.76932412888857,
+      "min": 261.56042240094393,
+      "max": 263.8021345390007
+    },
+    "round_wall_ms": {
+      "count": 3.0,
+      "mean": 1064.0118196606636,
+      "p50": 1063.873683102429,
+      "p95": 1065.1519962586462,
+      "p99": 1065.2656240947545,
+      "min": 1062.8677448257804,
+      "max": 1065.2940310537815
+    },
+    "timeout_rate": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    }
+  },
+  "phase1_baseline_no_chunk_raw": {
+    "ttft_short_p99_ms": {
+      "count": 3.0,
+      "mean": 195.13767507548133,
+      "p50": 195.81690710037947,
+      "p95": 196.23163151554763,
+      "p99": 196.26849590800703,
+      "min": 193.31840611994267,
+      "max": 196.27771200612187
+    },
+    "round_wall_ms": {
+      "count": 3.0,
+      "mean": 1062.2639142287273,
+      "p50": 1063.50970081985,
+      "p95": 1066.1896316334605,
+      "p99": 1066.4278477057815,
+      "min": 1056.7946401424706,
+      "max": 1066.4874017238617
+    },
+    "timeout_rate": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    }
+  },
+  "phase1": {
+    "ttft_improve_ratio": {
+      "count": 3.0,
+      "mean": 1.0787328457380299,
+      "p50": 1.0789163821272791,
+      "p95": 1.0837515741578005,
+      "p99": 1.084181369004958,
+      "min": 1.0729933373700629,
+      "max": 1.0842888177167473
+    },
+    "round_wall_improve_ratio": {
+      "count": 3.0,
+      "mean": 0.9406932589247273,
+      "p50": 0.9402418210336284,
+      "p95": 0.9420147927790113,
+      "p99": 0.9421723902674899,
+      "min": 0.939626166100944,
+      "max": 0.9422117896396095
+    },
+    "error_rate": {
+      "count": 3.0,
+      "mean": 0.3333333333333333,
+      "p50": 0.33333333333333337,
+      "p95": 0.33333333333333337,
+      "p99": 0.33333333333333337,
+      "min": 0.33333333333333337,
+      "max": 0.33333333333333337
+    },
+    "baseline_noise_error_rate": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "incremental_error_rate": {
+      "count": 3.0,
+      "mean": 0.3333333333333333,
+      "p50": 0.33333333333333337,
+      "p95": 0.33333333333333337,
+      "p99": 0.33333333333333337,
+      "min": 0.33333333333333337,
+      "max": 0.33333333333333337
+    },
+    "base_semantic_pass_rate": {
+      "count": 3.0,
+      "mean": 0.6666666666666666,
+      "p50": 0.6666666666666666,
+      "p95": 0.6666666666666666,
+      "p99": 0.6666666666666666,
+      "min": 0.6666666666666666,
+      "max": 0.6666666666666666
+    },
+    "wave_semantic_pass_rate": {
+      "count": 3.0,
+      "mean": 0.6666666666666666,
+      "p50": 0.6666666666666666,
+      "p95": 0.6666666666666666,
+      "p99": 0.6666666666666666,
+      "min": 0.6666666666666666,
+      "max": 0.6666666666666666
+    },
+    "semantic_pass_delta": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "scheduler_apply_ratio": {
+      "count": 3.0,
+      "mean": 0.15789473684210525,
+      "p50": 0.15789473684210525,
+      "p95": 0.15789473684210525,
+      "p99": 0.15789473684210525,
+      "min": 0.15789473684210525,
+      "max": 0.15789473684210525
+    },
+    "baseline_chunk_avg": {
+      "count": 3.0,
+      "mean": 1536.0,
+      "p50": 1536.0,
+      "p95": 1536.0,
+      "p99": 1536.0,
+      "min": 1536.0,
+      "max": 1536.0
+    },
+    "chosen_chunk_avg": {
+      "count": 3.0,
+      "mean": 673.1666666666666,
+      "p50": 673.1666666666666,
+      "p95": 673.1666666666666,
+      "p99": 673.1666666666666,
+      "min": 673.1666666666666,
+      "max": 673.1666666666666
+    },
+    "chosen_vs_baseline_ratio_avg": {
+      "count": 3.0,
+      "mean": 0.4676106770833333,
+      "p50": 0.46761067708333337,
+      "p95": 0.46761067708333337,
+      "p99": 0.46761067708333337,
+      "min": 0.46761067708333337,
+      "max": 0.46761067708333337
+    },
+    "explicit_plan_ratio": {
+      "count": 3.0,
+      "mean": 0.15789473684210525,
+      "p50": 0.15789473684210525,
+      "p95": 0.15789473684210525,
+      "p99": 0.15789473684210525,
+      "min": 0.15789473684210525,
+      "max": 0.15789473684210525
+    },
+    "rewrite_apply_ratio": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "rewrite_old_chunk_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "rewrite_new_chunk_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "rewrite_token_delta_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_apply_ratio": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "virtual_cap_old_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_new_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_target_set": {
+      "count": 3.0,
+      "mean": 6.0,
+      "p50": 6.0,
+      "p95": 6.0,
+      "p99": 6.0,
+      "min": 6.0,
+      "max": 6.0
+    },
+    "virtual_cap_helper_calls": {
+      "count": 3.0,
+      "mean": 101.0,
+      "p50": 101.0,
+      "p95": 101.0,
+      "p99": 101.0,
+      "min": 101.0,
+      "max": 101.0
+    },
+    "virtual_cap_prefill_calls": {
+      "count": 3.0,
+      "mean": 10.0,
+      "p50": 10.0,
+      "p95": 10.0,
+      "p99": 10.0,
+      "min": 10.0,
+      "max": 10.0
+    },
+    "virtual_cap_target_hits": {
+      "count": 3.0,
+      "mean": 6.0,
+      "p50": 6.0,
+      "p95": 6.0,
+      "p99": 6.0,
+      "min": 6.0,
+      "max": 6.0
+    },
+    "probe_total": {
+      "count": 3.0,
+      "mean": 52.0,
+      "p50": 52.0,
+      "p95": 52.0,
+      "p99": 52.0,
+      "min": 52.0,
+      "max": 52.0
+    },
+    "probe_slice_eligible_ratio": {
+      "count": 3.0,
+      "mean": 0.23076923076923075,
+      "p50": 0.23076923076923078,
+      "p95": 0.23076923076923078,
+      "p99": 0.23076923076923078,
+      "min": 0.23076923076923078,
+      "max": 0.23076923076923078
+    },
+    "probe_best_lt_long_ratio": {
+      "count": 3.0,
+      "mean": 0.23076923076923075,
+      "p50": 0.23076923076923078,
+      "p95": 0.23076923076923078,
+      "p99": 0.23076923076923078,
+      "min": 0.23076923076923078,
+      "max": 0.23076923076923078
+    },
+    "probe_short_avg": {
+      "count": 3.0,
+      "mean": 266.65384615384613,
+      "p50": 266.65384615384613,
+      "p95": 266.65384615384613,
+      "p99": 266.65384615384613,
+      "min": 266.65384615384613,
+      "max": 266.65384615384613
+    },
+    "probe_long_avg": {
+      "count": 3.0,
+      "mean": 720.4038461538462,
+      "p50": 720.4038461538462,
+      "p95": 720.4038461538462,
+      "p99": 720.4038461538462,
+      "min": 720.4038461538462,
+      "max": 720.4038461538462
+    },
+    "probe_baseline_avg": {
+      "count": 3.0,
+      "mean": 1536.0,
+      "p50": 1536.0,
+      "p95": 1536.0,
+      "p99": 1536.0,
+      "min": 1536.0,
+      "max": 1536.0
+    },
+    "probe_best_avg": {
+      "count": 3.0,
+      "mean": 660.2857142857143,
+      "p50": 660.2857142857143,
+      "p95": 660.2857142857143,
+      "p99": 660.2857142857143,
+      "min": 660.2857142857143,
+      "max": 660.2857142857143
+    },
+    "probe_queue_avg": {
+      "count": 3.0,
+      "mean": 1.0,
+      "p50": 1.0,
+      "p95": 1.0,
+      "p99": 1.0,
+      "min": 1.0,
+      "max": 1.0
+    },
+    "probe_wait_us_avg": {
+      "count": 3.0,
+      "mean": 112963.28214498668,
+      "p50": 112980.87468514076,
+      "p95": 113268.708724242,
+      "p99": 113294.2939721621,
+      "min": 112608.28146567711,
+      "max": 113300.69028414213
+    }
+  },
+  "phase2": {
+    "ttft_improve_ratio": {
+      "count": 3.0,
+      "mean": 0.9814084259552858,
+      "p50": 0.9874498835484902,
+      "p95": 0.9912542744265083,
+      "p99": 0.9915924425045544,
+      "min": 0.9650984097933014,
+      "max": 0.9916769845240658
+    },
+    "slowdown_improve_ratio": {
+      "count": 3.0,
+      "mean": 0.9790391488367769,
+      "p50": 0.9886782036701883,
+      "p95": 0.9907245554207449,
+      "p99": 0.9909064533541277,
+      "min": 0.9574873150026691,
+      "max": 0.9909519278374734
+    },
+    "round_wall_improve_ratio": {
+      "count": 3.0,
+      "mean": 0.9857787836205892,
+      "p50": 0.9903139742858804,
+      "p95": 0.992830324783364,
+      "p99": 0.9930540003831403,
+      "min": 0.9739124572928031,
+      "max": 0.9931099192830843
+    },
+    "wave_error_rate": {
+      "count": 3.0,
+      "mean": 0.6666666666666666,
+      "p50": 0.75,
+      "p95": 0.75,
+      "p99": 0.75,
+      "min": 0.5,
+      "max": 0.75
+    },
+    "baseline_noise_error_rate": {
+      "count": 3.0,
+      "mean": 0.75,
+      "p50": 0.75,
+      "p95": 0.75,
+      "p99": 0.75,
+      "min": 0.75,
+      "max": 0.75
+    },
+    "incremental_error_rate": {
+      "count": 3.0,
+      "mean": -0.08333333333333333,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": -0.25,
+      "max": 0.0
+    },
+    "phase2_apply_ratio": {
+      "count": 3.0,
+      "mean": 0.5068493150684932,
+      "p50": 0.5068493150684932,
+      "p95": 0.5068493150684932,
+      "p99": 0.5068493150684932,
+      "min": 0.5068493150684932,
+      "max": 0.5068493150684932
+    }
+  },
+  "per_repeat": {
+    "phase1": [
+      {
+        "base_ttft_short_p99_ms": 263.8021345390007,
+        "wave_ttft_short_p99_ms": 243.29507989808917,
+        "ttft_improve_ratio": 1.0842888177167473,
+        "base_round_wall_ms": 1062.8677448257804,
+        "wave_round_wall_ms": 1131.1602243222296,
+        "round_wall_improve_ratio": 0.939626166100944,
+        "text_match_rate": 0.6666666666666666,
+        "mismatch_details": [
+          {
+            "req_id": "long_b",
+            "common_prefix_chars": 145,
+            "base_preview": "\n\nArtificial intelligence significantly impacts systems engineering and deployment, particularly when the serving stack must manage diverse LoRA tasks, lengthy ",
+            "wave_preview": "\n\nArtificial intelligence significantly impacts systems engineering and deployment, particularly when the serving stack must manage diverse LoRA workloads, leng"
+          }
+        ],
+        "error_rate": 0.33333333333333337,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 0.33333333333333337,
+        "base_semantic_pass_rate": 0.6666666666666666,
+        "wave_semantic_pass_rate": 0.6666666666666666,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": true,
+            "score": 1.5,
+            "reason": "french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 7.0,
+            "reason": "topic_summary"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": true,
+            "score": 1.5,
+            "reason": "french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 9.0,
+            "reason": "topic_summary"
+          }
+        },
+        "base_texts": {
+          "short_a": " Translation: 'J'adore les systèmes d'apprentissage automatique et les pipelines de service efficaces.'",
+          "short_b": "\n\nThe first addend grows by 10 each step and the second addend also grows by 10.\n\nThe next three equations are",
+          "long_b": "\n\nArtificial intelligence significantly impacts systems engineering and deployment, particularly when the serving stack must manage diverse LoRA tasks, lengthy prompt lengths, fairness constraints"
+        },
+        "wave_texts": {
+          "short_a": " Translation: 'J'adore les systèmes d'apprentissage automatique et les pipelines de service efficaces.'",
+          "short_b": "\n\nThe first addend grows by 10 each step and the second addend also grows by 10.\n\nThe next three equations are",
+          "long_b": "\n\nArtificial intelligence significantly impacts systems engineering and deployment, particularly when the serving stack must manage diverse LoRA workloads, lengthy prompt lengths, fairness"
+        },
+        "scheduler_apply_ratio": 0.15789473684210525,
+        "scheduler_applied": 6,
+        "scheduler_attempts": 38,
+        "baseline_chunk_avg": 1536.0,
+        "chosen_chunk_avg": 673.1666666666666,
+        "chosen_vs_baseline_ratio_avg": 0.46761067708333337,
+        "explicit_plan_ratio": 0.15789473684210525,
+        "rewrite_apply_ratio": 0.0,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": 0.0,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": 6.0,
+        "virtual_cap_helper_calls": 101.0,
+        "virtual_cap_prefill_calls": 10.0,
+        "virtual_cap_target_hits": 6.0,
+        "probe_total": 52.0,
+        "probe_slice_eligible_ratio": 0.23076923076923078,
+        "probe_best_lt_long_ratio": 0.23076923076923078,
+        "probe_short_avg": 266.65384615384613,
+        "probe_long_avg": 720.4038461538462,
+        "probe_baseline_avg": 1536.0,
+        "probe_best_avg": 660.2857142857143,
+        "probe_queue_avg": 1.0,
+        "probe_wait_us_avg": 113300.69028414213,
+        "probe_reasons": {
+          "ingress_virtual_override": 7,
+          "candidate": 7,
+          "apply": 6,
+          "best_chunk_ge_long": 1,
+          "no_need_wave_slice": 31
+        },
+        "hook_report": {
+          "requests": {
+            "total": 3,
+            "finished": 3
+          },
+          "scheduler": {
+            "attempts": 38,
+            "applied": 6,
+            "apply_ratio": 0.15789473684210525,
+            "baseline_chunk_avg": 1536.0,
+            "chosen_chunk_avg": 673.1666666666666,
+            "chosen_vs_baseline_ratio_avg": 0.46761067708333337,
+            "explicit_plan_ratio": 0.15789473684210525,
+            "rewrite_applied": 0,
+            "rewrite_apply_ratio": 0.0,
+            "rewrite_group_count": 0,
+            "rewrite_old_chunk_avg": null,
+            "rewrite_new_chunk_avg": null,
+            "rewrite_token_delta_avg": null,
+            "virtual_cap_apply_ratio": 0.0,
+            "virtual_cap_old_avg": null,
+            "virtual_cap_new_avg": null,
+            "virtual_cap_target_set": 6.0,
+            "virtual_cap_helper_calls": 101.0,
+            "virtual_cap_prefill_calls": 10.0,
+            "virtual_cap_target_hits": 6.0,
+            "request_traces": {
+              "repeat_phase1_only_0:long_b": [
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 0,
+                  "uncached": 0,
+                  "cached": 0,
+                  "target_chunk": 584
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 0,
+                  "uncached": 412,
+                  "cached": 0,
+                  "target_chunk": 1123
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 412,
+                  "num_computed_tokens": 0
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 412,
+                  "uncached": 583,
+                  "cached": 0,
+                  "target_chunk": 583
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 583,
+                  "num_computed_tokens": 412
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 995,
+                  "uncached": 583,
+                  "cached": 0,
+                  "target_chunk": 583
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 583,
+                  "num_computed_tokens": 995
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1578,
+                  "uncached": 583,
+                  "cached": 0,
+                  "target_chunk": 583
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 583,
+                  "num_computed_tokens": 1578
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2161,
+                  "uncached": 583,
+                  "cached": 0,
+                  "target_chunk": 583
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 583,
+                  "num_computed_tokens": 2161
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2744,
+                  "uncached": 167,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 167,
+                  "num_computed_tokens": 2744
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2911,
+                  "uncached": 1,
+                  "cached": 0,
+                  "prefill_to_decode": true
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2911
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2912,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2912
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2913,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2913
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2914,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2914
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2915,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2915
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2916,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2916
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2917,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2917
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2918,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2918
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2919,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2919
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2920,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2920
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2921,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2921
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2922,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2922
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2923,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2923
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2924,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2924
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2925,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2925
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2926,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2926
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2927,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2927
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2928,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2928
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2929,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2929
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2930,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2930
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2931,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2931
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2932,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2932
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2933,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2933
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2934,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2934
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2935,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2935
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2936,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2936
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2937,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2937
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2938,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2938
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2939,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2939
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2940,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2940
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2941,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2941
+                }
+              ]
+            },
+            "probe_total": 52.0,
+            "probe_slice_eligible_ratio": 0.23076923076923078,
+            "probe_best_lt_long_ratio": 0.23076923076923078,
+            "probe_short_avg": 266.65384615384613,
+            "probe_long_avg": 720.4038461538462,
+            "probe_baseline_avg": 1536.0,
+            "probe_best_avg": 660.2857142857143,
+            "probe_queue_avg": 1.0,
+            "probe_wait_us_avg": 113300.69028414213,
+            "proposal_scheduler_avg": 1190.5714285714287,
+            "proposal_direct_avg": 523.8571428571429,
+            "proposal_cohort_target_avg": 598.5714285714286,
+            "proposal_direct_win_ratio": 0.15789473684210525,
+            "probe_reasons": {
+              "ingress_virtual_override": 7,
+              "candidate": 7,
+              "apply": 6,
+              "best_chunk_ge_long": 1,
+              "no_need_wave_slice": 31
+            }
+          },
+          "phase2": {
+            "attempts": 0,
+            "applied": 0,
+            "apply_ratio": 0.0,
+            "v1_true_unbind_applied": 0,
+            "v1_true_unbind_ratio": 0.0,
+            "reasons": {}
+          },
+          "ttft_ms_all": {
+            "count": 3.0,
+            "p50": 237.70951200276613,
+            "p95": 483.9453008957207,
+            "p99": 505.83292657509446
+          },
+          "ttft_ms_short": {
+            "count": 0.0,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          },
+          "slowdown_all": {
+            "count": 3.0,
+            "p50": 14.609697762206947,
+            "p95": 66.98090837514964,
+            "p99": 71.6361270963001
+          },
+          "slowdown_short": {
+            "count": 0.0,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          }
+        },
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "base_ttft_short_p99_ms": 261.56042240094393,
+        "wave_ttft_short_p99_ms": 243.7670517526567,
+        "ttft_improve_ratio": 1.0729933373700629,
+        "base_round_wall_ms": 1063.873683102429,
+        "wave_round_wall_ms": 1131.4894310198724,
+        "round_wall_improve_ratio": 0.9402418210336284,
+        "text_match_rate": 0.6666666666666666,
+        "mismatch_details": [
+          {
+            "req_id": "long_b",
+            "common_prefix_chars": 145,
+            "base_preview": "\n\nArtificial intelligence significantly impacts systems engineering and deployment, particularly when the serving stack must manage diverse LoRA tasks, lengthy ",
+            "wave_preview": "\n\nArtificial intelligence significantly impacts systems engineering and deployment, particularly when the serving stack must manage diverse LoRA workloads, leng"
+          }
+        ],
+        "error_rate": 0.33333333333333337,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 0.33333333333333337,
+        "base_semantic_pass_rate": 0.6666666666666666,
+        "wave_semantic_pass_rate": 0.6666666666666666,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": true,
+            "score": 1.5,
+            "reason": "french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 7.0,
+            "reason": "topic_summary"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": true,
+            "score": 1.5,
+            "reason": "french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 9.0,
+            "reason": "topic_summary"
+          }
+        },
+        "base_texts": {
+          "short_a": " Translation: 'J'adore les systèmes d'apprentissage automatique et les pipelines de service efficaces.'",
+          "short_b": "\n\nThe first addend grows by 10 each step and the second addend also grows by 10.\n\nThe next three equations are",
+          "long_b": "\n\nArtificial intelligence significantly impacts systems engineering and deployment, particularly when the serving stack must manage diverse LoRA tasks, lengthy prompt lengths, fairness constraints"
+        },
+        "wave_texts": {
+          "short_a": " Translation: 'J'adore les systèmes d'apprentissage automatique et les pipelines de service efficaces.'",
+          "short_b": "\n\nThe first addend grows by 10 each step and the second addend also grows by 10.\n\nThe next three equations are",
+          "long_b": "\n\nArtificial intelligence significantly impacts systems engineering and deployment, particularly when the serving stack must manage diverse LoRA workloads, lengthy prompt lengths, fairness"
+        },
+        "scheduler_apply_ratio": 0.15789473684210525,
+        "scheduler_applied": 6,
+        "scheduler_attempts": 38,
+        "baseline_chunk_avg": 1536.0,
+        "chosen_chunk_avg": 673.1666666666666,
+        "chosen_vs_baseline_ratio_avg": 0.46761067708333337,
+        "explicit_plan_ratio": 0.15789473684210525,
+        "rewrite_apply_ratio": 0.0,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": 0.0,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": 6.0,
+        "virtual_cap_helper_calls": 101.0,
+        "virtual_cap_prefill_calls": 10.0,
+        "virtual_cap_target_hits": 6.0,
+        "probe_total": 52.0,
+        "probe_slice_eligible_ratio": 0.23076923076923078,
+        "probe_best_lt_long_ratio": 0.23076923076923078,
+        "probe_short_avg": 266.65384615384613,
+        "probe_long_avg": 720.4038461538462,
+        "probe_baseline_avg": 1536.0,
+        "probe_best_avg": 660.2857142857143,
+        "probe_queue_avg": 1.0,
+        "probe_wait_us_avg": 112980.87468514076,
+        "probe_reasons": {
+          "ingress_virtual_override": 7,
+          "candidate": 7,
+          "apply": 6,
+          "best_chunk_ge_long": 1,
+          "no_need_wave_slice": 31
+        },
+        "hook_report": {
+          "requests": {
+            "total": 3,
+            "finished": 3
+          },
+          "scheduler": {
+            "attempts": 38,
+            "applied": 6,
+            "apply_ratio": 0.15789473684210525,
+            "baseline_chunk_avg": 1536.0,
+            "chosen_chunk_avg": 673.1666666666666,
+            "chosen_vs_baseline_ratio_avg": 0.46761067708333337,
+            "explicit_plan_ratio": 0.15789473684210525,
+            "rewrite_applied": 0,
+            "rewrite_apply_ratio": 0.0,
+            "rewrite_group_count": 0,
+            "rewrite_old_chunk_avg": null,
+            "rewrite_new_chunk_avg": null,
+            "rewrite_token_delta_avg": null,
+            "virtual_cap_apply_ratio": 0.0,
+            "virtual_cap_old_avg": null,
+            "virtual_cap_new_avg": null,
+            "virtual_cap_target_set": 6.0,
+            "virtual_cap_helper_calls": 101.0,
+            "virtual_cap_prefill_calls": 10.0,
+            "virtual_cap_target_hits": 6.0,
+            "request_traces": {
+              "repeat_phase1_only_1:long_b": [
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 0,
+                  "uncached": 0,
+                  "cached": 0,
+                  "target_chunk": 584
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 0,
+                  "uncached": 412,
+                  "cached": 0,
+                  "target_chunk": 1123
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 412,
+                  "num_computed_tokens": 0
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 412,
+                  "uncached": 583,
+                  "cached": 0,
+                  "target_chunk": 583
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 583,
+                  "num_computed_tokens": 412
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 995,
+                  "uncached": 583,
+                  "cached": 0,
+                  "target_chunk": 583
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 583,
+                  "num_computed_tokens": 995
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1578,
+                  "uncached": 583,
+                  "cached": 0,
+                  "target_chunk": 583
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 583,
+                  "num_computed_tokens": 1578
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2161,
+                  "uncached": 583,
+                  "cached": 0,
+                  "target_chunk": 583
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 583,
+                  "num_computed_tokens": 2161
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2744,
+                  "uncached": 167,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 167,
+                  "num_computed_tokens": 2744
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2911,
+                  "uncached": 1,
+                  "cached": 0,
+                  "prefill_to_decode": true
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2911
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2912,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2912
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2913,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2913
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2914,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2914
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2915,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2915
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2916,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2916
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2917,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2917
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2918,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2918
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2919,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2919
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2920,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2920
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2921,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2921
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2922,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2922
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2923,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2923
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2924,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2924
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2925,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2925
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2926,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2926
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2927,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2927
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2928,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2928
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2929,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2929
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2930,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2930
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2931,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2931
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2932,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2932
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2933,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2933
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2934,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2934
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2935,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2935
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2936,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2936
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2937,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2937
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2938,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2938
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2939,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2939
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2940,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2940
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2941,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2941
+                }
+              ]
+            },
+            "probe_total": 52.0,
+            "probe_slice_eligible_ratio": 0.23076923076923078,
+            "probe_best_lt_long_ratio": 0.23076923076923078,
+            "probe_short_avg": 266.65384615384613,
+            "probe_long_avg": 720.4038461538462,
+            "probe_baseline_avg": 1536.0,
+            "probe_best_avg": 660.2857142857143,
+            "probe_queue_avg": 1.0,
+            "probe_wait_us_avg": 112980.87468514076,
+            "proposal_scheduler_avg": 1190.5714285714287,
+            "proposal_direct_avg": 523.8571428571429,
+            "proposal_cohort_target_avg": 598.5714285714286,
+            "proposal_direct_win_ratio": 0.15789473684210525,
+            "probe_reasons": {
+              "ingress_virtual_override": 7,
+              "candidate": 7,
+              "apply": 6,
+              "best_chunk_ge_long": 1,
+              "no_need_wave_slice": 31
+            }
+          },
+          "phase2": {
+            "attempts": 0,
+            "applied": 0,
+            "apply_ratio": 0.0,
+            "v1_true_unbind_applied": 0,
+            "v1_true_unbind_ratio": 0.0,
+            "reasons": {}
+          },
+          "ttft_ms_all": {
+            "count": 3.0,
+            "p50": 237.95885173603892,
+            "p95": 481.80217891931534,
+            "p99": 503.4771413356066
+          },
+          "ttft_ms_short": {
+            "count": 0.0,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          },
+          "slowdown_all": {
+            "count": 3.0,
+            "p50": 14.611376925159504,
+            "p95": 66.98178085489583,
+            "p99": 71.6369278708724
+          },
+          "slowdown_short": {
+            "count": 0.0,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          }
+        },
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "base_ttft_short_p99_ms": 262.16161403339356,
+        "wave_ttft_short_p99_ms": 242.98603522591293,
+        "ttft_improve_ratio": 1.0789163821272791,
+        "base_round_wall_ms": 1065.2940310537815,
+        "wave_round_wall_ms": 1130.6311837397516,
+        "round_wall_improve_ratio": 0.9422117896396095,
+        "text_match_rate": 0.6666666666666666,
+        "mismatch_details": [
+          {
+            "req_id": "long_b",
+            "common_prefix_chars": 145,
+            "base_preview": "\n\nArtificial intelligence significantly impacts systems engineering and deployment, particularly when the serving stack must manage diverse LoRA tasks, lengthy ",
+            "wave_preview": "\n\nArtificial intelligence significantly impacts systems engineering and deployment, particularly when the serving stack must manage diverse LoRA workloads, leng"
+          }
+        ],
+        "error_rate": 0.33333333333333337,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 0.33333333333333337,
+        "base_semantic_pass_rate": 0.6666666666666666,
+        "wave_semantic_pass_rate": 0.6666666666666666,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": true,
+            "score": 1.5,
+            "reason": "french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 7.0,
+            "reason": "topic_summary"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": true,
+            "score": 1.5,
+            "reason": "french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 9.0,
+            "reason": "topic_summary"
+          }
+        },
+        "base_texts": {
+          "short_a": " Translation: 'J'adore les systèmes d'apprentissage automatique et les pipelines de service efficaces.'",
+          "short_b": "\n\nThe first addend grows by 10 each step and the second addend also grows by 10.\n\nThe next three equations are",
+          "long_b": "\n\nArtificial intelligence significantly impacts systems engineering and deployment, particularly when the serving stack must manage diverse LoRA tasks, lengthy prompt lengths, fairness constraints"
+        },
+        "wave_texts": {
+          "short_a": " Translation: 'J'adore les systèmes d'apprentissage automatique et les pipelines de service efficaces.'",
+          "short_b": "\n\nThe first addend grows by 10 each step and the second addend also grows by 10.\n\nThe next three equations are",
+          "long_b": "\n\nArtificial intelligence significantly impacts systems engineering and deployment, particularly when the serving stack must manage diverse LoRA workloads, lengthy prompt lengths, fairness"
+        },
+        "scheduler_apply_ratio": 0.15789473684210525,
+        "scheduler_applied": 6,
+        "scheduler_attempts": 38,
+        "baseline_chunk_avg": 1536.0,
+        "chosen_chunk_avg": 673.1666666666666,
+        "chosen_vs_baseline_ratio_avg": 0.46761067708333337,
+        "explicit_plan_ratio": 0.15789473684210525,
+        "rewrite_apply_ratio": 0.0,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": 0.0,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": 6.0,
+        "virtual_cap_helper_calls": 101.0,
+        "virtual_cap_prefill_calls": 10.0,
+        "virtual_cap_target_hits": 6.0,
+        "probe_total": 52.0,
+        "probe_slice_eligible_ratio": 0.23076923076923078,
+        "probe_best_lt_long_ratio": 0.23076923076923078,
+        "probe_short_avg": 266.65384615384613,
+        "probe_long_avg": 720.4038461538462,
+        "probe_baseline_avg": 1536.0,
+        "probe_best_avg": 660.2857142857143,
+        "probe_queue_avg": 1.0,
+        "probe_wait_us_avg": 112608.28146567711,
+        "probe_reasons": {
+          "ingress_virtual_override": 7,
+          "candidate": 7,
+          "apply": 6,
+          "best_chunk_ge_long": 1,
+          "no_need_wave_slice": 31
+        },
+        "hook_report": {
+          "requests": {
+            "total": 3,
+            "finished": 3
+          },
+          "scheduler": {
+            "attempts": 38,
+            "applied": 6,
+            "apply_ratio": 0.15789473684210525,
+            "baseline_chunk_avg": 1536.0,
+            "chosen_chunk_avg": 673.1666666666666,
+            "chosen_vs_baseline_ratio_avg": 0.46761067708333337,
+            "explicit_plan_ratio": 0.15789473684210525,
+            "rewrite_applied": 0,
+            "rewrite_apply_ratio": 0.0,
+            "rewrite_group_count": 0,
+            "rewrite_old_chunk_avg": null,
+            "rewrite_new_chunk_avg": null,
+            "rewrite_token_delta_avg": null,
+            "virtual_cap_apply_ratio": 0.0,
+            "virtual_cap_old_avg": null,
+            "virtual_cap_new_avg": null,
+            "virtual_cap_target_set": 6.0,
+            "virtual_cap_helper_calls": 101.0,
+            "virtual_cap_prefill_calls": 10.0,
+            "virtual_cap_target_hits": 6.0,
+            "request_traces": {
+              "repeat_phase1_only_2:long_b": [
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 0,
+                  "uncached": 0,
+                  "cached": 0,
+                  "target_chunk": 584
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 0,
+                  "uncached": 412,
+                  "cached": 0,
+                  "target_chunk": 1123
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 412,
+                  "num_computed_tokens": 0
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 412,
+                  "uncached": 583,
+                  "cached": 0,
+                  "target_chunk": 583
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 583,
+                  "num_computed_tokens": 412
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 995,
+                  "uncached": 583,
+                  "cached": 0,
+                  "target_chunk": 583
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 583,
+                  "num_computed_tokens": 995
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 1578,
+                  "uncached": 583,
+                  "cached": 0,
+                  "target_chunk": 583
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 583,
+                  "num_computed_tokens": 1578
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2161,
+                  "uncached": 583,
+                  "cached": 0,
+                  "target_chunk": 583
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 583,
+                  "num_computed_tokens": 2161
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": true,
+                  "num_computed_tokens": 2744,
+                  "uncached": 167,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": true,
+                  "token_chunk_size": 167,
+                  "num_computed_tokens": 2744
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2911,
+                  "uncached": 1,
+                  "cached": 0,
+                  "prefill_to_decode": true
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2911
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2912,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2912
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2913,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2913
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2914,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2914
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2915,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2915
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2916,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2916
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2917,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2917
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2918,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2918
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2919,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2919
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2920,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2920
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2921,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2921
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2922,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2922
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2923,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2923
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2924,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2924
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2925,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2925
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2926,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2926
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2927,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2927
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2928,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2928
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2929,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2929
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2930,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2930
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2931,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2931
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2932,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2932
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2933,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2933
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2934,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2934
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2935,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2935
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2936,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2936
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2937,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2937
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2938,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2938
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2939,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2939
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2940,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2940
+                },
+                {
+                  "event": "virtual_cap_helper",
+                  "is_prefill": false,
+                  "num_computed_tokens": 2941,
+                  "uncached": 1,
+                  "cached": 0
+                },
+                {
+                  "event": "public_schedule_group",
+                  "is_prefill": false,
+                  "token_chunk_size": 1,
+                  "num_computed_tokens": 2941
+                }
+              ]
+            },
+            "probe_total": 52.0,
+            "probe_slice_eligible_ratio": 0.23076923076923078,
+            "probe_best_lt_long_ratio": 0.23076923076923078,
+            "probe_short_avg": 266.65384615384613,
+            "probe_long_avg": 720.4038461538462,
+            "probe_baseline_avg": 1536.0,
+            "probe_best_avg": 660.2857142857143,
+            "probe_queue_avg": 1.0,
+            "probe_wait_us_avg": 112608.28146567711,
+            "proposal_scheduler_avg": 1190.5714285714287,
+            "proposal_direct_avg": 523.8571428571429,
+            "proposal_cohort_target_avg": 598.5714285714286,
+            "proposal_direct_win_ratio": 0.15789473684210525,
+            "probe_reasons": {
+              "ingress_virtual_override": 7,
+              "candidate": 7,
+              "apply": 6,
+              "best_chunk_ge_long": 1,
+              "no_need_wave_slice": 31
+            }
+          },
+          "phase2": {
+            "attempts": 0,
+            "applied": 0,
+            "apply_ratio": 0.0,
+            "v1_true_unbind_applied": 0,
+            "v1_true_unbind_ratio": 0.0,
+            "reasons": {}
+          },
+          "ttft_ms_all": {
+            "count": 3.0,
+            "p50": 237.32757987454534,
+            "p95": 480.78816421329975,
+            "p99": 502.42910504341125
+          },
+          "ttft_ms_short": {
+            "count": 0.0,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          },
+          "slowdown_all": {
+            "count": 3.0,
+            "p50": 14.587145119922463,
+            "p95": 66.64250504769848,
+            "p99": 71.26964815238969
+          },
+          "slowdown_short": {
+            "count": 0.0,
+            "p50": null,
+            "p95": null,
+            "p99": null
+          }
+        },
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      }
+    ],
+    "phase2": [
+      {
+        "repeat_index": 0,
+        "base_ttft_short_p99_ms": 3265.5878701852635,
+        "wave_ttft_short_p99_ms": 3383.683816124685,
+        "ttft_improve_ratio": 0.9650984097933014,
+        "base_slowdown_short_p99": 4689.214991103656,
+        "wave_slowdown_short_p99": 4897.4173523025565,
+        "slowdown_improve_ratio": 0.9574873150026691,
+        "base_round_wall_ms": 5523.435978684574,
+        "wave_round_wall_ms": 5671.388570219278,
+        "round_wall_improve_ratio": 0.9739124572928031,
+        "baseline_noise_match_rate": 0.25,
+        "baseline_noise_error_rate": 0.75,
+        "wave_match_rate": 0.25,
+        "wave_error_rate": 0.75,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.5068493150684932,
+        "phase2_applied": 37,
+        "phase2_attempts": 73,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "repeat_index": 1,
+        "base_ttft_short_p99_ms": 3261.9659942295402,
+        "wave_ttft_short_p99_ms": 3303.424354568124,
+        "ttft_improve_ratio": 0.9874498835484902,
+        "base_slowdown_short_p99": 4693.067206279675,
+        "wave_slowdown_short_p99": 4746.80961799096,
+        "slowdown_improve_ratio": 0.9886782036701883,
+        "base_round_wall_ms": 5520.15624800697,
+        "wave_round_wall_ms": 5574.147584848106,
+        "round_wall_improve_ratio": 0.9903139742858804,
+        "baseline_noise_match_rate": 0.25,
+        "baseline_noise_error_rate": 0.75,
+        "wave_match_rate": 0.25,
+        "wave_error_rate": 0.75,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.5068493150684932,
+        "phase2_applied": 37,
+        "phase2_attempts": 73,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "repeat_index": 2,
+        "base_ttft_short_p99_ms": 3265.444265762344,
+        "wave_ttft_short_p99_ms": 3292.8507132083178,
+        "ttft_improve_ratio": 0.9916769845240658,
+        "base_slowdown_short_p99": 4693.540873136293,
+        "wave_slowdown_short_p99": 4736.396127084465,
+        "slowdown_improve_ratio": 0.9909519278374734,
+        "base_round_wall_ms": 5528.231302741915,
+        "wave_round_wall_ms": 5566.5855263359845,
+        "round_wall_improve_ratio": 0.9931099192830843,
+        "baseline_noise_match_rate": 0.25,
+        "baseline_noise_error_rate": 0.75,
+        "wave_match_rate": 0.5,
+        "wave_error_rate": 0.5,
+        "incremental_error_rate": -0.25,
+        "phase2_apply_ratio": 0.5068493150684932,
+        "phase2_applied": 37,
+        "phase2_attempts": 73,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      }
+    ],
+    "phase1_chunked_vs_no_chunk": [
+      {
+        "base_ttft_short_p99_ms": 193.31840611994267,
+        "wave_ttft_short_p99_ms": 263.8021345390007,
+        "ttft_improve_ratio": 0.732815928338754,
+        "base_round_wall_ms": 1056.7946401424706,
+        "wave_round_wall_ms": 1062.8677448257804,
+        "round_wall_improve_ratio": 0.9942861144174572,
+        "text_match_rate": 0.6666666666666666,
+        "mismatch_details": [
+          {
+            "req_id": "long_b",
+            "common_prefix_chars": 145,
+            "base_preview": "\n\nArtificial intelligence significantly impacts systems engineering and deployment, particularly when the serving stack must manage diverse LoRA workloads, leng",
+            "wave_preview": "\n\nArtificial intelligence significantly impacts systems engineering and deployment, particularly when the serving stack must manage diverse LoRA tasks, lengthy "
+          }
+        ],
+        "error_rate": 0.33333333333333337,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 0.33333333333333337,
+        "base_semantic_pass_rate": 0.6666666666666666,
+        "wave_semantic_pass_rate": 0.6666666666666666,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": true,
+            "score": 1.5,
+            "reason": "french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 9.0,
+            "reason": "topic_summary"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": true,
+            "score": 1.5,
+            "reason": "french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 7.0,
+            "reason": "topic_summary"
+          }
+        },
+        "base_texts": {
+          "short_a": " Translation: 'J'adore les systèmes d'apprentissage automatique et les pipelines de service efficaces.'",
+          "short_b": "\n\nThe first addend grows by 10 each step and the second addend also grows by 10.\n\nThe next three equations are",
+          "long_b": "\n\nArtificial intelligence significantly impacts systems engineering and deployment, particularly when the serving stack must manage diverse LoRA workloads, lengthy prompt lengths, fairness"
+        },
+        "wave_texts": {
+          "short_a": " Translation: 'J'adore les systèmes d'apprentissage automatique et les pipelines de service efficaces.'",
+          "short_b": "\n\nThe first addend grows by 10 each step and the second addend also grows by 10.\n\nThe next three equations are",
+          "long_b": "\n\nArtificial intelligence significantly impacts systems engineering and deployment, particularly when the serving stack must manage diverse LoRA tasks, lengthy prompt lengths, fairness constraints"
+        },
+        "scheduler_apply_ratio": null,
+        "scheduler_applied": null,
+        "scheduler_attempts": null,
+        "baseline_chunk_avg": null,
+        "chosen_chunk_avg": null,
+        "chosen_vs_baseline_ratio_avg": null,
+        "explicit_plan_ratio": null,
+        "rewrite_apply_ratio": null,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": null,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": null,
+        "virtual_cap_helper_calls": null,
+        "virtual_cap_prefill_calls": null,
+        "virtual_cap_target_hits": null,
+        "probe_total": null,
+        "probe_slice_eligible_ratio": null,
+        "probe_best_lt_long_ratio": null,
+        "probe_short_avg": null,
+        "probe_long_avg": null,
+        "probe_baseline_avg": null,
+        "probe_best_avg": null,
+        "probe_queue_avg": null,
+        "probe_wait_us_avg": null,
+        "probe_reasons": null,
+        "hook_report": {},
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "base_ttft_short_p99_ms": 195.81690710037947,
+        "wave_ttft_short_p99_ms": 261.56042240094393,
+        "ttft_improve_ratio": 0.748648841070509,
+        "base_round_wall_ms": 1066.4874017238617,
+        "wave_round_wall_ms": 1063.873683102429,
+        "round_wall_improve_ratio": 1.0024567941316216,
+        "text_match_rate": 0.6666666666666666,
+        "mismatch_details": [
+          {
+            "req_id": "long_b",
+            "common_prefix_chars": 145,
+            "base_preview": "\n\nArtificial intelligence significantly impacts systems engineering and deployment, particularly when the serving stack must manage diverse LoRA workloads, leng",
+            "wave_preview": "\n\nArtificial intelligence significantly impacts systems engineering and deployment, particularly when the serving stack must manage diverse LoRA tasks, lengthy "
+          }
+        ],
+        "error_rate": 0.33333333333333337,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 0.33333333333333337,
+        "base_semantic_pass_rate": 0.6666666666666666,
+        "wave_semantic_pass_rate": 0.6666666666666666,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": true,
+            "score": 1.5,
+            "reason": "french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 9.0,
+            "reason": "topic_summary"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": true,
+            "score": 1.5,
+            "reason": "french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 7.0,
+            "reason": "topic_summary"
+          }
+        },
+        "base_texts": {
+          "short_a": " Translation: 'J'adore les systèmes d'apprentissage automatique et les pipelines de service efficaces.'",
+          "short_b": "\n\nThe first addend grows by 10 each step and the second addend also grows by 10.\n\nThe next three equations are",
+          "long_b": "\n\nArtificial intelligence significantly impacts systems engineering and deployment, particularly when the serving stack must manage diverse LoRA workloads, lengthy prompt lengths, fairness"
+        },
+        "wave_texts": {
+          "short_a": " Translation: 'J'adore les systèmes d'apprentissage automatique et les pipelines de service efficaces.'",
+          "short_b": "\n\nThe first addend grows by 10 each step and the second addend also grows by 10.\n\nThe next three equations are",
+          "long_b": "\n\nArtificial intelligence significantly impacts systems engineering and deployment, particularly when the serving stack must manage diverse LoRA tasks, lengthy prompt lengths, fairness constraints"
+        },
+        "scheduler_apply_ratio": null,
+        "scheduler_applied": null,
+        "scheduler_attempts": null,
+        "baseline_chunk_avg": null,
+        "chosen_chunk_avg": null,
+        "chosen_vs_baseline_ratio_avg": null,
+        "explicit_plan_ratio": null,
+        "rewrite_apply_ratio": null,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": null,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": null,
+        "virtual_cap_helper_calls": null,
+        "virtual_cap_prefill_calls": null,
+        "virtual_cap_target_hits": null,
+        "probe_total": null,
+        "probe_slice_eligible_ratio": null,
+        "probe_best_lt_long_ratio": null,
+        "probe_short_avg": null,
+        "probe_long_avg": null,
+        "probe_baseline_avg": null,
+        "probe_best_avg": null,
+        "probe_queue_avg": null,
+        "probe_wait_us_avg": null,
+        "probe_reasons": null,
+        "hook_report": {},
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "base_ttft_short_p99_ms": 196.27771200612187,
+        "wave_ttft_short_p99_ms": 262.16161403339356,
+        "ttft_improve_ratio": 0.7486897451780277,
+        "base_round_wall_ms": 1063.50970081985,
+        "wave_round_wall_ms": 1065.2940310537815,
+        "round_wall_improve_ratio": 0.9983250349838472,
+        "text_match_rate": 0.6666666666666666,
+        "mismatch_details": [
+          {
+            "req_id": "long_b",
+            "common_prefix_chars": 145,
+            "base_preview": "\n\nArtificial intelligence significantly impacts systems engineering and deployment, particularly when the serving stack must manage diverse LoRA workloads, leng",
+            "wave_preview": "\n\nArtificial intelligence significantly impacts systems engineering and deployment, particularly when the serving stack must manage diverse LoRA tasks, lengthy "
+          }
+        ],
+        "error_rate": 0.33333333333333337,
+        "baseline_noise_match_rate": 1.0,
+        "baseline_noise_error_rate": 0.0,
+        "incremental_error_rate": 0.33333333333333337,
+        "base_semantic_pass_rate": 0.6666666666666666,
+        "wave_semantic_pass_rate": 0.6666666666666666,
+        "semantic_pass_delta": 0.0,
+        "base_semantic_details": {
+          "short_a": {
+            "pass": true,
+            "score": 1.5,
+            "reason": "french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 9.0,
+            "reason": "topic_summary"
+          }
+        },
+        "wave_semantic_details": {
+          "short_a": {
+            "pass": true,
+            "score": 1.5,
+            "reason": "french_like"
+          },
+          "short_b": {
+            "pass": false,
+            "score": 0.0,
+            "reason": "weak_pattern_continuation"
+          },
+          "long_b": {
+            "pass": true,
+            "score": 7.0,
+            "reason": "topic_summary"
+          }
+        },
+        "base_texts": {
+          "short_a": " Translation: 'J'adore les systèmes d'apprentissage automatique et les pipelines de service efficaces.'",
+          "short_b": "\n\nThe first addend grows by 10 each step and the second addend also grows by 10.\n\nThe next three equations are",
+          "long_b": "\n\nArtificial intelligence significantly impacts systems engineering and deployment, particularly when the serving stack must manage diverse LoRA workloads, lengthy prompt lengths, fairness"
+        },
+        "wave_texts": {
+          "short_a": " Translation: 'J'adore les systèmes d'apprentissage automatique et les pipelines de service efficaces.'",
+          "short_b": "\n\nThe first addend grows by 10 each step and the second addend also grows by 10.\n\nThe next three equations are",
+          "long_b": "\n\nArtificial intelligence significantly impacts systems engineering and deployment, particularly when the serving stack must manage diverse LoRA tasks, lengthy prompt lengths, fairness constraints"
+        },
+        "scheduler_apply_ratio": null,
+        "scheduler_applied": null,
+        "scheduler_attempts": null,
+        "baseline_chunk_avg": null,
+        "chosen_chunk_avg": null,
+        "chosen_vs_baseline_ratio_avg": null,
+        "explicit_plan_ratio": null,
+        "rewrite_apply_ratio": null,
+        "rewrite_old_chunk_avg": null,
+        "rewrite_new_chunk_avg": null,
+        "rewrite_token_delta_avg": null,
+        "virtual_cap_apply_ratio": null,
+        "virtual_cap_old_avg": null,
+        "virtual_cap_new_avg": null,
+        "virtual_cap_target_set": null,
+        "virtual_cap_helper_calls": null,
+        "virtual_cap_prefill_calls": null,
+        "virtual_cap_target_hits": null,
+        "probe_total": null,
+        "probe_slice_eligible_ratio": null,
+        "probe_best_lt_long_ratio": null,
+        "probe_short_avg": null,
+        "probe_long_avg": null,
+        "probe_baseline_avg": null,
+        "probe_best_avg": null,
+        "probe_queue_avg": null,
+        "probe_wait_us_avg": null,
+        "probe_reasons": null,
+        "hook_report": {},
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      }
+    ],
+    "phase12": [
+      {
+        "repeat_index": 0,
+        "base_ttft_short_p99_ms": 3265.5878701852635,
+        "wave_ttft_short_p99_ms": 2913.870548638515,
+        "ttft_improve_ratio": 1.1207045116369654,
+        "base_slowdown_short_p99": 4689.214991103656,
+        "wave_slowdown_short_p99": 3377.331682336356,
+        "slowdown_improve_ratio": 1.388437805984093,
+        "base_round_wall_ms": 5523.435978684574,
+        "wave_round_wall_ms": 5483.2085580565035,
+        "round_wall_improve_ratio": 1.0073364746575186,
+        "baseline_noise_match_rate": 0.25,
+        "baseline_noise_error_rate": 0.75,
+        "wave_match_rate": 0.25,
+        "wave_error_rate": 0.75,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.4852941176470588,
+        "phase2_applied": 33,
+        "phase2_attempts": 68,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "repeat_index": 1,
+        "base_ttft_short_p99_ms": 3261.9659942295402,
+        "wave_ttft_short_p99_ms": 2899.543257402256,
+        "ttft_improve_ratio": 1.1249930436119735,
+        "base_slowdown_short_p99": 4693.067206279675,
+        "wave_slowdown_short_p99": 3366.800106662738,
+        "slowdown_improve_ratio": 1.393925109183737,
+        "base_round_wall_ms": 5520.15624800697,
+        "wave_round_wall_ms": 5449.391645845026,
+        "round_wall_improve_ratio": 1.0129857802046398,
+        "baseline_noise_match_rate": 0.25,
+        "baseline_noise_error_rate": 0.75,
+        "wave_match_rate": 0.25,
+        "wave_error_rate": 0.75,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.4852941176470588,
+        "phase2_applied": 33,
+        "phase2_attempts": 68,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      },
+      {
+        "repeat_index": 2,
+        "base_ttft_short_p99_ms": 3265.444265762344,
+        "wave_ttft_short_p99_ms": 2985.7856667833403,
+        "ttft_improve_ratio": 1.0936633202075374,
+        "base_slowdown_short_p99": 4693.540873136293,
+        "wave_slowdown_short_p99": 3467.324670159694,
+        "slowdown_improve_ratio": 1.3536490867237199,
+        "base_round_wall_ms": 5528.231302741915,
+        "wave_round_wall_ms": 5550.808561034501,
+        "round_wall_improve_ratio": 0.9959326180962044,
+        "baseline_noise_match_rate": 0.25,
+        "baseline_noise_error_rate": 0.75,
+        "wave_match_rate": 0.25,
+        "wave_error_rate": 0.75,
+        "incremental_error_rate": 0.0,
+        "phase2_apply_ratio": 0.4852941176470588,
+        "phase2_applied": 33,
+        "phase2_attempts": 68,
+        "baseline_timed_out": false,
+        "wave_timed_out": false
+      }
+    ]
+  },
+  "phase1_chunked_vs_no_chunk": {
+    "ttft_improve_ratio": {
+      "count": 3.0,
+      "mean": 0.7433848381957636,
+      "p50": 0.748648841070509,
+      "p95": 0.7486856547672758,
+      "p99": 0.7486889270958773,
+      "min": 0.732815928338754,
+      "max": 0.7486897451780277
+    },
+    "round_wall_improve_ratio": {
+      "count": 3.0,
+      "mean": 0.998355981177642,
+      "p50": 0.9983250349838472,
+      "p95": 1.0020436182168442,
+      "p99": 1.002374158948666,
+      "min": 0.9942861144174572,
+      "max": 1.0024567941316216
+    },
+    "error_rate": {
+      "count": 3.0,
+      "mean": 0.3333333333333333,
+      "p50": 0.33333333333333337,
+      "p95": 0.33333333333333337,
+      "p99": 0.33333333333333337,
+      "min": 0.33333333333333337,
+      "max": 0.33333333333333337
+    },
+    "baseline_noise_error_rate": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "incremental_error_rate": {
+      "count": 3.0,
+      "mean": 0.3333333333333333,
+      "p50": 0.33333333333333337,
+      "p95": 0.33333333333333337,
+      "p99": 0.33333333333333337,
+      "min": 0.33333333333333337,
+      "max": 0.33333333333333337
+    },
+    "base_semantic_pass_rate": {
+      "count": 3.0,
+      "mean": 0.6666666666666666,
+      "p50": 0.6666666666666666,
+      "p95": 0.6666666666666666,
+      "p99": 0.6666666666666666,
+      "min": 0.6666666666666666,
+      "max": 0.6666666666666666
+    },
+    "wave_semantic_pass_rate": {
+      "count": 3.0,
+      "mean": 0.6666666666666666,
+      "p50": 0.6666666666666666,
+      "p95": 0.6666666666666666,
+      "p99": 0.6666666666666666,
+      "min": 0.6666666666666666,
+      "max": 0.6666666666666666
+    },
+    "semantic_pass_delta": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "scheduler_apply_ratio": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "baseline_chunk_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "chosen_chunk_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "chosen_vs_baseline_ratio_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "explicit_plan_ratio": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "rewrite_apply_ratio": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "rewrite_old_chunk_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "rewrite_new_chunk_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "rewrite_token_delta_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_apply_ratio": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_old_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_new_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_target_set": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_helper_calls": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_prefill_calls": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "virtual_cap_target_hits": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_total": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_slice_eligible_ratio": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_best_lt_long_ratio": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_short_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_long_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_baseline_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_best_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_queue_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    },
+    "probe_wait_us_avg": {
+      "count": 0.0,
+      "mean": null,
+      "p50": null,
+      "p95": null,
+      "p99": null,
+      "min": null,
+      "max": null
+    }
+  },
+  "phase12": {
+    "ttft_improve_ratio": {
+      "count": 3.0,
+      "mean": 1.1131202918188254,
+      "p50": 1.1207045116369654,
+      "p95": 1.1245641904144728,
+      "p99": 1.1249072729724734,
+      "min": 1.0936633202075374,
+      "max": 1.1249930436119735
+    },
+    "slowdown_improve_ratio": {
+      "count": 3.0,
+      "mean": 1.3786706672971833,
+      "p50": 1.388437805984093,
+      "p95": 1.3933763788637725,
+      "p99": 1.393815363119744,
+      "min": 1.3536490867237199,
+      "max": 1.393925109183737
+    },
+    "round_wall_improve_ratio": {
+      "count": 3.0,
+      "mean": 1.005418290986121,
+      "p50": 1.0073364746575186,
+      "p95": 1.0124208496499276,
+      "p99": 1.0128727940936975,
+      "min": 0.9959326180962044,
+      "max": 1.0129857802046398
+    },
+    "wave_error_rate": {
+      "count": 3.0,
+      "mean": 0.75,
+      "p50": 0.75,
+      "p95": 0.75,
+      "p99": 0.75,
+      "min": 0.75,
+      "max": 0.75
+    },
+    "baseline_noise_error_rate": {
+      "count": 3.0,
+      "mean": 0.75,
+      "p50": 0.75,
+      "p95": 0.75,
+      "p99": 0.75,
+      "min": 0.75,
+      "max": 0.75
+    },
+    "incremental_error_rate": {
+      "count": 3.0,
+      "mean": 0.0,
+      "p50": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "phase2_apply_ratio": {
+      "count": 3.0,
+      "mean": 0.4852941176470588,
+      "p50": 0.4852941176470588,
+      "p95": 0.4852941176470588,
+      "p99": 0.4852941176470588,
+      "min": 0.4852941176470588,
+      "max": 0.4852941176470588
+    }
+  }
+}
