@@ -17,7 +17,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Wave-Slice v1 live smoke test.")
     parser.add_argument(
         "--model-path",
-        default="/home/onceas/.cache/huggingface/hub/models--mistralai--Mistral-7B-v0.1/snapshots/27d67f1b5f57dc0953326b2601d68371d40ea8da",
+        default="mistralai/Mistral-7B-v0.1",
     )
     parser.add_argument("--model-name", default="Mistral-7B-v0.1")
     parser.add_argument("--max-new-tokens", type=int, default=8)

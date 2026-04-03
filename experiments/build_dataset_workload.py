@@ -10,7 +10,14 @@ import argparse
 import json
 import math
 import os
+import random
+import sys
 from typing import Any, Optional
+
+from config.experiment_catalog import (
+    DEFAULT_DATASET_SOURCES,
+    DEFAULT_LONG_BENCH_CONFIGS,
+)
 
 
 def _extract_longbench_prompt(example: dict[str, Any]) -> Optional[str]:
@@ -50,13 +57,86 @@ def _pick_by_quantile(items: list[dict[str, Any]], q: float) -> dict[str, Any]:
     return ordered[idx]
 
 
+def _pick_many_by_quantiles(
+    items: list[dict[str, Any]],
+    quantiles: list[float],
+) -> list[dict[str, Any]]:
+    ordered = sorted(items, key=lambda x: x["tokens"])
+    if not ordered:
+        return []
+    chosen: list[dict[str, Any]] = []
+    used: set[int] = set()
+    for q in quantiles:
+        idx = int(round((len(ordered) - 1) * q))
+        idx = max(0, min(idx, len(ordered) - 1))
+        if idx in used:
+            left = idx - 1
+            right = idx + 1
+            picked = None
+            while left >= 0 or right < len(ordered):
+                if left >= 0 and left not in used:
+                    picked = left
+                    break
+                if right < len(ordered) and right not in used:
+                    picked = right
+                    break
+                left -= 1
+                right += 1
+            idx = picked if picked is not None else idx
+        used.add(idx)
+        chosen.append(ordered[idx])
+    return chosen
+
+
+def _assign_poisson_arrivals(
+    items: list[dict[str, Any]],
+    *,
+    rate_per_s: float,
+    seed: int,
+) -> list[dict[str, Any]]:
+    if rate_per_s <= 0:
+        raise ValueError("rate_per_s must be > 0 for poisson arrivals")
+    rng = random.Random(seed)
+    cur = 0.0
+    assigned: list[dict[str, Any]] = []
+    for item in items:
+        cur += rng.expovariate(rate_per_s)
+        enriched = dict(item)
+        enriched["arrival_offset_s"] = round(cur, 6)
+        assigned.append(enriched)
+    return assigned
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build dataset request json files.")
     parser.add_argument("--model-path", required=True)
     parser.add_argument("--out-prefix", required=True)
     parser.add_argument("--trust-remote-code", action="store_true")
     parser.add_argument("--max-prompt-tokens", type=int, default=3072)
-    parser.add_argument("--sample-count", type=int, default=128)
+    parser.add_argument("--sample-count", type=int, default=256)
+    parser.add_argument("--phase1-short-count", type=int, default=24)
+    parser.add_argument("--phase1-long-count", type=int, default=8)
+    parser.add_argument("--phase2-short-count", type=int, default=24)
+    parser.add_argument("--phase2-long-count", type=int, default=12)
+    parser.add_argument(
+        "--arrival-mode",
+        choices=["burst", "poisson"],
+        default="poisson",
+        help="Whether requests arrive all at once or according to a Poisson process.",
+    )
+    parser.add_argument("--phase1-arrival-rate", type=float, default=6.0, help="Poisson arrival rate (req/s) for Phase-I requests.")
+    parser.add_argument("--phase2-arrival-rate", type=float, default=6.0, help="Poisson arrival rate (req/s) for Phase-II requests.")
+    parser.add_argument("--arrival-seed", type=int, default=7)
+    parser.add_argument(
+        "--datasets",
+        default="ultrachat200k,longbench",
+        help="Comma-separated dataset source keys.",
+    )
+    parser.add_argument(
+        "--longbench-configs",
+        default=",".join(DEFAULT_LONG_BENCH_CONFIGS),
+        help="Comma-separated LongBench config names.",
+    )
     args = parser.parse_args()
 
     from datasets import load_dataset
@@ -67,56 +147,139 @@ def main() -> int:
         trust_remote_code=args.trust_remote_code,
     )
 
-    ultrachat_prompts: list[dict[str, Any]] = []
-    ds_uc = load_dataset("HuggingFaceH4/ultrachat_200k", split="train_sft", streaming=True)
-    for ex in ds_uc:
-        prompt = _extract_ultrachat_prompt(ex)
-        if not prompt:
-            continue
-        tokens = len(tok(prompt, add_special_tokens=True).input_ids)
-        if 8 <= tokens <= args.max_prompt_tokens:
-            ultrachat_prompts.append({"prompt": prompt, "tokens": tokens})
-        if len(ultrachat_prompts) >= args.sample_count:
-            break
+    dataset_keys = [k.strip().lower() for k in args.datasets.split(",") if k.strip()]
+    selected_sources = [DEFAULT_DATASET_SOURCES[k] for k in dataset_keys if k in DEFAULT_DATASET_SOURCES]
+    if len(selected_sources) != len(dataset_keys):
+        missing = sorted(set(dataset_keys) - set(DEFAULT_DATASET_SOURCES))
+        raise ValueError(f"unknown dataset source keys: {missing}")
 
-    longbench_prompts: list[dict[str, Any]] = []
-    longbench_configs = ["qmsum", "gov_report", "multifieldqa_en", "hotpotqa"]
-    per_config = max(1, int(math.ceil(args.sample_count / float(len(longbench_configs)))))
-    for cfg in longbench_configs:
-        ds_lb = load_dataset("Xnhyacinth/LongBench", cfg, split="test")
-        taken = 0
-        for ex in ds_lb:
-            prompt = _extract_longbench_prompt(ex)
+    ultrachat_prompts: list[dict[str, Any]] = []
+    if "ultrachat200k" in dataset_keys:
+        source = DEFAULT_DATASET_SOURCES["ultrachat200k"]
+        ds_uc = load_dataset(source.dataset_id, split=source.split, streaming=source.streaming)
+        for ex in ds_uc:
+            prompt = _extract_ultrachat_prompt(ex)
             if not prompt:
                 continue
             tokens = len(tok(prompt, add_special_tokens=True).input_ids)
             if 8 <= tokens <= args.max_prompt_tokens:
-                longbench_prompts.append({"prompt": prompt, "tokens": tokens, "config": cfg})
-                taken += 1
-            if taken >= per_config or len(longbench_prompts) >= args.sample_count:
+                ultrachat_prompts.append({"prompt": prompt, "tokens": tokens, "source": source.key})
+            if len(ultrachat_prompts) >= args.sample_count:
                 break
-        if len(longbench_prompts) >= args.sample_count:
-            break
+
+    longbench_prompts: list[dict[str, Any]] = []
+    if "longbench" in dataset_keys:
+        source = DEFAULT_DATASET_SOURCES["longbench"]
+        longbench_configs = [c.strip() for c in args.longbench_configs.split(",") if c.strip()]
+        per_config = max(1, int(math.ceil(args.sample_count / float(len(longbench_configs)))))
+        for cfg in longbench_configs:
+            ds_lb = load_dataset(source.dataset_id, cfg, split=source.split)
+            taken = 0
+            for ex in ds_lb:
+                prompt = _extract_longbench_prompt(ex)
+                if not prompt:
+                    continue
+                tokens = len(tok(prompt, add_special_tokens=True).input_ids)
+                if 8 <= tokens <= args.max_prompt_tokens:
+                    longbench_prompts.append({"prompt": prompt, "tokens": tokens, "config": cfg, "source": source.key})
+                    taken += 1
+                if taken >= per_config or len(longbench_prompts) >= args.sample_count:
+                    break
+            if len(longbench_prompts) >= args.sample_count:
+                break
 
     if len(ultrachat_prompts) < 4 or len(longbench_prompts) < 4:
         raise RuntimeError("insufficient dataset prompts collected")
 
-    short_a = _pick_by_quantile(ultrachat_prompts, 0.15)
-    short_b = _pick_by_quantile(ultrachat_prompts, 0.55)
-    long_a = _pick_by_quantile(longbench_prompts, 0.50)
-    long_b = _pick_by_quantile(longbench_prompts, 0.90)
+    phase1_short_count = max(2, int(args.phase1_short_count))
+    phase1_long_count = max(1, int(args.phase1_long_count))
+    phase2_short_count = max(2, int(args.phase2_short_count))
+    phase2_long_count = max(2, int(args.phase2_long_count))
+
+    short_anchor_a = _pick_by_quantile(ultrachat_prompts, 0.15)
+    short_anchor_b = _pick_by_quantile(ultrachat_prompts, 0.55)
+    long_anchor_a = _pick_by_quantile(longbench_prompts, 0.50)
+    long_anchor_b = _pick_by_quantile(longbench_prompts, 0.90)
+
+    phase1_short_qs = [0.10 + (0.55 * i / max(1, phase1_short_count - 1)) for i in range(phase1_short_count)]
+    phase1_long_qs = [0.45 + (0.45 * i / max(1, phase1_long_count - 1)) for i in range(phase1_long_count)]
+    phase2_short_qs = [0.10 + (0.60 * i / max(1, phase2_short_count - 1)) for i in range(phase2_short_count)]
+    phase2_long_qs = [0.45 + (0.50 * i / max(1, phase2_long_count - 1)) for i in range(phase2_long_count)]
+
+    phase1_shorts = _pick_many_by_quantiles(ultrachat_prompts, phase1_short_qs)
+    phase1_longs = _pick_many_by_quantiles(longbench_prompts, phase1_long_qs)
+    phase2_shorts = _pick_many_by_quantiles(ultrachat_prompts, phase2_short_qs)
+    phase2_longs = _pick_many_by_quantiles(longbench_prompts, phase2_long_qs)
 
     reqs = [
-        {"req_id": "short_a", "prompt": short_a["prompt"], "is_short": True, "source": "UltraChat200k", "tokens": short_a["tokens"]},
-        {"req_id": "short_b", "prompt": short_b["prompt"], "is_short": True, "source": "UltraChat200k", "tokens": short_b["tokens"]},
-        {"req_id": "long_b", "prompt": long_b["prompt"], "is_short": False, "source": "LongBench", "tokens": long_b["tokens"]},
+        {"req_id": "short_a", "prompt": short_anchor_a["prompt"], "is_short": True, "source": "UltraChat200k", "tokens": short_anchor_a["tokens"]},
+        {"req_id": "short_b", "prompt": short_anchor_b["prompt"], "is_short": True, "source": "UltraChat200k", "tokens": short_anchor_b["tokens"]},
     ]
+    for i, item in enumerate(phase1_shorts):
+        reqs.append(
+            {
+                "req_id": f"short_{i:02d}",
+                "prompt": item["prompt"],
+                "is_short": True,
+                "source": "UltraChat200k",
+                "tokens": item["tokens"],
+            }
+        )
+    reqs.append({"req_id": "long_b", "prompt": long_anchor_b["prompt"], "is_short": False, "source": "LongBench", "tokens": long_anchor_b["tokens"]})
+    for i, item in enumerate(phase1_longs):
+        reqs.append(
+            {
+                "req_id": f"long_{i:02d}",
+                "prompt": item["prompt"],
+                "is_short": False,
+                "source": "LongBench",
+                "tokens": item["tokens"],
+            }
+        )
+
     lora_reqs = [
-        {"req_id": "short_a", "prompt": short_a["prompt"], "is_short": True, "lora_tag": "A", "source": "UltraChat200k", "tokens": short_a["tokens"]},
-        {"req_id": "mid_b", "prompt": short_b["prompt"], "is_short": True, "lora_tag": "B", "source": "UltraChat200k", "tokens": short_b["tokens"]},
-        {"req_id": "long_a", "prompt": long_a["prompt"], "is_short": False, "lora_tag": "A", "source": "LongBench", "tokens": long_a["tokens"]},
-        {"req_id": "long_b", "prompt": long_b["prompt"], "is_short": False, "lora_tag": "B", "source": "LongBench", "tokens": long_b["tokens"]},
+        {"req_id": "short_a", "prompt": short_anchor_a["prompt"], "is_short": True, "lora_tag": "A", "source": "UltraChat200k", "tokens": short_anchor_a["tokens"]},
+        {"req_id": "mid_b", "prompt": short_anchor_b["prompt"], "is_short": True, "lora_tag": "B", "source": "UltraChat200k", "tokens": short_anchor_b["tokens"]},
+        {"req_id": "long_a", "prompt": long_anchor_a["prompt"], "is_short": False, "lora_tag": "A", "source": "LongBench", "tokens": long_anchor_a["tokens"]},
+        {"req_id": "long_b", "prompt": long_anchor_b["prompt"], "is_short": False, "lora_tag": "B", "source": "LongBench", "tokens": long_anchor_b["tokens"]},
     ]
+    for i, item in enumerate(phase2_shorts):
+        lora_reqs.append(
+            {
+                "req_id": f"short_extra_{i:02d}",
+                "prompt": item["prompt"],
+                "is_short": True,
+                "lora_tag": "A" if i % 2 == 0 else "B",
+                "source": "UltraChat200k",
+                "tokens": item["tokens"],
+            }
+        )
+    for i, item in enumerate(phase2_longs):
+        lora_reqs.append(
+            {
+                "req_id": f"long_extra_{i:02d}",
+                "prompt": item["prompt"],
+                "is_short": False,
+                "lora_tag": "A" if i % 2 == 0 else "B",
+                "source": "LongBench",
+                "tokens": item["tokens"],
+            }
+        )
+
+    if args.arrival_mode == "poisson":
+        reqs = _assign_poisson_arrivals(
+            reqs,
+            rate_per_s=float(args.phase1_arrival_rate),
+            seed=int(args.arrival_seed),
+        )
+        lora_reqs = _assign_poisson_arrivals(
+            lora_reqs,
+            rate_per_s=float(args.phase2_arrival_rate),
+            seed=int(args.arrival_seed) + 1009,
+        )
+    else:
+        reqs = [dict(item, arrival_offset_s=0.0) for item in reqs]
+        lora_reqs = [dict(item, arrival_offset_s=0.0) for item in lora_reqs]
 
     os.makedirs(os.path.dirname(args.out_prefix) or ".", exist_ok=True)
     req_path = f"{args.out_prefix}_requests.json"
@@ -131,10 +294,17 @@ def main() -> int:
             {
                 "model_path": args.model_path,
                 "trust_remote_code": args.trust_remote_code,
-                "short_a_tokens": short_a["tokens"],
-                "short_b_tokens": short_b["tokens"],
-                "long_a_tokens": long_a["tokens"],
-                "long_b_tokens": long_b["tokens"],
+                "short_a_tokens": short_anchor_a["tokens"],
+                "short_b_tokens": short_anchor_b["tokens"],
+                "long_a_tokens": long_anchor_a["tokens"],
+                "long_b_tokens": long_anchor_b["tokens"],
+                "phase1_request_count": len(reqs),
+                "phase2_request_count": len(lora_reqs),
+                "arrival_mode": args.arrival_mode,
+                "phase1_arrival_rate": args.phase1_arrival_rate,
+                "phase2_arrival_rate": args.phase2_arrival_rate,
+                "phase1_last_arrival_s": max((float(item.get("arrival_offset_s", 0.0)) for item in reqs), default=0.0),
+                "phase2_last_arrival_s": max((float(item.get("arrival_offset_s", 0.0)) for item in lora_reqs), default=0.0),
             },
             f,
             ensure_ascii=False,
@@ -147,4 +317,9 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    code = int(main())
+    try:
+        sys.stdout.flush()
+        sys.stderr.flush()
+    finally:
+        os._exit(code)

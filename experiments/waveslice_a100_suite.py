@@ -17,43 +17,22 @@ import subprocess
 import sys
 import time
 import traceback
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 os.environ.setdefault("VLLM_NO_USAGE_STATS", "1")
 
+from config.experiment_catalog import (
+    DEFAULT_EXPERIMENT_MODELS,
+    DEFAULT_SYNTHETIC_ADAPTER_PRESETS,
+    ExperimentModelSpec as ModelSpec,
+    get_model_specs,
+    safe_key,
+)
 from engine.runtime_bootstrap import bootstrap_vllm_runtime
 from tools.synthetic_lora_builder import AdapterSpec, build_synthetic_adapters
 
 bootstrap_vllm_runtime()
-
-
-@dataclass(frozen=True)
-class ModelSpec:
-    key: str
-    model_id: str
-    lut_name: str
-    trust_remote_code: bool = False
-    max_model_len_override: Optional[int] = None
-
-
-DEFAULT_MODELS: list[ModelSpec] = [
-    ModelSpec("mistral-7b-v0.1", "mistralai/Mistral-7B-v0.1", "Mistral-7B-v0.1"),
-    ModelSpec("mistral-7b-instruct-v0.2", "mistralai/Mistral-7B-Instruct-v0.2", "Mistral-7B-v0.1"),
-    # Mistral-family variants (LoRA path maps to Llama backend in vLLM 0.4.x)
-    ModelSpec("zephyr-7b-beta", "HuggingFaceH4/zephyr-7b-beta", "Mistral-7B-v0.1"),
-    ModelSpec("openchat-3.5-0106", "openchat/openchat-3.5-0106", "Mistral-7B-v0.1"),
-    # Distinct architecture families for broader heterogeneity.
-    ModelSpec("gemma-7b-it", "google/gemma-7b-it", "Gemma-7B"),
-    ModelSpec("decilm-7b", "Deci/DeciLM-7B", "Mistral-7B-v0.1", trust_remote_code=True),
-    ModelSpec("phi-2", "microsoft/phi-2", "Mistral-7B-v0.1", max_model_len_override=2048),
-    ModelSpec("baichuan2-7b-chat", "baichuan-inc/Baichuan2-7B-Chat", "Mistral-7B-v0.1", trust_remote_code=True),
-]
-
-
-def _safe_key(s: str) -> str:
-    return re.sub(r"[^a-zA-Z0-9_.-]+", "_", s)
 
 
 def _percentile(values: list[float], p: float) -> Optional[float]:
@@ -97,8 +76,9 @@ def _ensure_adapters(
     out_dir: str,
     trust_remote_code: bool,
 ) -> tuple[str, str]:
-    path_a = os.path.join(out_dir, "adapter_rank8_seed7")
-    path_b = os.path.join(out_dir, "adapter_rank16_seed11")
+    preset_a, preset_b = DEFAULT_SYNTHETIC_ADAPTER_PRESETS[:2]
+    path_a = os.path.join(out_dir, preset_a.name)
+    path_b = os.path.join(out_dir, preset_b.name)
     marker_a = os.path.join(path_a, "adapter_config.json")
     marker_b = os.path.join(path_b, "adapter_config.json")
     if os.path.exists(marker_a) and os.path.exists(marker_b):
@@ -108,8 +88,14 @@ def _ensure_adapters(
         base_model=base_model_path,
         out_dir=out_dir,
         specs=[
-            AdapterSpec(name="adapter_rank8_seed7", rank=8, alpha=16, seed=7, init_std=0.02),
-            AdapterSpec(name="adapter_rank16_seed11", rank=16, alpha=32, seed=11, init_std=0.04),
+            AdapterSpec(
+                name=spec.name,
+                rank=spec.rank,
+                alpha=spec.alpha,
+                seed=spec.seed,
+                init_std=spec.init_std,
+            )
+            for spec in DEFAULT_SYNTHETIC_ADAPTER_PRESETS
         ],
         trust_remote_code=trust_remote_code,
     )
@@ -254,17 +240,6 @@ def _run_model(
     return row
 
 
-def _select_models(keys: Optional[str]) -> list[ModelSpec]:
-    if not keys:
-        return DEFAULT_MODELS
-    key_set = {k.strip() for k in keys.split(",") if k.strip()}
-    selected = [m for m in DEFAULT_MODELS if m.key in key_set]
-    missing = key_set - {m.key for m in selected}
-    if missing:
-        raise ValueError(f"Unknown model keys: {sorted(missing)}")
-    return selected
-
-
 def _write_csv(rows: list[dict[str, Any]], out_csv: str) -> None:
     if not rows:
         return
@@ -317,7 +292,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--adapters-root",
-        default="/tmp/waveslice_synthetic_adapters",
+        default=os.path.join("results", "synthetic_adapters"),
         help="Directory to store synthetic adapters.",
     )
     parser.add_argument(
@@ -336,11 +311,11 @@ def main() -> int:
 
     if args.list_models:
         print("Available model keys:")
-        for spec in DEFAULT_MODELS:
+        for spec in DEFAULT_EXPERIMENT_MODELS:
             print(f"  {spec.key:24s} -> {spec.model_id}")
         return 0
 
-    models = _select_models(args.models)
+    models = get_model_specs(args.models)
     ts = time.strftime("%Y%m%d_%H%M%S")
     out_csv = args.out_csv or f"results/waveslice_a100_suite_{ts}.csv"
     results_dir = args.results_dir or f"results/waveslice_a100_suite_{ts}"

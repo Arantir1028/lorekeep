@@ -1,2 +1,0 @@
-model,lut_name,status,error
-mistralai/Mistral-7B-v0.1,Mistral-7B-v0.1,failed,Missing dependency: peft. Install with `pip install peft` in your active env.

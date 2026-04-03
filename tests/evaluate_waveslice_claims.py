@@ -18,12 +18,15 @@ import gc
 import json
 import math
 import os
+import sys
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Optional
 
 os.environ.setdefault("VLLM_NO_USAGE_STATS", "1")
 
+from config.experiment_catalog import DEFAULT_SYNTHETIC_ADAPTER_PRESETS, safe_key
 from engine.runtime_bootstrap import bootstrap_vllm_runtime
 from engine.vllm_hijacker import (
     WaveSlicePolicy,
@@ -32,6 +35,8 @@ from engine.vllm_hijacker import (
     reset_wave_slice_metrics,
     uninject_wave_slice,
 )
+from tools.synthetic_lora_builder import AdapterSpec, build_synthetic_adapters
+from tools.experiment_lock import gpu_experiment_lock
 
 bootstrap_vllm_runtime()
 
@@ -42,6 +47,41 @@ class Req:
     prompt: str
     is_short: bool
     lora_tag: Optional[str] = None
+    arrival_offset_s: float = 0.0
+
+
+def _ensure_eval_adapters(
+    *,
+    model_path: str,
+    adapters_root: str,
+    trust_remote_code: bool,
+) -> tuple[str, str]:
+    model_key = safe_key(model_path)
+    out_dir = os.path.join(adapters_root, model_key)
+    os.makedirs(out_dir, exist_ok=True)
+    preset_a, preset_b = DEFAULT_SYNTHETIC_ADAPTER_PRESETS[:2]
+    path_a = os.path.join(out_dir, preset_a.name)
+    path_b = os.path.join(out_dir, preset_b.name)
+    marker_a = os.path.join(path_a, "adapter_config.json")
+    marker_b = os.path.join(path_b, "adapter_config.json")
+    if os.path.exists(marker_a) and os.path.exists(marker_b):
+        return path_a, path_b
+    built = build_synthetic_adapters(
+        base_model=model_path,
+        out_dir=out_dir,
+        specs=[
+            AdapterSpec(
+                name=spec.name,
+                rank=spec.rank,
+                alpha=spec.alpha,
+                seed=spec.seed,
+                init_std=spec.init_std,
+            )
+            for spec in DEFAULT_SYNTHETIC_ADAPTER_PRESETS
+        ],
+        trust_remote_code=trust_remote_code,
+    )
+    return built[0], built[1]
 
 
 def _load_reqs_json(path: str) -> list[Req]:
@@ -59,7 +99,20 @@ def _load_reqs_json(path: str) -> list[Req]:
             raise ValueError(f"request item #{i} has empty prompt")
         is_short = bool(item.get("is_short"))
         lora_tag = item.get("lora_tag")
-        reqs.append(Req(req_id=req_id, prompt=prompt, is_short=is_short, lora_tag=lora_tag))
+        arrival_offset_s = float(
+            item.get("arrival_offset_s")
+            or item.get("arrival_s")
+            or 0.0
+        )
+        reqs.append(
+            Req(
+                req_id=req_id,
+                prompt=prompt,
+                is_short=is_short,
+                lora_tag=lora_tag,
+                arrival_offset_s=max(0.0, arrival_offset_s),
+            )
+        )
     return reqs
 
 
@@ -221,6 +274,24 @@ def _fit_requests_to_context(
     return reqs, tok_lens, cur_long_repeat
 
 
+def _bool_arg_from_argv(flag: str, default: bool) -> bool:
+    if f"--no-{flag}" in sys.argv:
+        return False
+    if f"--{flag}" in sys.argv:
+        return True
+    return default
+
+
+def _str_arg_from_argv(flag: str, default: str = "") -> str:
+    try:
+        idx = sys.argv.index(f"--{flag}")
+    except ValueError:
+        return default
+    if idx + 1 >= len(sys.argv):
+        return default
+    return str(sys.argv[idx + 1])
+
+
 def _fit_lora_requests_to_context(
     *,
     model_path: str,
@@ -262,6 +333,20 @@ def _configure_mode(
     phase1_ingress_target_chunk: int,
     phase1_ingress_direct_authoritative: bool,
     phase1_ingress_exact_chunk: bool,
+    phase12_phase2_gate_mode: str,
+    phase12_phase2_soft_ratio_scale: float,
+    phase12_phase2_soft_pressure_scale: float,
+    phase12_phase2_soft_min_long_prefill: int,
+    phase12_phase2_soft_allow_mixed_decode: bool,
+    phase12_phase2_soft_recent_strength_floor: float,
+    phase12_phase2_soft_require_cashout_signal: bool,
+    phase12_phase2_soft_recent_chunk_match_scale: float,
+    phase12_phase2_soft_window_score_threshold: float,
+    phase12_phase2_soft_window_recent_weight: float,
+    phase12_phase2_soft_window_chunk_weight: float,
+    phase12_phase2_soft_window_pressure_weight: float,
+    phase12_phase2_soft_window_ratio_weight: float,
+    phase12_phase2_soft_window_decode_bonus: float,
 ) -> None:
     if mode == "baseline":
         uninject_wave_slice()
@@ -311,6 +396,20 @@ def _configure_mode(
             phase1_ingress_exact_chunk=bool(phase1_ingress_exact_chunk),
             phase2_consistency_mode="balanced",
             phase2_dispatch_mode=phase2_dispatch_mode,
+            phase12_phase2_gate_mode=str(phase12_phase2_gate_mode),
+            phase12_phase2_soft_ratio_scale=float(phase12_phase2_soft_ratio_scale),
+            phase12_phase2_soft_pressure_scale=float(phase12_phase2_soft_pressure_scale),
+            phase12_phase2_soft_min_long_prefill=int(phase12_phase2_soft_min_long_prefill),
+            phase12_phase2_soft_allow_mixed_decode=bool(phase12_phase2_soft_allow_mixed_decode),
+            phase12_phase2_soft_recent_strength_floor=float(phase12_phase2_soft_recent_strength_floor),
+            phase12_phase2_soft_require_cashout_signal=bool(phase12_phase2_soft_require_cashout_signal),
+            phase12_phase2_soft_recent_chunk_match_scale=float(phase12_phase2_soft_recent_chunk_match_scale),
+            phase12_phase2_soft_window_score_threshold=float(phase12_phase2_soft_window_score_threshold),
+            phase12_phase2_soft_window_recent_weight=float(phase12_phase2_soft_window_recent_weight),
+            phase12_phase2_soft_window_chunk_weight=float(phase12_phase2_soft_window_chunk_weight),
+            phase12_phase2_soft_window_pressure_weight=float(phase12_phase2_soft_window_pressure_weight),
+            phase12_phase2_soft_window_ratio_weight=float(phase12_phase2_soft_window_ratio_weight),
+            phase12_phase2_soft_window_decode_bonus=float(phase12_phase2_soft_window_decode_bonus),
         )
         inject_wave_slice(model_name, gamma=float(phase1_gamma), policy=policy, force=True)
         return
@@ -343,6 +442,20 @@ def _configure_mode(
             phase1_ingress_exact_chunk=bool(phase1_ingress_exact_chunk),
             phase2_consistency_mode="strict",
             phase2_dispatch_mode=phase2_dispatch_mode,
+            phase12_phase2_gate_mode=str(phase12_phase2_gate_mode),
+            phase12_phase2_soft_ratio_scale=float(phase12_phase2_soft_ratio_scale),
+            phase12_phase2_soft_pressure_scale=float(phase12_phase2_soft_pressure_scale),
+            phase12_phase2_soft_min_long_prefill=int(phase12_phase2_soft_min_long_prefill),
+            phase12_phase2_soft_allow_mixed_decode=bool(phase12_phase2_soft_allow_mixed_decode),
+            phase12_phase2_soft_recent_strength_floor=float(phase12_phase2_soft_recent_strength_floor),
+            phase12_phase2_soft_require_cashout_signal=bool(phase12_phase2_soft_require_cashout_signal),
+            phase12_phase2_soft_recent_chunk_match_scale=float(phase12_phase2_soft_recent_chunk_match_scale),
+            phase12_phase2_soft_window_score_threshold=float(phase12_phase2_soft_window_score_threshold),
+            phase12_phase2_soft_window_recent_weight=float(phase12_phase2_soft_window_recent_weight),
+            phase12_phase2_soft_window_chunk_weight=float(phase12_phase2_soft_window_chunk_weight),
+            phase12_phase2_soft_window_pressure_weight=float(phase12_phase2_soft_window_pressure_weight),
+            phase12_phase2_soft_window_ratio_weight=float(phase12_phase2_soft_window_ratio_weight),
+            phase12_phase2_soft_window_decode_bonus=float(phase12_phase2_soft_window_decode_bonus),
         )
         inject_wave_slice(model_name, gamma=float(phase1_gamma), policy=policy, force=True)
         return
@@ -390,6 +503,20 @@ def _build_engine(
     phase1_ingress_target_chunk: int,
     phase1_ingress_direct_authoritative: bool,
     phase1_ingress_exact_chunk: bool,
+    phase12_phase2_gate_mode: str,
+    phase12_phase2_soft_ratio_scale: float,
+    phase12_phase2_soft_pressure_scale: float,
+    phase12_phase2_soft_min_long_prefill: int,
+    phase12_phase2_soft_allow_mixed_decode: bool,
+    phase12_phase2_soft_recent_strength_floor: float,
+    phase12_phase2_soft_require_cashout_signal: bool,
+    phase12_phase2_soft_recent_chunk_match_scale: float,
+    phase12_phase2_soft_window_score_threshold: float,
+    phase12_phase2_soft_window_recent_weight: float,
+    phase12_phase2_soft_window_chunk_weight: float,
+    phase12_phase2_soft_window_pressure_weight: float,
+    phase12_phase2_soft_window_ratio_weight: float,
+    phase12_phase2_soft_window_decode_bonus: float,
     enable_chunked_prefill: bool,
     adapter_a: Optional[str] = None,
     adapter_b: Optional[str] = None,
@@ -408,6 +535,20 @@ def _build_engine(
         phase1_ingress_target_chunk=phase1_ingress_target_chunk,
         phase1_ingress_direct_authoritative=phase1_ingress_direct_authoritative,
         phase1_ingress_exact_chunk=phase1_ingress_exact_chunk,
+        phase12_phase2_gate_mode=phase12_phase2_gate_mode,
+        phase12_phase2_soft_ratio_scale=phase12_phase2_soft_ratio_scale,
+        phase12_phase2_soft_pressure_scale=phase12_phase2_soft_pressure_scale,
+        phase12_phase2_soft_min_long_prefill=phase12_phase2_soft_min_long_prefill,
+        phase12_phase2_soft_allow_mixed_decode=phase12_phase2_soft_allow_mixed_decode,
+        phase12_phase2_soft_recent_strength_floor=phase12_phase2_soft_recent_strength_floor,
+        phase12_phase2_soft_require_cashout_signal=phase12_phase2_soft_require_cashout_signal,
+        phase12_phase2_soft_recent_chunk_match_scale=phase12_phase2_soft_recent_chunk_match_scale,
+        phase12_phase2_soft_window_score_threshold=phase12_phase2_soft_window_score_threshold,
+        phase12_phase2_soft_window_recent_weight=phase12_phase2_soft_window_recent_weight,
+        phase12_phase2_soft_window_chunk_weight=phase12_phase2_soft_window_chunk_weight,
+        phase12_phase2_soft_window_pressure_weight=phase12_phase2_soft_window_pressure_weight,
+        phase12_phase2_soft_window_ratio_weight=phase12_phase2_soft_window_ratio_weight,
+        phase12_phase2_soft_window_decode_bonus=phase12_phase2_soft_window_decode_bonus,
     )
 
     effective_batched_tokens = int(max_num_batched_tokens)
@@ -458,25 +599,46 @@ def _run_round(
     trackers: dict[str, dict[str, Any]] = {}
     reset_wave_slice_metrics()
 
-    arrival = time.perf_counter()
-    for r in reqs:
-        rid = f"{run_tag}:{r.req_id}"
-        if enable_lora:
-            engine.add_request(rid, r.prompt, sampling, lora_request=lora_map[r.lora_tag or "A"])
-        else:
-            engine.add_request(rid, r.prompt, sampling)
-        trackers[rid] = {
-            "orig_req_id": r.req_id,
-            "arrival_s": arrival,
-            "first_s": None,
-            "finish_s": None,
-            "is_short": r.is_short,
-            "text": "",
-        }
-
+    pending_reqs = sorted(
+        reqs,
+        key=lambda r: (float(getattr(r, "arrival_offset_s", 0.0) or 0.0), str(r.req_id)),
+    )
+    next_idx = 0
     round_start = time.perf_counter()
     deadline = time.time() + timeout_sec
-    while time.time() < deadline and engine.has_unfinished_requests():
+    while time.time() < deadline and (
+        next_idx < len(pending_reqs) or engine.has_unfinished_requests()
+    ):
+        now = time.perf_counter()
+        elapsed_s = now - round_start
+        while next_idx < len(pending_reqs):
+            r = pending_reqs[next_idx]
+            if float(getattr(r, "arrival_offset_s", 0.0) or 0.0) > elapsed_s:
+                break
+            rid = f"{run_tag}:{r.req_id}"
+            if enable_lora:
+                engine.add_request(rid, r.prompt, sampling, lora_request=lora_map[r.lora_tag or "A"])
+            else:
+                engine.add_request(rid, r.prompt, sampling)
+            trackers[rid] = {
+                "orig_req_id": r.req_id,
+                "arrival_s": now,
+                "scheduled_arrival_offset_s": float(getattr(r, "arrival_offset_s", 0.0) or 0.0),
+                "first_s": None,
+                "finish_s": None,
+                "is_short": r.is_short,
+                "text": "",
+            }
+            next_idx += 1
+
+        if not engine.has_unfinished_requests():
+            if next_idx < len(pending_reqs):
+                next_arrival = float(getattr(pending_reqs[next_idx], "arrival_offset_s", 0.0) or 0.0)
+                sleep_s = max(0.0, min(0.01, next_arrival - (time.perf_counter() - round_start)))
+                if sleep_s > 0:
+                    time.sleep(sleep_s)
+            continue
+
         outputs = engine.step()
         now = time.perf_counter()
         for out in outputs:
@@ -514,6 +676,7 @@ def _run_round(
         "timed_out": finished_count != len(trackers),
         "finished_requests": finished_count,
         "total_requests": len(trackers),
+        "max_arrival_offset_s": max((float(getattr(r, "arrival_offset_s", 0.0) or 0.0) for r in pending_reqs), default=0.0),
         "hook_report": report,
     }
     return result
@@ -538,6 +701,20 @@ def _run_mode_series(
     phase1_ingress_target_chunk: int,
     phase1_ingress_direct_authoritative: bool,
     phase1_ingress_exact_chunk: bool,
+    phase12_phase2_gate_mode: str,
+    phase12_phase2_soft_ratio_scale: float,
+    phase12_phase2_soft_pressure_scale: float,
+    phase12_phase2_soft_min_long_prefill: int,
+    phase12_phase2_soft_allow_mixed_decode: bool,
+    phase12_phase2_soft_recent_strength_floor: float,
+    phase12_phase2_soft_require_cashout_signal: bool,
+    phase12_phase2_soft_recent_chunk_match_scale: float,
+    phase12_phase2_soft_window_score_threshold: float,
+    phase12_phase2_soft_window_recent_weight: float,
+    phase12_phase2_soft_window_chunk_weight: float,
+    phase12_phase2_soft_window_pressure_weight: float,
+    phase12_phase2_soft_window_ratio_weight: float,
+    phase12_phase2_soft_window_decode_bonus: float,
     enable_chunked_prefill: bool,
     adapter_a: Optional[str] = None,
     adapter_b: Optional[str] = None,
@@ -559,6 +736,20 @@ def _run_mode_series(
             phase1_ingress_target_chunk=phase1_ingress_target_chunk,
             phase1_ingress_direct_authoritative=phase1_ingress_direct_authoritative,
             phase1_ingress_exact_chunk=phase1_ingress_exact_chunk,
+            phase12_phase2_gate_mode=phase12_phase2_gate_mode,
+            phase12_phase2_soft_ratio_scale=phase12_phase2_soft_ratio_scale,
+            phase12_phase2_soft_pressure_scale=phase12_phase2_soft_pressure_scale,
+            phase12_phase2_soft_min_long_prefill=phase12_phase2_soft_min_long_prefill,
+            phase12_phase2_soft_allow_mixed_decode=phase12_phase2_soft_allow_mixed_decode,
+            phase12_phase2_soft_recent_strength_floor=phase12_phase2_soft_recent_strength_floor,
+            phase12_phase2_soft_require_cashout_signal=phase12_phase2_soft_require_cashout_signal,
+            phase12_phase2_soft_recent_chunk_match_scale=phase12_phase2_soft_recent_chunk_match_scale,
+            phase12_phase2_soft_window_score_threshold=phase12_phase2_soft_window_score_threshold,
+            phase12_phase2_soft_window_recent_weight=phase12_phase2_soft_window_recent_weight,
+            phase12_phase2_soft_window_chunk_weight=phase12_phase2_soft_window_chunk_weight,
+            phase12_phase2_soft_window_pressure_weight=phase12_phase2_soft_window_pressure_weight,
+            phase12_phase2_soft_window_ratio_weight=phase12_phase2_soft_window_ratio_weight,
+            phase12_phase2_soft_window_decode_bonus=phase12_phase2_soft_window_decode_bonus,
             enable_chunked_prefill=enable_chunked_prefill,
             adapter_a=adapter_a,
             adapter_b=adapter_b,
@@ -944,7 +1135,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--model-path",
-        default="/home/onceas/.cache/huggingface/hub/models--mistralai--Mistral-7B-v0.1/snapshots/27d67f1b5f57dc0953326b2601d68371d40ea8da",
+        default="mistralai/Mistral-7B-v0.1",
     )
     parser.add_argument("--model-name", default="Mistral-7B-v0.1")
     parser.add_argument("--trust-remote-code", action="store_true")
@@ -994,6 +1185,90 @@ def main() -> int:
         default=False,
         help="When authoritative ingress is enabled, use the exact target chunk instead of bucket-down mapping.",
     )
+    parser.add_argument(
+        "--phase12-phase2-gate-mode",
+        choices=["hard", "soft"],
+        default="soft",
+        help="Joint coordination gate mode for Phase-II when Phase-I and Phase-II are both enabled.",
+    )
+    parser.add_argument(
+        "--phase12-phase2-soft-ratio-scale",
+        type=float,
+        default=1.15,
+        help="Multiplier on heterogeneity ratio threshold for the soft joint Phase-II gate.",
+    )
+    parser.add_argument(
+        "--phase12-phase2-soft-pressure-scale",
+        type=float,
+        default=1.10,
+        help="Multiplier on pressure ratio threshold for the soft joint Phase-II gate.",
+    )
+    parser.add_argument(
+        "--phase12-phase2-soft-min-long-prefill",
+        type=int,
+        default=512,
+        help="Minimum long-prefill length that can unlock the soft joint Phase-II gate without recent Phase-I activity.",
+    )
+    parser.add_argument(
+        "--phase12-phase2-soft-allow-mixed-decode",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Whether mixed prefill/decode pressure can unlock the soft joint Phase-II gate.",
+    )
+    parser.add_argument(
+        "--phase12-phase2-soft-recent-strength-floor",
+        type=float,
+        default=0.08,
+        help="Minimum decayed recent Phase-I strength that counts as a cash-out signal for the soft joint gate.",
+    )
+    parser.add_argument(
+        "--phase12-phase2-soft-require-cashout-signal",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Require a concrete cash-out signal (recent Phase-I strength or mixed decode pressure) before soft strong-prefill Phase-II dispatch.",
+    )
+    parser.add_argument(
+        "--phase12-phase2-soft-recent-chunk-match-scale",
+        type=float,
+        default=1.5,
+        help="Allow soft Phase-II cash-out only when the current smallest prefill still matches the recent Phase-I chunk window up to this scale.",
+    )
+    parser.add_argument(
+        "--phase12-phase2-soft-window-score-threshold",
+        type=float,
+        default=0.95,
+        help="Minimum joint window-quality score needed before soft Phase-II dispatch is treated as a reliable cash-out.",
+    )
+    parser.add_argument(
+        "--phase12-phase2-soft-window-recent-weight",
+        type=float,
+        default=0.40,
+        help="Weight of recent Phase-I strength in the soft joint window-quality score.",
+    )
+    parser.add_argument(
+        "--phase12-phase2-soft-window-chunk-weight",
+        type=float,
+        default=0.25,
+        help="Weight of chunk-window match quality in the soft joint window-quality score.",
+    )
+    parser.add_argument(
+        "--phase12-phase2-soft-window-pressure-weight",
+        type=float,
+        default=0.20,
+        help="Weight of current Phase-II pressure in the soft joint window-quality score.",
+    )
+    parser.add_argument(
+        "--phase12-phase2-soft-window-ratio-weight",
+        type=float,
+        default=0.10,
+        help="Weight of current heterogeneity ratio in the soft joint window-quality score.",
+    )
+    parser.add_argument(
+        "--phase12-phase2-soft-window-decode-bonus",
+        type=float,
+        default=0.10,
+        help="Bonus added to the soft joint window-quality score when mixed prefill/decode pressure is present.",
+    )
     parser.add_argument("--include-strict", action="store_true")
     parser.add_argument(
         "--include-phase12",
@@ -1007,11 +1282,21 @@ def main() -> int:
     )
     parser.add_argument(
         "--adapter-a",
-        default="/tmp/waveslice_synthetic_adapters/mistral-7b-v0.1/adapter_rank8_seed7",
+        default="",
     )
     parser.add_argument(
         "--adapter-b",
-        default="/tmp/waveslice_synthetic_adapters/mistral-7b-v0.1/adapter_rank16_seed11",
+        default="",
+    )
+    parser.add_argument(
+        "--adapters-root",
+        default=os.path.join("results", "synthetic_adapters"),
+        help="Directory used when synthetic adapters need to be auto-created.",
+    )
+    parser.add_argument(
+        "--no-auto-build-adapters",
+        action="store_true",
+        help="Disable automatic synthetic adapter creation when adapter paths are omitted.",
     )
     parser.add_argument(
         "--out-json",
@@ -1032,6 +1317,17 @@ def main() -> int:
         "--lora-requests-json",
         default="",
         help="Optional JSON file containing LoRA requests.",
+    )
+    parser.add_argument(
+        "--serialize-gpu-tests",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Serialize GPU-backed experiments through a global file lock.",
+    )
+    parser.add_argument(
+        "--gpu-lock-path",
+        default="",
+        help="Optional file path used for the global GPU experiment lock.",
     )
     args = parser.parse_args()
 
@@ -1087,11 +1383,34 @@ def main() -> int:
     if fitted_lora_long_repeat != args.long_repeat:
         print(f"  lora_long_repeat auto-adjusted: {args.long_repeat} -> {fitted_lora_long_repeat}")
 
-    if not (os.path.exists(args.adapter_a) and os.path.exists(args.adapter_b)):
-        print("[Eval] adapters not found; cannot run Phase-II LoRA repeated test.")
-        print(f"  expected A={args.adapter_a}")
-        print(f"  expected B={args.adapter_b}")
-        return 1
+    need_lora_adapters = (not args.skip_phase2) or args.include_phase12 or args.include_strict
+    if need_lora_adapters:
+        adapter_a = args.adapter_a.strip()
+        adapter_b = args.adapter_b.strip()
+        if not adapter_a or not adapter_b:
+            if args.no_auto_build_adapters:
+                print("[Eval] adapter paths were not provided and auto-build is disabled.")
+                return 1
+            print("[Eval] auto-building synthetic adapters")
+            adapter_a, adapter_b = _ensure_eval_adapters(
+                model_path=args.model_path,
+                adapters_root=args.adapters_root,
+                trust_remote_code=args.trust_remote_code,
+            )
+        elif not (os.path.exists(adapter_a) and os.path.exists(adapter_b)):
+            if args.no_auto_build_adapters:
+                print("[Eval] adapters not found; cannot run Phase-II LoRA repeated test.")
+                print(f"  expected A={adapter_a}")
+                print(f"  expected B={adapter_b}")
+                return 1
+            print("[Eval] adapter paths missing on disk; auto-building synthetic adapters")
+            adapter_a, adapter_b = _ensure_eval_adapters(
+                model_path=args.model_path,
+                adapters_root=args.adapters_root,
+                trust_remote_code=args.trust_remote_code,
+            )
+        args.adapter_a = adapter_a
+        args.adapter_b = adapter_b
 
     print(f"[Eval] warmup_iters={args.warmup_iters}, repeats={args.repeats}")
 
@@ -1120,6 +1439,20 @@ def main() -> int:
             phase1_ingress_target_chunk=args.phase1_ingress_target_chunk,
             phase1_ingress_direct_authoritative=args.phase1_ingress_direct_authoritative,
             phase1_ingress_exact_chunk=args.phase1_ingress_exact_chunk,
+            phase12_phase2_gate_mode=args.phase12_phase2_gate_mode,
+            phase12_phase2_soft_ratio_scale=args.phase12_phase2_soft_ratio_scale,
+            phase12_phase2_soft_pressure_scale=args.phase12_phase2_soft_pressure_scale,
+            phase12_phase2_soft_min_long_prefill=args.phase12_phase2_soft_min_long_prefill,
+            phase12_phase2_soft_allow_mixed_decode=args.phase12_phase2_soft_allow_mixed_decode,
+            phase12_phase2_soft_recent_strength_floor=args.phase12_phase2_soft_recent_strength_floor,
+            phase12_phase2_soft_require_cashout_signal=args.phase12_phase2_soft_require_cashout_signal,
+            phase12_phase2_soft_recent_chunk_match_scale=args.phase12_phase2_soft_recent_chunk_match_scale,
+            phase12_phase2_soft_window_score_threshold=args.phase12_phase2_soft_window_score_threshold,
+            phase12_phase2_soft_window_recent_weight=args.phase12_phase2_soft_window_recent_weight,
+            phase12_phase2_soft_window_chunk_weight=args.phase12_phase2_soft_window_chunk_weight,
+            phase12_phase2_soft_window_pressure_weight=args.phase12_phase2_soft_window_pressure_weight,
+            phase12_phase2_soft_window_ratio_weight=args.phase12_phase2_soft_window_ratio_weight,
+            phase12_phase2_soft_window_decode_bonus=args.phase12_phase2_soft_window_decode_bonus,
             enable_chunked_prefill=True,
             trust_remote_code=args.trust_remote_code,
         )
@@ -1142,6 +1475,20 @@ def main() -> int:
             phase1_ingress_target_chunk=args.phase1_ingress_target_chunk,
             phase1_ingress_direct_authoritative=args.phase1_ingress_direct_authoritative,
             phase1_ingress_exact_chunk=args.phase1_ingress_exact_chunk,
+            phase12_phase2_gate_mode=args.phase12_phase2_gate_mode,
+            phase12_phase2_soft_ratio_scale=args.phase12_phase2_soft_ratio_scale,
+            phase12_phase2_soft_pressure_scale=args.phase12_phase2_soft_pressure_scale,
+            phase12_phase2_soft_min_long_prefill=args.phase12_phase2_soft_min_long_prefill,
+            phase12_phase2_soft_allow_mixed_decode=args.phase12_phase2_soft_allow_mixed_decode,
+            phase12_phase2_soft_recent_strength_floor=args.phase12_phase2_soft_recent_strength_floor,
+            phase12_phase2_soft_require_cashout_signal=args.phase12_phase2_soft_require_cashout_signal,
+            phase12_phase2_soft_recent_chunk_match_scale=args.phase12_phase2_soft_recent_chunk_match_scale,
+            phase12_phase2_soft_window_score_threshold=args.phase12_phase2_soft_window_score_threshold,
+            phase12_phase2_soft_window_recent_weight=args.phase12_phase2_soft_window_recent_weight,
+            phase12_phase2_soft_window_chunk_weight=args.phase12_phase2_soft_window_chunk_weight,
+            phase12_phase2_soft_window_pressure_weight=args.phase12_phase2_soft_window_pressure_weight,
+            phase12_phase2_soft_window_ratio_weight=args.phase12_phase2_soft_window_ratio_weight,
+            phase12_phase2_soft_window_decode_bonus=args.phase12_phase2_soft_window_decode_bonus,
             enable_chunked_prefill=True,
             trust_remote_code=args.trust_remote_code,
         )
@@ -1168,6 +1515,20 @@ def main() -> int:
             phase1_ingress_target_chunk=args.phase1_ingress_target_chunk,
             phase1_ingress_direct_authoritative=args.phase1_ingress_direct_authoritative,
             phase1_ingress_exact_chunk=args.phase1_ingress_exact_chunk,
+            phase12_phase2_gate_mode=args.phase12_phase2_gate_mode,
+            phase12_phase2_soft_ratio_scale=args.phase12_phase2_soft_ratio_scale,
+            phase12_phase2_soft_pressure_scale=args.phase12_phase2_soft_pressure_scale,
+            phase12_phase2_soft_min_long_prefill=args.phase12_phase2_soft_min_long_prefill,
+            phase12_phase2_soft_allow_mixed_decode=args.phase12_phase2_soft_allow_mixed_decode,
+            phase12_phase2_soft_recent_strength_floor=args.phase12_phase2_soft_recent_strength_floor,
+            phase12_phase2_soft_require_cashout_signal=args.phase12_phase2_soft_require_cashout_signal,
+            phase12_phase2_soft_recent_chunk_match_scale=args.phase12_phase2_soft_recent_chunk_match_scale,
+            phase12_phase2_soft_window_score_threshold=args.phase12_phase2_soft_window_score_threshold,
+            phase12_phase2_soft_window_recent_weight=args.phase12_phase2_soft_window_recent_weight,
+            phase12_phase2_soft_window_chunk_weight=args.phase12_phase2_soft_window_chunk_weight,
+            phase12_phase2_soft_window_pressure_weight=args.phase12_phase2_soft_window_pressure_weight,
+            phase12_phase2_soft_window_ratio_weight=args.phase12_phase2_soft_window_ratio_weight,
+            phase12_phase2_soft_window_decode_bonus=args.phase12_phase2_soft_window_decode_bonus,
             enable_chunked_prefill=False,
             trust_remote_code=args.trust_remote_code,
         )
@@ -1190,6 +1551,20 @@ def main() -> int:
             phase1_ingress_target_chunk=args.phase1_ingress_target_chunk,
             phase1_ingress_direct_authoritative=args.phase1_ingress_direct_authoritative,
             phase1_ingress_exact_chunk=args.phase1_ingress_exact_chunk,
+            phase12_phase2_gate_mode=args.phase12_phase2_gate_mode,
+            phase12_phase2_soft_ratio_scale=args.phase12_phase2_soft_ratio_scale,
+            phase12_phase2_soft_pressure_scale=args.phase12_phase2_soft_pressure_scale,
+            phase12_phase2_soft_min_long_prefill=args.phase12_phase2_soft_min_long_prefill,
+            phase12_phase2_soft_allow_mixed_decode=args.phase12_phase2_soft_allow_mixed_decode,
+            phase12_phase2_soft_recent_strength_floor=args.phase12_phase2_soft_recent_strength_floor,
+            phase12_phase2_soft_require_cashout_signal=args.phase12_phase2_soft_require_cashout_signal,
+            phase12_phase2_soft_recent_chunk_match_scale=args.phase12_phase2_soft_recent_chunk_match_scale,
+            phase12_phase2_soft_window_score_threshold=args.phase12_phase2_soft_window_score_threshold,
+            phase12_phase2_soft_window_recent_weight=args.phase12_phase2_soft_window_recent_weight,
+            phase12_phase2_soft_window_chunk_weight=args.phase12_phase2_soft_window_chunk_weight,
+            phase12_phase2_soft_window_pressure_weight=args.phase12_phase2_soft_window_pressure_weight,
+            phase12_phase2_soft_window_ratio_weight=args.phase12_phase2_soft_window_ratio_weight,
+            phase12_phase2_soft_window_decode_bonus=args.phase12_phase2_soft_window_decode_bonus,
             enable_chunked_prefill=False,
             trust_remote_code=args.trust_remote_code,
         )
@@ -1217,7 +1592,21 @@ def main() -> int:
         phase1_ingress_target_chunk=args.phase1_ingress_target_chunk,
         phase1_ingress_direct_authoritative=args.phase1_ingress_direct_authoritative,
         phase1_ingress_exact_chunk=args.phase1_ingress_exact_chunk,
-        enable_chunked_prefill=True,
+        phase12_phase2_gate_mode=args.phase12_phase2_gate_mode,
+        phase12_phase2_soft_ratio_scale=args.phase12_phase2_soft_ratio_scale,
+        phase12_phase2_soft_pressure_scale=args.phase12_phase2_soft_pressure_scale,
+        phase12_phase2_soft_min_long_prefill=args.phase12_phase2_soft_min_long_prefill,
+        phase12_phase2_soft_allow_mixed_decode=args.phase12_phase2_soft_allow_mixed_decode,
+        phase12_phase2_soft_recent_strength_floor=args.phase12_phase2_soft_recent_strength_floor,
+        phase12_phase2_soft_require_cashout_signal=args.phase12_phase2_soft_require_cashout_signal,
+        phase12_phase2_soft_recent_chunk_match_scale=args.phase12_phase2_soft_recent_chunk_match_scale,
+            phase12_phase2_soft_window_score_threshold=args.phase12_phase2_soft_window_score_threshold,
+            phase12_phase2_soft_window_recent_weight=args.phase12_phase2_soft_window_recent_weight,
+            phase12_phase2_soft_window_chunk_weight=args.phase12_phase2_soft_window_chunk_weight,
+            phase12_phase2_soft_window_pressure_weight=args.phase12_phase2_soft_window_pressure_weight,
+            phase12_phase2_soft_window_ratio_weight=args.phase12_phase2_soft_window_ratio_weight,
+            phase12_phase2_soft_window_decode_bonus=args.phase12_phase2_soft_window_decode_bonus,
+            enable_chunked_prefill=True,
         trust_remote_code=args.trust_remote_code,
     )
     phase1 = _run_phase1_pair(
@@ -1296,7 +1685,21 @@ def main() -> int:
         phase1_ingress_target_chunk=args.phase1_ingress_target_chunk,
         phase1_ingress_direct_authoritative=args.phase1_ingress_direct_authoritative,
         phase1_ingress_exact_chunk=args.phase1_ingress_exact_chunk,
-        enable_chunked_prefill=True,
+        phase12_phase2_gate_mode=args.phase12_phase2_gate_mode,
+        phase12_phase2_soft_ratio_scale=args.phase12_phase2_soft_ratio_scale,
+        phase12_phase2_soft_pressure_scale=args.phase12_phase2_soft_pressure_scale,
+        phase12_phase2_soft_min_long_prefill=args.phase12_phase2_soft_min_long_prefill,
+        phase12_phase2_soft_allow_mixed_decode=args.phase12_phase2_soft_allow_mixed_decode,
+        phase12_phase2_soft_recent_strength_floor=args.phase12_phase2_soft_recent_strength_floor,
+        phase12_phase2_soft_require_cashout_signal=args.phase12_phase2_soft_require_cashout_signal,
+        phase12_phase2_soft_recent_chunk_match_scale=args.phase12_phase2_soft_recent_chunk_match_scale,
+            phase12_phase2_soft_window_score_threshold=args.phase12_phase2_soft_window_score_threshold,
+            phase12_phase2_soft_window_recent_weight=args.phase12_phase2_soft_window_recent_weight,
+            phase12_phase2_soft_window_chunk_weight=args.phase12_phase2_soft_window_chunk_weight,
+            phase12_phase2_soft_window_pressure_weight=args.phase12_phase2_soft_window_pressure_weight,
+            phase12_phase2_soft_window_ratio_weight=args.phase12_phase2_soft_window_ratio_weight,
+            phase12_phase2_soft_window_decode_bonus=args.phase12_phase2_soft_window_decode_bonus,
+            enable_chunked_prefill=True,
         adapter_a=args.adapter_a,
         adapter_b=args.adapter_b,
         phase2_dispatch_mode=args.phase2_dispatch_mode,
@@ -1321,7 +1724,21 @@ def main() -> int:
         phase1_ingress_target_chunk=args.phase1_ingress_target_chunk,
         phase1_ingress_direct_authoritative=args.phase1_ingress_direct_authoritative,
         phase1_ingress_exact_chunk=args.phase1_ingress_exact_chunk,
-        enable_chunked_prefill=True,
+        phase12_phase2_gate_mode=args.phase12_phase2_gate_mode,
+        phase12_phase2_soft_ratio_scale=args.phase12_phase2_soft_ratio_scale,
+        phase12_phase2_soft_pressure_scale=args.phase12_phase2_soft_pressure_scale,
+        phase12_phase2_soft_min_long_prefill=args.phase12_phase2_soft_min_long_prefill,
+        phase12_phase2_soft_allow_mixed_decode=args.phase12_phase2_soft_allow_mixed_decode,
+        phase12_phase2_soft_recent_strength_floor=args.phase12_phase2_soft_recent_strength_floor,
+        phase12_phase2_soft_require_cashout_signal=args.phase12_phase2_soft_require_cashout_signal,
+        phase12_phase2_soft_recent_chunk_match_scale=args.phase12_phase2_soft_recent_chunk_match_scale,
+            phase12_phase2_soft_window_score_threshold=args.phase12_phase2_soft_window_score_threshold,
+            phase12_phase2_soft_window_recent_weight=args.phase12_phase2_soft_window_recent_weight,
+            phase12_phase2_soft_window_chunk_weight=args.phase12_phase2_soft_window_chunk_weight,
+            phase12_phase2_soft_window_pressure_weight=args.phase12_phase2_soft_window_pressure_weight,
+            phase12_phase2_soft_window_ratio_weight=args.phase12_phase2_soft_window_ratio_weight,
+            phase12_phase2_soft_window_decode_bonus=args.phase12_phase2_soft_window_decode_bonus,
+            enable_chunked_prefill=True,
         adapter_a=args.adapter_a,
         adapter_b=args.adapter_b,
         phase2_dispatch_mode=args.phase2_dispatch_mode,
@@ -1346,7 +1763,21 @@ def main() -> int:
         phase1_ingress_target_chunk=args.phase1_ingress_target_chunk,
         phase1_ingress_direct_authoritative=args.phase1_ingress_direct_authoritative,
         phase1_ingress_exact_chunk=args.phase1_ingress_exact_chunk,
-        enable_chunked_prefill=True,
+        phase12_phase2_gate_mode=args.phase12_phase2_gate_mode,
+        phase12_phase2_soft_ratio_scale=args.phase12_phase2_soft_ratio_scale,
+        phase12_phase2_soft_pressure_scale=args.phase12_phase2_soft_pressure_scale,
+        phase12_phase2_soft_min_long_prefill=args.phase12_phase2_soft_min_long_prefill,
+        phase12_phase2_soft_allow_mixed_decode=args.phase12_phase2_soft_allow_mixed_decode,
+        phase12_phase2_soft_recent_strength_floor=args.phase12_phase2_soft_recent_strength_floor,
+        phase12_phase2_soft_require_cashout_signal=args.phase12_phase2_soft_require_cashout_signal,
+        phase12_phase2_soft_recent_chunk_match_scale=args.phase12_phase2_soft_recent_chunk_match_scale,
+            phase12_phase2_soft_window_score_threshold=args.phase12_phase2_soft_window_score_threshold,
+            phase12_phase2_soft_window_recent_weight=args.phase12_phase2_soft_window_recent_weight,
+            phase12_phase2_soft_window_chunk_weight=args.phase12_phase2_soft_window_chunk_weight,
+            phase12_phase2_soft_window_pressure_weight=args.phase12_phase2_soft_window_pressure_weight,
+            phase12_phase2_soft_window_ratio_weight=args.phase12_phase2_soft_window_ratio_weight,
+            phase12_phase2_soft_window_decode_bonus=args.phase12_phase2_soft_window_decode_bonus,
+            enable_chunked_prefill=True,
         adapter_a=args.adapter_a,
         adapter_b=args.adapter_b,
         phase2_dispatch_mode=args.phase2_dispatch_mode,
@@ -1373,6 +1804,20 @@ def main() -> int:
             phase1_ingress_target_chunk=args.phase1_ingress_target_chunk,
             phase1_ingress_direct_authoritative=args.phase1_ingress_direct_authoritative,
             phase1_ingress_exact_chunk=args.phase1_ingress_exact_chunk,
+            phase12_phase2_gate_mode=args.phase12_phase2_gate_mode,
+            phase12_phase2_soft_ratio_scale=args.phase12_phase2_soft_ratio_scale,
+            phase12_phase2_soft_pressure_scale=args.phase12_phase2_soft_pressure_scale,
+            phase12_phase2_soft_min_long_prefill=args.phase12_phase2_soft_min_long_prefill,
+            phase12_phase2_soft_allow_mixed_decode=args.phase12_phase2_soft_allow_mixed_decode,
+            phase12_phase2_soft_recent_strength_floor=args.phase12_phase2_soft_recent_strength_floor,
+            phase12_phase2_soft_require_cashout_signal=args.phase12_phase2_soft_require_cashout_signal,
+            phase12_phase2_soft_recent_chunk_match_scale=args.phase12_phase2_soft_recent_chunk_match_scale,
+            phase12_phase2_soft_window_score_threshold=args.phase12_phase2_soft_window_score_threshold,
+            phase12_phase2_soft_window_recent_weight=args.phase12_phase2_soft_window_recent_weight,
+            phase12_phase2_soft_window_chunk_weight=args.phase12_phase2_soft_window_chunk_weight,
+            phase12_phase2_soft_window_pressure_weight=args.phase12_phase2_soft_window_pressure_weight,
+            phase12_phase2_soft_window_ratio_weight=args.phase12_phase2_soft_window_ratio_weight,
+            phase12_phase2_soft_window_decode_bonus=args.phase12_phase2_soft_window_decode_bonus,
             enable_chunked_prefill=True,
             adapter_a=args.adapter_a,
             adapter_b=args.adapter_b,
@@ -1407,6 +1852,20 @@ def main() -> int:
             phase1_ingress_target_chunk=args.phase1_ingress_target_chunk,
             phase1_ingress_direct_authoritative=args.phase1_ingress_direct_authoritative,
             phase1_ingress_exact_chunk=args.phase1_ingress_exact_chunk,
+            phase12_phase2_gate_mode=args.phase12_phase2_gate_mode,
+            phase12_phase2_soft_ratio_scale=args.phase12_phase2_soft_ratio_scale,
+            phase12_phase2_soft_pressure_scale=args.phase12_phase2_soft_pressure_scale,
+            phase12_phase2_soft_min_long_prefill=args.phase12_phase2_soft_min_long_prefill,
+            phase12_phase2_soft_allow_mixed_decode=args.phase12_phase2_soft_allow_mixed_decode,
+            phase12_phase2_soft_recent_strength_floor=args.phase12_phase2_soft_recent_strength_floor,
+            phase12_phase2_soft_require_cashout_signal=args.phase12_phase2_soft_require_cashout_signal,
+            phase12_phase2_soft_recent_chunk_match_scale=args.phase12_phase2_soft_recent_chunk_match_scale,
+            phase12_phase2_soft_window_score_threshold=args.phase12_phase2_soft_window_score_threshold,
+            phase12_phase2_soft_window_recent_weight=args.phase12_phase2_soft_window_recent_weight,
+            phase12_phase2_soft_window_chunk_weight=args.phase12_phase2_soft_window_chunk_weight,
+            phase12_phase2_soft_window_pressure_weight=args.phase12_phase2_soft_window_pressure_weight,
+            phase12_phase2_soft_window_ratio_weight=args.phase12_phase2_soft_window_ratio_weight,
+            phase12_phase2_soft_window_decode_bonus=args.phase12_phase2_soft_window_decode_bonus,
             enable_chunked_prefill=True,
             adapter_a=args.adapter_a,
             adapter_b=args.adapter_b,
@@ -1541,4 +2000,12 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    serialize_gpu_tests = _bool_arg_from_argv("serialize-gpu-tests", True)
+    gpu_lock_path = _str_arg_from_argv("gpu-lock-path", "")
+    model_name = _str_arg_from_argv("model-name", "unknown-model")
+    with gpu_experiment_lock(
+        label=f"evaluate:{model_name}",
+        enabled=serialize_gpu_tests,
+        lock_path=gpu_lock_path or None,
+    ):
+        raise SystemExit(main())

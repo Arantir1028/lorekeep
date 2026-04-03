@@ -1,9 +1,0 @@
-model,lut_name,model_path,adapter_dir,status
-mistralai/Mistral-7B-v0.1,Mistral-7B-v0.1,/home/onceas/.cache/huggingface/hub/models--mistralai--Mistral-7B-v0.1/snapshots/27d67f1b5f57dc0953326b2601d68371d40ea8da,/tmp/waveslice_synthetic_adapters/mistral-7b-v0.1,dry_run
-mistralai/Mistral-7B-Instruct-v0.2,Mistral-7B-v0.1,/home/onceas/.cache/huggingface/hub/models--mistralai--Mistral-7B-Instruct-v0.2/snapshots/63a8b081895390a26e140280378bc85ec8bce07a,/tmp/waveslice_synthetic_adapters/mistral-7b-instruct-v0.2,dry_run
-Qwen/Qwen2.5-7B-Instruct,Qwen2-7B,/home/onceas/.cache/huggingface/hub/models--Qwen--Qwen2.5-7B-Instruct/snapshots/a09a35458c702b33eeacc393d103063234e8bc28,/tmp/waveslice_synthetic_adapters/qwen2.5-7b-instruct,dry_run
-tiiuae/falcon-7b-instruct,Falcon-7B,/home/onceas/.cache/huggingface/hub/models--tiiuae--falcon-7b-instruct/snapshots/8782b5c5d8c9290412416618f36a133653e85285,/tmp/waveslice_synthetic_adapters/falcon-7b-instruct,dry_run
-bigscience/bloomz-7b1,BLOOM-7B,/home/onceas/.cache/huggingface/hub/models--bigscience--bloomz-7b1/snapshots/fa72440b228d7f42a42ec3681cf09735ad14822f,/tmp/waveslice_synthetic_adapters/bloomz-7b1,dry_run
-google/gemma-2-9b-it,Gemma-7B,/home/onceas/.cache/huggingface/hub/models--google--gemma-2-9b-it/snapshots/11c9b309abf73637e4b6f9a3fa1e92e615547819,/tmp/waveslice_synthetic_adapters/gemma-2-9b-it,dry_run
-EleutherAI/gpt-j-6b,Mistral-7B-v0.1,/home/onceas/.cache/huggingface/hub/models--EleutherAI--gpt-j-6b/snapshots/f3f428825b6fc4c087af475ea729ac652edeee33,/tmp/waveslice_synthetic_adapters/gpt-j-6b,dry_run
-EleutherAI/pythia-6.9b,Mistral-7B-v0.1,/home/onceas/.cache/huggingface/hub/models--EleutherAI--pythia-6.9b/snapshots/c0e3eee36dc47af0c49f361c74cfe459c09f7f23,/tmp/waveslice_synthetic_adapters/pythia-6.9b,dry_run

@@ -109,6 +109,20 @@ class WaveSlicePolicy:
     phase12_joint_min_chunk: int = 512
     phase12_phase2_requires_recent_phase1: bool = True
     phase12_phase2_recent_ttl: int = 4
+    phase12_phase2_gate_mode: str = "soft"  # hard | soft
+    phase12_phase2_soft_ratio_scale: float = 1.15
+    phase12_phase2_soft_pressure_scale: float = 1.10
+    phase12_phase2_soft_min_long_prefill: int = 512
+    phase12_phase2_soft_allow_mixed_decode: bool = True
+    phase12_phase2_soft_recent_strength_floor: float = 0.08
+    phase12_phase2_soft_require_cashout_signal: bool = True
+    phase12_phase2_soft_recent_chunk_match_scale: float = 1.5
+    phase12_phase2_soft_window_score_threshold: float = 0.95
+    phase12_phase2_soft_window_recent_weight: float = 0.40
+    phase12_phase2_soft_window_chunk_weight: float = 0.25
+    phase12_phase2_soft_window_pressure_weight: float = 0.20
+    phase12_phase2_soft_window_ratio_weight: float = 0.10
+    phase12_phase2_soft_window_decode_bonus: float = 0.10
     enable_vllm_lora_compat_patch: bool = True
 
     # Metrics
@@ -746,6 +760,8 @@ class _PatchState:
     phase1_public_skip_rewrite_requests: set[str] = field(default_factory=set)
     phase12_recent_phase1_apply_ttl: int = 0
     phase12_last_phase1_req_id: Optional[str] = None
+    phase12_recent_phase1_strength: float = 0.0
+    phase12_recent_phase1_chunk: int = 0
 
 
 @dataclass
@@ -2425,16 +2441,167 @@ def _phase12_joint_phase2_ready(
     *,
     state: _PatchState,
     policy: WaveSlicePolicy,
-) -> bool:
+    prefill_lens: list[int],
+    num_decode_tokens: int,
+    lora_ranks: list[int],
+    strict_mode: bool,
+) -> tuple[bool, str]:
     if not (policy.enable_phase1_scheduler and policy.enable_phase2_modelrunner):
-        return True
+        return True, "joint_disabled"
     if not bool(policy.phase12_joint_coordination):
-        return True
-    if not bool(policy.phase12_phase2_requires_recent_phase1):
-        return True
-    if state.phase1_virtual_token_caps:
-        return True
-    return int(getattr(state, "phase12_recent_phase1_apply_ttl", 0) or 0) > 0
+        return True, "joint_coordination_off"
+    cap_live = bool(state.phase1_virtual_token_caps)
+    recent_ttl = int(getattr(state, "phase12_recent_phase1_apply_ttl", 0) or 0)
+    requires_recent_phase1 = bool(policy.phase12_phase2_requires_recent_phase1)
+
+    gate_mode = str(getattr(policy, "phase12_phase2_gate_mode", "hard") or "hard").strip().lower()
+    if gate_mode == "hard":
+        if cap_live:
+            return True, "joint_recent_phase1_cap_live"
+        if recent_ttl > 0:
+            return True, "joint_recent_phase1_ttl"
+        if not requires_recent_phase1:
+            return True, "joint_recent_phase1_not_required"
+        return False, "joint_waiting_for_phase1"
+
+    pos_prefills = [int(v) for v in prefill_lens if int(v) > 0]
+    if not pos_prefills:
+        return False, "joint_soft_no_prefill"
+
+    selective_ok, ratio, pressure_ratio, lora_rank_hetero = _phase2_selective_gate(
+        prefill_lens=pos_prefills,
+        lora_ranks=lora_ranks,
+        policy=policy,
+        strict_mode=strict_mode,
+    )
+    max_len = max(pos_prefills)
+    soft_ratio = max(
+        float(policy.phase2_min_hetero_ratio) * max(1.0, float(policy.phase12_phase2_soft_ratio_scale)),
+        2.5 if not strict_mode else 3.0,
+    )
+    soft_pressure = max(
+        float(policy.phase2_min_pressure_ratio) * max(1.0, float(policy.phase12_phase2_soft_pressure_scale)),
+        2.0 if not strict_mode else 2.5,
+    )
+    soft_long = max(
+        int(policy.phase2_min_long_prefill),
+        int(policy.phase12_phase2_soft_min_long_prefill),
+    )
+    mixed_ok = (
+        not strict_mode
+        and bool(policy.phase12_phase2_soft_allow_mixed_decode)
+        and num_decode_tokens > 0
+        and _phase2_mixed_escape_ok(
+            prefill_lens=pos_prefills,
+            num_decode_tokens=num_decode_tokens,
+            ratio=ratio,
+            pressure_ratio=pressure_ratio,
+            lora_rank_hetero=lora_rank_hetero,
+            policy=policy,
+            strict_mode=strict_mode,
+        )
+    )
+    strong_prefill = (
+        selective_ok
+        and ratio >= soft_ratio
+        and pressure_ratio >= soft_pressure
+        and max_len >= soft_long
+    )
+    strong_rank_signal = (
+        selective_ok
+        and lora_rank_hetero
+        and pressure_ratio >= float(policy.phase2_min_pressure_ratio)
+        and max_len >= soft_long
+    )
+    recent_strength = float(getattr(state, "phase12_recent_phase1_strength", 0.0) or 0.0)
+    if cap_live:
+        recent_strength = max(recent_strength, 1.0)
+    recent_chunk = max(0, int(getattr(state, "phase12_recent_phase1_chunk", 0) or 0))
+    current_min_prefill = min(pos_prefills) if pos_prefills else 0
+    chunk_match_scale = max(
+        1.0,
+        float(getattr(policy, "phase12_phase2_soft_recent_chunk_match_scale", 1.5) or 1.5),
+    )
+    recent_chunk_match = (
+        recent_chunk > 0
+        and current_min_prefill > 0
+        and current_min_prefill
+        <= max(recent_chunk + 64, int(float(recent_chunk) * chunk_match_scale))
+    )
+    expected_prefill_upper = max(recent_chunk + 64, int(float(recent_chunk) * chunk_match_scale))
+    if recent_chunk > 0 and current_min_prefill > 0 and expected_prefill_upper > recent_chunk:
+        if current_min_prefill <= recent_chunk:
+            chunk_match_quality = 1.0
+        elif current_min_prefill >= expected_prefill_upper:
+            chunk_match_quality = 0.0
+        else:
+            chunk_match_quality = 1.0 - (
+                float(current_min_prefill - recent_chunk)
+                / float(max(1, expected_prefill_upper - recent_chunk))
+            )
+    else:
+        chunk_match_quality = 0.0
+    strong_recent = recent_strength >= max(
+        0.0,
+        float(getattr(policy, "phase12_phase2_soft_recent_strength_floor", 0.08) or 0.08),
+    )
+    recent_floor = max(
+        1e-6,
+        float(getattr(policy, "phase12_phase2_soft_recent_strength_floor", 0.08) or 0.08),
+    )
+    ttl_target = max(1, int(getattr(policy, "phase12_phase2_recent_ttl", 1) or 1))
+    ttl_quality = min(1.0, max(0.0, float(recent_ttl)) / float(ttl_target))
+    recent_quality = min(1.0, max(max(0.0, recent_strength) / recent_floor, ttl_quality))
+    pressure_quality = min(1.0, max(0.0, pressure_ratio) / max(1e-6, soft_pressure))
+    ratio_quality = min(1.0, max(0.0, ratio) / max(1e-6, soft_ratio))
+    window_score = (
+        float(getattr(policy, "phase12_phase2_soft_window_recent_weight", 0.40) or 0.40) * recent_quality
+        + float(getattr(policy, "phase12_phase2_soft_window_chunk_weight", 0.25) or 0.25) * chunk_match_quality
+        + float(getattr(policy, "phase12_phase2_soft_window_pressure_weight", 0.20) or 0.20) * pressure_quality
+        + float(getattr(policy, "phase12_phase2_soft_window_ratio_weight", 0.10) or 0.10) * ratio_quality
+        + (
+            float(getattr(policy, "phase12_phase2_soft_window_decode_bonus", 0.10) or 0.10)
+            if mixed_ok
+            else 0.0
+        )
+        + (0.10 if cap_live else 0.0)
+        + (0.05 if lora_rank_hetero and selective_ok else 0.0)
+    )
+    window_threshold = max(
+        0.1,
+        float(getattr(policy, "phase12_phase2_soft_window_score_threshold", 0.95) or 0.95),
+    )
+    if (
+        window_score >= window_threshold
+        and selective_ok
+        and (pressure_ratio >= float(policy.phase2_min_pressure_ratio) or mixed_ok)
+    ):
+        return True, "joint_soft_window_quality"
+    require_cashout_signal = bool(getattr(policy, "phase12_phase2_soft_require_cashout_signal", True))
+    if strong_prefill and require_cashout_signal and window_score < window_threshold and not mixed_ok:
+        return False, "joint_soft_low_window_quality"
+    if not requires_recent_phase1 and selective_ok and window_score >= max(0.35, window_threshold * 0.55):
+        return True, "joint_soft_window_quality_no_recent_req"
+    if strong_prefill:
+        return True, "joint_soft_strong_prefill"
+    if strong_rank_signal and (window_score >= max(0.5, window_threshold * 0.8) or strong_recent):
+        return True, "joint_soft_rank_pressure"
+    if mixed_ok and selective_ok and window_score >= max(0.45, window_threshold * 0.7):
+        return True, "joint_soft_mixed_escape"
+    return False, "joint_soft_waiting_for_phase1"
+
+
+def _phase12_tick_recent_phase1(state: _PatchState) -> None:
+    recent_ttl = int(getattr(state, "phase12_recent_phase1_apply_ttl", 0) or 0)
+    if recent_ttl > 0:
+        state.phase12_recent_phase1_apply_ttl = max(0, recent_ttl - 1)
+        state.phase12_recent_phase1_strength = max(
+            0.0,
+            float(getattr(state, "phase12_recent_phase1_strength", 0.0) or 0.0) * 0.7,
+        )
+    else:
+        state.phase12_recent_phase1_strength = 0.0
+        state.phase12_recent_phase1_chunk = 0
 
 
 def _extract_prefill_lens(attn_meta: Any) -> list[int]:
@@ -2476,10 +2643,21 @@ def _phase2_decide(
             policy=policy,
             strict_mode=strict_mode,
         )
-        if state is not None and not _phase12_joint_phase2_ready(state=state, policy=policy):
+        if state is not None:
+            phase12_ready, phase12_reason = _phase12_joint_phase2_ready(
+                state=state,
+                policy=policy,
+                prefill_lens=prefill_lens,
+                num_decode_tokens=num_decode_tokens,
+                lora_ranks=lora_ranks,
+                strict_mode=strict_mode,
+            )
+        else:
+            phase12_ready, phase12_reason = True, "joint_state_absent"
+        if not phase12_ready:
             return _Phase2Decision(
                 False,
-                "joint_waiting_for_phase1_v1",
+                f"{phase12_reason}_v1",
                 prefill_lens,
                 num_prefills,
                 num_decode_tokens,
@@ -2634,10 +2812,21 @@ def _phase2_decide(
         policy=policy,
         strict_mode=strict_mode,
     )
-    if state is not None and not _phase12_joint_phase2_ready(state=state, policy=policy):
+    if state is not None:
+        phase12_ready, phase12_reason = _phase12_joint_phase2_ready(
+            state=state,
+            policy=policy,
+            prefill_lens=prefill_lens,
+            num_decode_tokens=num_decode_tokens,
+            lora_ranks=lora_ranks,
+            strict_mode=strict_mode,
+        )
+    else:
+        phase12_ready, phase12_reason = True, "joint_state_absent"
+    if not phase12_ready:
         return _Phase2Decision(
             False,
-            "joint_waiting_for_phase1",
+            phase12_reason,
             prefill_lens,
             num_prefills,
             num_decode_tokens,
@@ -3221,6 +3410,7 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
         scheduler_cfg = getattr(self, "scheduler_config", None)
         original_budget = getattr(scheduler_cfg, "max_num_batched_tokens", None)
         original_threshold = getattr(scheduler_cfg, "long_prefill_token_threshold", None)
+        _phase12_tick_recent_phase1(state)
 
         try:
             if state.policy.enable_sjf_reorder:
@@ -3469,9 +3659,6 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
 
         hidden_long_tasks: list[Any] = []
         state.metrics.record_scheduler_decision(True)
-        recent_ttl = int(getattr(state, "phase12_recent_phase1_apply_ttl", 0) or 0)
-        if recent_ttl > 0:
-            state.phase12_recent_phase1_apply_ttl = max(0, recent_ttl - 1)
         short_token_mass = _phase1_effective_short_token_mass(
             cohort.short_lengths,
             short_len=short_len,
@@ -3502,6 +3689,12 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
             )
         state.phase12_recent_phase1_apply_ttl = max(1, int(state.policy.phase12_phase2_recent_ttl))
         state.phase12_last_phase1_req_id = str(cohort.long_req_id) if cohort.long_req_id else None
+        state.phase12_recent_phase1_chunk = int(max(1, best_chunk))
+        if long_len > 0:
+            state.phase12_recent_phase1_strength = max(
+                float(getattr(state, "phase12_recent_phase1_strength", 0.0) or 0.0),
+                float(max(0, long_len - best_chunk)) / float(max(1, long_len)),
+            )
         state.metrics.record_phase1_choice(
             chosen_chunk=best_chunk,
             baseline_chunk=baseline_chunk,

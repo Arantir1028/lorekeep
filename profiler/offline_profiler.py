@@ -11,6 +11,7 @@ import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import hw_config as cfg
+from tools.experiment_lock import gpu_experiment_lock
 
 # =====================================================================
 # 系统顶会级别基准测试常量
@@ -234,6 +235,17 @@ def _parse_args() -> argparse.Namespace:
         default=None,
         help="Optional comma-separated buckets override, e.g. 32,64,128,256,512,1024,2048,4096",
     )
+    parser.add_argument(
+        "--serialize-gpu-tests",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Serialize GPU-backed profiling runs through a global file lock.",
+    )
+    parser.add_argument(
+        "--gpu-lock-path",
+        default="",
+        help="Optional file path used for the global GPU experiment lock.",
+    )
     return parser.parse_args()
 
 
@@ -264,11 +276,16 @@ if __name__ == "__main__":
     dtype = torch.float16 if args.dtype == "fp16" else torch.bfloat16
     torch.cuda.empty_cache()
 
-    print(f"[Profiler] models={model_names}")
-    print(f"[Profiler] buckets={cfg.BUCKETS}")
-    print(f"[Profiler] warmup={WARMUP_ITERS} active={ACTIVE_ITERS}")
-    for model_name in model_names:
-        profiler = ModelProfiler(model_name, device, dtype)
-        profiler.run()
+    with gpu_experiment_lock(
+        label=f"offline_profiler:{','.join(model_names)}",
+        enabled=bool(args.serialize_gpu_tests),
+        lock_path=args.gpu_lock_path or None,
+    ):
+        print(f"[Profiler] models={model_names}")
+        print(f"[Profiler] buckets={cfg.BUCKETS}")
+        print(f"[Profiler] warmup={WARMUP_ITERS} active={ACTIVE_ITERS}")
+        for model_name in model_names:
+            profiler = ModelProfiler(model_name, device, dtype)
+            profiler.run()
 
-    print("\n🎉 选定模型的物理底座采集完毕！")
+        print("\n🎉 选定模型的物理底座采集完毕！")

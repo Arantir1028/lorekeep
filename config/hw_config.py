@@ -18,12 +18,17 @@ SUPPORTED_MODELS = {
     # --- MHA (多头注意力：读放大灾难区) ---
     "Qwen1.5-7B":     {"attn_type": "MHA", "q_heads": 32, "kv_heads": 32, "head_dim": 128, "d_model": 4096},
     "BLOOM-7B":       {"attn_type": "MHA", "q_heads": 32, "kv_heads": 32, "head_dim": 128, "d_model": 4096},
+    "Phi-2":          {"attn_type": "MHA", "q_heads": 32, "kv_heads": 32, "head_dim": 80,  "d_model": 2560},
+    "Baichuan2-7B-Chat": {"attn_type": "MHA", "q_heads": 32, "kv_heads": 32, "head_dim": 128, "d_model": 4096},
+    "DeciLM-7B":      {"attn_type": "MHA", "q_heads": 32, "kv_heads": 32, "head_dim": 128, "d_model": 4096},
     
     # --- GQA (分组注意力：现代模型主流，读放大温和) ---
     "Mistral-7B-v0.1":{"attn_type": "GQA", "q_heads": 32, "kv_heads": 8,  "head_dim": 128, "d_model": 4096},
-    "Gemma-7B":       {"attn_type": "GQA", "q_heads": 16, "kv_heads": 16, "head_dim": 256, "d_model": 3072}, # Gemma 维度较特殊，适合做鲁棒性测试
     "Qwen2-7B":       {"attn_type": "GQA", "q_heads": 28, "kv_heads": 4,  "head_dim": 128, "d_model": 3584},
     
+    # --- Other architectures / robustness probes ---
+    "Gemma-7B":       {"attn_type": "MHA", "q_heads": 16, "kv_heads": 16, "head_dim": 192, "d_model": 3072},
+
     # --- MQA (多查询注意力：极低读放大，容易诱发过度调度的陷阱区) ---
     "Falcon-7B":      {"attn_type": "MQA", "q_heads": 71, "kv_heads": 1,  "head_dim": 64,  "d_model": 4544}
 }

@@ -19,29 +19,17 @@ import traceback
 from pathlib import Path
 from typing import Any
 
+from config.experiment_catalog import DEFAULT_DATASET_SUITE_KEYS, get_model_specs
 from experiments.waveslice_a100_suite import (
-    DEFAULT_MODELS,
     ModelSpec,
     _ensure_adapters,
     _resolve_local_snapshot,
-    _safe_key,
+    safe_key as _safe_key,
 )
 
 
-DEFAULT_SUCCESSFUL_KEYS = [
-    "mistral-7b-v0.1",
-    "mistral-7b-instruct-v0.2",
-    "zephyr-7b-beta",
-    "openchat-3.5-0106",
-    "gemma-7b-it",
-    "phi-2",
-    "baichuan2-7b-chat",
-]
-
-
 def _select_models(keys: str) -> list[ModelSpec]:
-    key_set = {k.strip() for k in keys.split(",") if k.strip()}
-    selected = [m for m in DEFAULT_MODELS if m.key in key_set]
+    selected = get_model_specs(keys)
     if not selected:
         raise ValueError(f"no models selected from keys={keys!r}")
     return selected
@@ -62,6 +50,10 @@ def _run_model(
     gpu_memory_utilization: float,
     phase2_dispatch_mode: str,
     sample_count: int,
+    phase1_short_count: int,
+    phase1_long_count: int,
+    phase2_short_count: int,
+    phase2_long_count: int,
 ) -> dict[str, Any]:
     local_snapshot = _resolve_local_snapshot(spec.model_id)
     model_path = spec.model_id if spec.trust_remote_code else (local_snapshot or spec.model_id)
@@ -87,6 +79,14 @@ def _run_model(
         str(max(16, effective_max_model_len - max_new_tokens - 16)),
         "--sample-count",
         str(sample_count),
+        "--phase1-short-count",
+        str(phase1_short_count),
+        "--phase1-long-count",
+        str(phase1_long_count),
+        "--phase2-short-count",
+        str(phase2_short_count),
+        "--phase2-long-count",
+        str(phase2_long_count),
     ]
     if spec.trust_remote_code:
         workload_cmd.append("--trust-remote-code")
@@ -170,6 +170,8 @@ def _run_model(
     row["dataset_short_b_tokens"] = meta.get("short_b_tokens")
     row["dataset_long_a_tokens"] = meta.get("long_a_tokens")
     row["dataset_long_b_tokens"] = meta.get("long_b_tokens")
+    row["phase1_request_count"] = meta.get("phase1_request_count")
+    row["phase2_request_count"] = meta.get("phase2_request_count")
     row["phase12_ttft_improve_mean"] = (phase12.get("ttft_improve_ratio") or {}).get("mean")
     row["phase12_slowdown_improve_mean"] = (phase12.get("slowdown_improve_ratio") or {}).get("mean")
     row["phase12_wall_improve_mean"] = (phase12.get("round_wall_improve_ratio") or {}).get("mean")
@@ -180,7 +182,7 @@ def _run_model(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run dataset-driven Wave-Slice suite.")
-    parser.add_argument("--models", default=",".join(DEFAULT_SUCCESSFUL_KEYS))
+    parser.add_argument("--models", default=",".join(DEFAULT_DATASET_SUITE_KEYS))
     parser.add_argument("--timeout-sec", type=int, default=240)
     parser.add_argument("--max-new-tokens", type=int, default=64)
     parser.add_argument("--warmup-iters", type=int, default=2)
@@ -189,9 +191,13 @@ def main() -> int:
     parser.add_argument("--max-num-batched-tokens", type=int, default=1536)
     parser.add_argument("--gpu-memory-utilization", type=float, default=0.60)
     parser.add_argument("--phase2-dispatch-mode", default="synchronized")
-    parser.add_argument("--sample-count", type=int, default=96)
-    parser.add_argument("--adapters-root", default="/tmp/waveslice_synthetic_adapters")
-    parser.add_argument("--workload-root", default="/tmp/waveslice_dataset_workloads")
+    parser.add_argument("--sample-count", type=int, default=256)
+    parser.add_argument("--phase1-short-count", type=int, default=24)
+    parser.add_argument("--phase1-long-count", type=int, default=8)
+    parser.add_argument("--phase2-short-count", type=int, default=24)
+    parser.add_argument("--phase2-long-count", type=int, default=12)
+    parser.add_argument("--adapters-root", default=os.path.join("results", "synthetic_adapters"))
+    parser.add_argument("--workload-root", default=os.path.join("results", "dataset_workloads"))
     parser.add_argument("--results-dir", default="")
     parser.add_argument("--out-csv", default="")
     args = parser.parse_args()
@@ -224,6 +230,10 @@ def main() -> int:
                 gpu_memory_utilization=args.gpu_memory_utilization,
                 phase2_dispatch_mode=args.phase2_dispatch_mode,
                 sample_count=args.sample_count,
+                phase1_short_count=args.phase1_short_count,
+                phase1_long_count=args.phase1_long_count,
+                phase2_short_count=args.phase2_short_count,
+                phase2_long_count=args.phase2_long_count,
             )
         except Exception as exc:
             row = {

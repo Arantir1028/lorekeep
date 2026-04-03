@@ -1,4 +1,0 @@
-model,lut_name,model_path,adapter_dir,status
-mistralai/Mistral-7B-v0.1,Mistral-7B-v0.1,/home/onceas/.cache/huggingface/hub/models--mistralai--Mistral-7B-v0.1/snapshots/27d67f1b5f57dc0953326b2601d68371d40ea8da,/tmp/waveslice_synthetic_adapters/mistral-7b-v0.1,dry_run
-Qwen/Qwen2.5-7B-Instruct,Qwen2-7B,/home/onceas/.cache/huggingface/hub/models--Qwen--Qwen2.5-7B-Instruct/snapshots/a09a35458c702b33eeacc393d103063234e8bc28,/tmp/waveslice_synthetic_adapters/qwen2.5-7b-instruct,dry_run
-tiiuae/falcon-7b-instruct,Falcon-7B,/home/onceas/.cache/huggingface/hub/models--tiiuae--falcon-7b-instruct/snapshots/8782b5c5d8c9290412416618f36a133653e85285,/tmp/waveslice_synthetic_adapters/falcon-7b-instruct,dry_run

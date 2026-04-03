@@ -16,16 +16,23 @@ import time
 from dataclasses import dataclass
 from typing import Any
 
+from config.experiment_catalog import DEFAULT_SYNTHETIC_ADAPTER_PRESETS
+
 os.environ.setdefault("VLLM_NO_USAGE_STATS", "1")
 
 
-DEFAULT_MODEL_PATH = (
-    "/home/onceas/.cache/huggingface/hub/"
-    "models--mistralai--Mistral-7B-v0.1/snapshots/"
-    "27d67f1b5f57dc0953326b2601d68371d40ea8da"
+DEFAULT_MODEL_PATH = "mistralai/Mistral-7B-v0.1"
+DEFAULT_ADAPTERS_ROOT = os.path.join("results", "synthetic_adapters")
+DEFAULT_ADAPTER_A = os.path.join(
+    DEFAULT_ADAPTERS_ROOT,
+    "mistral-7b-v0.1",
+    f"adapter_rank{DEFAULT_SYNTHETIC_ADAPTER_PRESETS[0].rank}_seed{DEFAULT_SYNTHETIC_ADAPTER_PRESETS[0].seed}",
 )
-DEFAULT_ADAPTER_A = "/tmp/waveslice_synthetic_adapters/mistral-7b-v0.1/adapter_rank8_seed7"
-DEFAULT_ADAPTER_B = "/tmp/waveslice_synthetic_adapters/mistral-7b-v0.1/adapter_rank16_seed11"
+DEFAULT_ADAPTER_B = os.path.join(
+    DEFAULT_ADAPTERS_ROOT,
+    "mistral-7b-v0.1",
+    f"adapter_rank{DEFAULT_SYNTHETIC_ADAPTER_PRESETS[1].rank}_seed{DEFAULT_SYNTHETIC_ADAPTER_PRESETS[1].seed}",
+)
 
 
 @dataclass(frozen=True)
@@ -182,6 +189,11 @@ def main() -> int:
     parser.add_argument("--adapter-a", default=DEFAULT_ADAPTER_A)
     parser.add_argument("--adapter-b", default=DEFAULT_ADAPTER_B)
     parser.add_argument(
+        "--adapters-root",
+        default=DEFAULT_ADAPTERS_ROOT,
+        help="Directory for synthetic adapters when using the default adapter paths.",
+    )
+    parser.add_argument(
         "--cases",
         default=None,
         help="Comma-separated case names. Defaults to all curated cases.",
@@ -196,6 +208,19 @@ def main() -> int:
     parser.add_argument("--timeout-sec", type=int, default=None)
     args = parser.parse_args()
 
+    if args.adapter_a == DEFAULT_ADAPTER_A:
+        args.adapter_a = os.path.join(
+            args.adapters_root,
+            "mistral-7b-v0.1",
+            f"adapter_rank{DEFAULT_SYNTHETIC_ADAPTER_PRESETS[0].rank}_seed{DEFAULT_SYNTHETIC_ADAPTER_PRESETS[0].seed}",
+        )
+    if args.adapter_b == DEFAULT_ADAPTER_B:
+        args.adapter_b = os.path.join(
+            args.adapters_root,
+            "mistral-7b-v0.1",
+            f"adapter_rank{DEFAULT_SYNTHETIC_ADAPTER_PRESETS[1].rank}_seed{DEFAULT_SYNTHETIC_ADAPTER_PRESETS[1].seed}",
+        )
+
     case_map = {case.name: case for case in DEFAULT_CASES}
     if args.cases:
         wanted = [name.strip() for name in args.cases.split(",") if name.strip()]
@@ -206,11 +231,13 @@ def main() -> int:
     ts = time.strftime("%Y%m%d_%H%M%S")
     out_json = args.out_json or f"results/mistral_tuning_{ts}.json"
     os.makedirs(os.path.dirname(out_json), exist_ok=True)
+    case_dir = os.path.join("results", "tuning_cases")
+    os.makedirs(case_dir, exist_ok=True)
 
     rows: list[dict[str, Any]] = []
     print(f"[Tune] cases={len(cases)}")
     for idx, case in enumerate(cases, start=1):
-        case_json = f"/tmp/{case.name}_{ts}.json"
+        case_json = os.path.join(case_dir, f"{case.name}_{ts}.json")
         cmd = _build_cmd(
             case=case,
             model_path=args.model_path,

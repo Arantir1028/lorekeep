@@ -1,9 +1,0 @@
-model,lut_name,model_path,adapter_dir,status
-mistralai/Mistral-7B-v0.1,Mistral-7B-v0.1,/home/onceas/.cache/huggingface/hub/models--mistralai--Mistral-7B-v0.1/snapshots/27d67f1b5f57dc0953326b2601d68371d40ea8da,/tmp/waveslice_synthetic_adapters/mistral-7b-v0.1,dry_run
-mistralai/Mistral-7B-Instruct-v0.2,Mistral-7B-v0.1,/home/onceas/.cache/huggingface/hub/models--mistralai--Mistral-7B-Instruct-v0.2/snapshots/63a8b081895390a26e140280378bc85ec8bce07a,/tmp/waveslice_synthetic_adapters/mistral-7b-instruct-v0.2,dry_run
-HuggingFaceH4/zephyr-7b-beta,Mistral-7B-v0.1,/home/onceas/.cache/huggingface/hub/models--HuggingFaceH4--zephyr-7b-beta/snapshots/892b3d7a7b1cf10c7a701c60881cd93df615734c,/tmp/waveslice_synthetic_adapters/zephyr-7b-beta,dry_run
-openchat/openchat-3.5-0106,Mistral-7B-v0.1,/home/onceas/.cache/huggingface/hub/models--openchat--openchat-3.5-0106/snapshots/ff058fda49726ecf4ea53dc1635f917cdb8ba36b,/tmp/waveslice_synthetic_adapters/openchat-3.5-0106,dry_run
-google/gemma-7b-it,Gemma-7B,/home/onceas/.cache/huggingface/hub/models--google--gemma-7b-it/snapshots/9c5798d27f588501ce1e108079d2a19e4c3a2353,/tmp/waveslice_synthetic_adapters/gemma-7b-it,dry_run
-Deci/DeciLM-7B,Mistral-7B-v0.1,/home/onceas/.cache/huggingface/hub/models--Deci--DeciLM-7B/snapshots/c3c9f4226801dc0433f32aebffe0aac68ee2f051,/tmp/waveslice_synthetic_adapters/decilm-7b,dry_run
-microsoft/phi-2,Mistral-7B-v0.1,/home/onceas/.cache/huggingface/hub/models--microsoft--phi-2/snapshots/810d367871c1d460086d9f82db8696f2e0a0fcd0,/tmp/waveslice_synthetic_adapters/phi-2,dry_run
-baichuan-inc/Baichuan2-7B-Chat,Mistral-7B-v0.1,/home/onceas/.cache/huggingface/hub/models--baichuan-inc--Baichuan2-7B-Chat/snapshots/ea66ced17780ca3db39bc9f8aa601d8463db3da5,/tmp/waveslice_synthetic_adapters/baichuan2-7b-chat,dry_run

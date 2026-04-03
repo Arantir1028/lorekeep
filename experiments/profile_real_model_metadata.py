@@ -11,28 +11,10 @@ import argparse
 import json
 import math
 import os
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
 
-
-@dataclass(frozen=True)
-class ModelSpec:
-    key: str
-    model_id: str
-    family_hint: str
-
-
-DEFAULT_MODELS: list[ModelSpec] = [
-    ModelSpec("mistral-7b-v0.1", "mistralai/Mistral-7B-v0.1", "mistral"),
-    ModelSpec("mistral-7b-instruct-v0.2", "mistralai/Mistral-7B-Instruct-v0.2", "mistral"),
-    ModelSpec("zephyr-7b-beta", "HuggingFaceH4/zephyr-7b-beta", "mistral"),
-    ModelSpec("openchat-3.5-0106", "openchat/openchat-3.5-0106", "mistral"),
-    ModelSpec("gemma-7b-it", "google/gemma-7b-it", "gemma"),
-    ModelSpec("decilm-7b", "Deci/DeciLM-7B", "mistral"),
-    ModelSpec("phi-2", "microsoft/phi-2", "phi"),
-    ModelSpec("baichuan2-7b-chat", "baichuan-inc/Baichuan2-7B-Chat", "baichuan"),
-]
+from config.experiment_catalog import DEFAULT_EXPERIMENT_MODELS, ExperimentModelSpec as ModelSpec
 
 
 def _safe_key(s: str) -> str:
@@ -183,19 +165,9 @@ def profile_model_metadata(spec: ModelSpec) -> dict[str, Any]:
         }
     )
 
-    lut_artifacts = _lookup_existing_lut_artifacts(spec.model_id.split("/")[-1])
-    # Also try legacy canonical family names.
-    if not lut_artifacts["raw_profile"]:
-        family_map = {
-            "mistral": "Mistral-7B-v0.1",
-            "gemma": "Gemma-7B",
-            "phi": "Mistral-7B-v0.1",
-            "baichuan": "Mistral-7B-v0.1",
-        }
-        family_name = family_map.get(spec.family_hint)
-        if family_name:
-            lut_artifacts = _lookup_existing_lut_artifacts(family_name)
-            row["lut_family_source"] = family_name
+    lut_source_name = spec.raw_profile_name or spec.lut_name
+    lut_artifacts = _lookup_existing_lut_artifacts(lut_source_name)
+    row["lut_family_source"] = lut_source_name
     row["lut_artifacts"] = lut_artifacts
     row["raw_profile_summary"] = _summarize_raw_profile(lut_artifacts.get("raw_profile"))
     return row
@@ -425,7 +397,7 @@ def main() -> int:
     parser.add_argument("--sample-count", type=int, default=256)
     args = parser.parse_args()
 
-    rows = [profile_model_metadata(spec) for spec in DEFAULT_MODELS]
+    rows = [profile_model_metadata(spec) for spec in DEFAULT_EXPERIMENT_MODELS]
     dataset_rows: list[dict[str, Any]] = []
     if args.datasets.strip():
         aliases = [x.strip() for x in args.datasets.split(",") if x.strip()]

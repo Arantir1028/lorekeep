@@ -12,6 +12,7 @@ import os
 from dataclasses import dataclass
 from typing import Iterable
 
+from config.experiment_catalog import DEFAULT_SYNTHETIC_ADAPTER_PRESETS
 from engine.runtime_bootstrap import bootstrap_vllm_runtime
 
 bootstrap_vllm_runtime()
@@ -271,8 +272,14 @@ def main() -> int:
     args = parser.parse_args()
 
     specs = [
-        AdapterSpec(name="adapter_rank8_seed7", rank=8, alpha=16, seed=7, init_std=0.02),
-        AdapterSpec(name="adapter_rank16_seed11", rank=16, alpha=32, seed=11, init_std=0.04),
+        AdapterSpec(
+            name=spec.name,
+            rank=spec.rank,
+            alpha=spec.alpha,
+            seed=spec.seed,
+            init_std=spec.init_std,
+        )
+        for spec in DEFAULT_SYNTHETIC_ADAPTER_PRESETS
     ]
     paths = build_synthetic_adapters(
         base_model=args.base_model,

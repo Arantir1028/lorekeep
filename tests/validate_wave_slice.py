@@ -25,6 +25,7 @@ from engine.vllm_hijacker import (
     uninject_wave_slice,
 )
 from scheduler.wave_scheduler import WaveScheduler
+from tools.experiment_lock import gpu_experiment_lock
 
 bootstrap_vllm_runtime()
 
@@ -335,7 +336,7 @@ def main() -> int:
     parser.add_argument(
         "--auto-build-lora",
         action="store_true",
-        help="Auto-generate two synthetic adapters under /tmp for the given base model (requires peft).",
+        help="Auto-generate two synthetic adapters under the configured adapters root for the given base model (requires peft).",
     )
     parser.add_argument(
         "--max-new-tokens",
@@ -360,59 +361,83 @@ def main() -> int:
         action="store_true",
         help="Run LoRA live validation with current Phase-I scheduler enabled together with Phase-II.",
     )
+    parser.add_argument(
+        "--serialize-gpu-tests",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Serialize GPU-backed validation runs through a global file lock.",
+    )
+    parser.add_argument(
+        "--gpu-lock-path",
+        default="",
+        help="Optional file path used for the global GPU experiment lock.",
+    )
     args = parser.parse_args()
 
     ok = True
     ok = run_offline_core_check(args.model_name) and ok
     ok = run_vllm_embedding_check(args.model_name) and ok
-    if args.run_live:
-        ok = run_live_vllm_smoke(args.model_path, args.model_name, args.max_new_tokens) and ok
-    if args.run_lora_live:
-        lora_a = args.lora_adapter_path_a
-        lora_b = args.lora_adapter_path_b
+    needs_gpu_lock = bool(args.run_live or args.run_lora_live)
+    with gpu_experiment_lock(
+        label=f"validate:{args.model_name}",
+        enabled=bool(args.serialize_gpu_tests and needs_gpu_lock),
+        lock_path=args.gpu_lock_path or None,
+    ):
+        if args.run_live:
+            ok = run_live_vllm_smoke(args.model_path, args.model_name, args.max_new_tokens) and ok
+        if args.run_lora_live:
+            lora_a = args.lora_adapter_path_a
+            lora_b = args.lora_adapter_path_b
 
-        if args.auto_build_lora and not lora_a:
-            out_dir = Path("/tmp") / "waveslice_synth_lora" / str(int(time.time()))
-            try:
-                from tools.synthetic_lora_builder import AdapterSpec, build_synthetic_adapters
+            if args.auto_build_lora and not lora_a:
+                out_dir = Path("/tmp") / "waveslice_synth_lora" / str(int(time.time()))
+                try:
+                    from config.experiment_catalog import DEFAULT_SYNTHETIC_ADAPTER_PRESETS
+                    from tools.synthetic_lora_builder import AdapterSpec, build_synthetic_adapters
 
-                generated = build_synthetic_adapters(
-                    base_model=args.model_path,
-                    out_dir=str(out_dir),
-                    specs=[
-                        AdapterSpec(name="adapter_rank8_seed7", rank=8, alpha=16, seed=7, init_std=0.02),
-                        AdapterSpec(name="adapter_rank16_seed11", rank=16, alpha=32, seed=11, init_std=0.04),
-                    ],
-                )
-                lora_a = generated[0]
-                lora_b = generated[1]
-                print(f"\n[WaveSlice-Validate] auto generated adapters:\n  A={lora_a}\n  B={lora_b}")
-            except Exception as exc:
-                print(f"\n[WaveSlice-Validate] FAIL: auto-build-lora failed: {exc}")
-                ok = False
+                    generated = build_synthetic_adapters(
+                        base_model=args.model_path,
+                        out_dir=str(out_dir),
+                        specs=[
+                            AdapterSpec(
+                                name=spec.name,
+                                rank=spec.rank,
+                                alpha=spec.alpha,
+                                seed=spec.seed,
+                                init_std=spec.init_std,
+                            )
+                            for spec in DEFAULT_SYNTHETIC_ADAPTER_PRESETS
+                        ],
+                    )
+                    lora_a = generated[0]
+                    lora_b = generated[1]
+                    print(f"\n[WaveSlice-Validate] auto generated adapters:\n  A={lora_a}\n  B={lora_b}")
+                except Exception as exc:
+                    print(f"\n[WaveSlice-Validate] FAIL: auto-build-lora failed: {exc}")
+                    ok = False
 
-        if not lora_a:
-            print("\n[WaveSlice-Validate] FAIL: --run-lora-live requires --lora-adapter-path-a or --auto-build-lora")
-            ok = False
-        else:
-            if not lora_b:
-                lora_b = lora_a
-            if not os.path.exists(lora_a) or not os.path.exists(lora_b):
-                print(f"\n[WaveSlice-Validate] FAIL: adapter path not found: A={lora_a}, B={lora_b}")
+            if not lora_a:
+                print("\n[WaveSlice-Validate] FAIL: --run-lora-live requires --lora-adapter-path-a or --auto-build-lora")
                 ok = False
             else:
-                ok = run_lora_effectiveness_check(
-                    model_path=args.model_path,
-                    model_name=args.model_name,
-                    lora_adapter_path_a=lora_a,
-                    lora_adapter_path_b=lora_b,
-                    lora_name_a=args.lora_name_a,
-                    lora_name_b=args.lora_name_b,
-                    max_new_tokens=args.max_new_tokens,
-                    phase2_consistency_mode=args.phase2_consistency_mode,
-                    phase2_dispatch_mode=args.phase2_dispatch_mode,
-                    enable_phase1_scheduler=args.enable_phase1_in_lora_live,
-                ) and ok
+                if not lora_b:
+                    lora_b = lora_a
+                if not os.path.exists(lora_a) or not os.path.exists(lora_b):
+                    print(f"\n[WaveSlice-Validate] FAIL: adapter path not found: A={lora_a}, B={lora_b}")
+                    ok = False
+                else:
+                    ok = run_lora_effectiveness_check(
+                        model_path=args.model_path,
+                        model_name=args.model_name,
+                        lora_adapter_path_a=lora_a,
+                        lora_adapter_path_b=lora_b,
+                        lora_name_a=args.lora_name_a,
+                        lora_name_b=args.lora_name_b,
+                        max_new_tokens=args.max_new_tokens,
+                        phase2_consistency_mode=args.phase2_consistency_mode,
+                        phase2_dispatch_mode=args.phase2_dispatch_mode,
+                        enable_phase1_scheduler=args.enable_phase1_in_lora_live,
+                    ) and ok
 
     _print("DONE")
     print(f"  overall_pass={ok}")

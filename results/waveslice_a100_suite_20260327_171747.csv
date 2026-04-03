@@ -1,9 +1,0 @@
-model,lut_name,model_path,adapter_dir,status
-mistralai/Mistral-7B-v0.1,Mistral-7B-v0.1,/home/onceas/.cache/huggingface/hub/models--mistralai--Mistral-7B-v0.1/snapshots/27d67f1b5f57dc0953326b2601d68371d40ea8da,/tmp/waveslice_synthetic_adapters/mistral-7b-v0.1,dry_run
-mistralai/Mistral-7B-Instruct-v0.2,Mistral-7B-v0.1,/home/onceas/.cache/huggingface/hub/models--mistralai--Mistral-7B-Instruct-v0.2/snapshots/63a8b081895390a26e140280378bc85ec8bce07a,/tmp/waveslice_synthetic_adapters/mistral-7b-instruct-v0.2,dry_run
-HuggingFaceH4/zephyr-7b-beta,Mistral-7B-v0.1,HuggingFaceH4/zephyr-7b-beta,/tmp/waveslice_synthetic_adapters/zephyr-7b-beta,dry_run
-openchat/openchat-3.5-0106,Mistral-7B-v0.1,openchat/openchat-3.5-0106,/tmp/waveslice_synthetic_adapters/openchat-3.5-0106,dry_run
-google/gemma-7b-it,Gemma-7B,google/gemma-7b-it,/tmp/waveslice_synthetic_adapters/gemma-7b-it,dry_run
-Deci/DeciLM-7B,Mistral-7B-v0.1,Deci/DeciLM-7B,/tmp/waveslice_synthetic_adapters/decilm-7b,dry_run
-microsoft/phi-2,Mistral-7B-v0.1,microsoft/phi-2,/tmp/waveslice_synthetic_adapters/phi-2,dry_run
-baichuan-inc/Baichuan2-7B-Chat,Mistral-7B-v0.1,baichuan-inc/Baichuan2-7B-Chat,/tmp/waveslice_synthetic_adapters/baichuan2-7b-chat,dry_run
