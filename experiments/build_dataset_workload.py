@@ -107,6 +107,83 @@ def _assign_poisson_arrivals(
     return assigned
 
 
+def _shuffle_items(items: list[dict[str, Any]], rng: random.Random) -> list[dict[str, Any]]:
+    copied = list(items)
+    rng.shuffle(copied)
+    return copied
+
+
+def _mixed_arrival_order(
+    shorts: list[dict[str, Any]],
+    longs: list[dict[str, Any]],
+    *,
+    seed: int,
+    early_short_frac: float,
+    post_long_short_bias: float,
+) -> list[dict[str, Any]]:
+    rng = random.Random(seed)
+    short_pool = _shuffle_items(shorts, rng)
+    long_pool = _shuffle_items(longs, rng)
+    if not short_pool:
+        return long_pool
+    if not long_pool:
+        return short_pool
+
+    early_short_frac = max(0.0, min(0.95, float(early_short_frac)))
+    post_long_short_bias = max(0.0, min(1.0, float(post_long_short_bias)))
+
+    # Keep a small number of shorts ahead of the first long, then force a long
+    # to arrive early so later shorts can benefit from Phase-I.
+    max_prefix = max(0, len(short_pool) - 1)
+    prefix_n = min(max_prefix, int(round(len(short_pool) * early_short_frac)))
+    ordered: list[dict[str, Any]] = []
+    ordered.extend(short_pool[:prefix_n])
+    short_pool = short_pool[prefix_n:]
+
+    ordered.append(long_pool.pop(0))
+
+    while short_pool or long_pool:
+        if short_pool and long_pool:
+            pick_short = rng.random() < post_long_short_bias
+            if pick_short:
+                ordered.append(short_pool.pop(0))
+            else:
+                ordered.append(long_pool.pop(0))
+        elif short_pool:
+            ordered.append(short_pool.pop(0))
+        else:
+            ordered.append(long_pool.pop(0))
+    return ordered
+
+
+def _arrival_order(
+    items: list[dict[str, Any]],
+    *,
+    seed: int,
+    layout: str,
+    early_short_frac: float,
+    post_long_short_bias: float,
+) -> list[dict[str, Any]]:
+    if layout == "grouped":
+        return list(items)
+    shorts = [dict(item) for item in items if bool(item.get("is_short"))]
+    longs = [dict(item) for item in items if not bool(item.get("is_short"))]
+    if layout == "mixed":
+        rng = random.Random(seed)
+        shuffled = list(items)
+        rng.shuffle(shuffled)
+        return shuffled
+    if layout == "beneficiary_rich":
+        return _mixed_arrival_order(
+            shorts,
+            longs,
+            seed=seed,
+            early_short_frac=early_short_frac,
+            post_long_short_bias=post_long_short_bias,
+        )
+    raise ValueError(f"unknown arrival layout: {layout}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build dataset request json files.")
     parser.add_argument("--model-path", required=True)
@@ -127,6 +204,22 @@ def main() -> int:
     parser.add_argument("--phase1-arrival-rate", type=float, default=6.0, help="Poisson arrival rate (req/s) for Phase-I requests.")
     parser.add_argument("--phase2-arrival-rate", type=float, default=6.0, help="Poisson arrival rate (req/s) for Phase-II requests.")
     parser.add_argument("--arrival-seed", type=int, default=7)
+    parser.add_argument(
+        "--phase1-arrival-layout",
+        choices=["grouped", "mixed", "beneficiary_rich"],
+        default="beneficiary_rich",
+        help="How Phase-I request types are ordered before arrival timestamps are assigned.",
+    )
+    parser.add_argument(
+        "--phase2-arrival-layout",
+        choices=["grouped", "mixed", "beneficiary_rich"],
+        default="beneficiary_rich",
+        help="How Phase-II request types are ordered before arrival timestamps are assigned.",
+    )
+    parser.add_argument("--phase1-early-short-frac", type=float, default=0.25)
+    parser.add_argument("--phase2-early-short-frac", type=float, default=0.20)
+    parser.add_argument("--phase1-post-long-short-bias", type=float, default=0.70)
+    parser.add_argument("--phase2-post-long-short-bias", type=float, default=0.60)
     parser.add_argument(
         "--datasets",
         default="ultrachat200k,longbench",
@@ -266,6 +359,21 @@ def main() -> int:
             }
         )
 
+    reqs = _arrival_order(
+        reqs,
+        seed=int(args.arrival_seed) + 17,
+        layout=str(args.phase1_arrival_layout),
+        early_short_frac=float(args.phase1_early_short_frac),
+        post_long_short_bias=float(args.phase1_post_long_short_bias),
+    )
+    lora_reqs = _arrival_order(
+        lora_reqs,
+        seed=int(args.arrival_seed) + 1017,
+        layout=str(args.phase2_arrival_layout),
+        early_short_frac=float(args.phase2_early_short_frac),
+        post_long_short_bias=float(args.phase2_post_long_short_bias),
+    )
+
     if args.arrival_mode == "poisson":
         reqs = _assign_poisson_arrivals(
             reqs,
@@ -301,6 +409,8 @@ def main() -> int:
                 "phase1_request_count": len(reqs),
                 "phase2_request_count": len(lora_reqs),
                 "arrival_mode": args.arrival_mode,
+                "phase1_arrival_layout": args.phase1_arrival_layout,
+                "phase2_arrival_layout": args.phase2_arrival_layout,
                 "phase1_arrival_rate": args.phase1_arrival_rate,
                 "phase2_arrival_rate": args.phase2_arrival_rate,
                 "phase1_last_arrival_s": max((float(item.get("arrival_offset_s", 0.0)) for item in reqs), default=0.0),

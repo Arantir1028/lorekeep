@@ -9,6 +9,7 @@ class FairnessEngine:
         beta: float = 2.0,
         w_max: float = 10.0,
         rho_bypass: float = 0.98,
+        ema_decay: float = 0.3,
     ):
         """
         公平性大脑与负载评估器。
@@ -22,6 +23,8 @@ class FairnessEngine:
         self.beta = beta
         self.w_max = w_max
         self.rho_bypass = max(0.0, min(0.999, rho_bypass))
+        self.ema_decay = max(0.0, min(1.0, float(ema_decay)))
+        self.current_rho_ema = 0.0
 
     def compute_weight(self, t_wait_us: float, t_solo_us: float) -> float:
         """
@@ -45,13 +48,21 @@ class FairnessEngine:
         解得严格物理映射: rho = (L + 1) - sqrt(L^2 + 1)
         """
         if queue_length <= 0:
-            return 0.0
-            
-        L = float(queue_length)
-        rho = (L + 1.0) - math.sqrt(L**2 + 1.0)
-        
-        # 物理边界保护
-        return min(0.99, max(0.0, rho))
+            raw_rho = 0.0
+        else:
+            L = float(queue_length)
+            raw_rho = (L + 1.0) - math.sqrt(L**2 + 1.0)
+            raw_rho = min(0.99, max(0.0, raw_rho))
+
+        if self.current_rho_ema == 0.0:
+            self.current_rho_ema = raw_rho
+        else:
+            self.current_rho_ema = (
+                self.ema_decay * raw_rho
+                + (1.0 - self.ema_decay) * self.current_rho_ema
+            )
+
+        return self.current_rho_ema
 
     def should_elastic_bypass(self, rho: float) -> bool:
         return float(rho) >= self.rho_bypass

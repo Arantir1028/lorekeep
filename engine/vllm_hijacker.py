@@ -49,6 +49,8 @@ class WaveSlicePolicy:
     short_escape_multiplier: int = 12
     max_budget_cap: int = 8192
     enable_sjf_reorder: bool = True
+    queue_reorder_mode: str = "sjf"  # sjf | hrrn | aging
+    queue_reorder_aging_quantum_us: float = 20_000.0
     enable_tick_hide: bool = False
     allow_phase1_with_lora: bool = False
     allow_phase1_threshold_with_lora: bool = True
@@ -123,6 +125,18 @@ class WaveSlicePolicy:
     phase12_phase2_soft_window_pressure_weight: float = 0.20
     phase12_phase2_soft_window_ratio_weight: float = 0.10
     phase12_phase2_soft_window_decode_bonus: float = 0.10
+    phase12_phase2_beneficiary_weight: float = 0.35
+    phase12_phase2_beneficiary_prefill_scale: float = 1.5
+    phase12_phase2_min_beneficiary_prefills: int = 1
+    phase12_phase2_require_beneficiary_signal: bool = True
+    phase12_phase2_beneficiary_score_threshold: float = 0.55
+    phase12_phase2_beneficiary_wait_weight: float = 0.40
+    phase12_phase2_beneficiary_size_weight: float = 0.60
+    phase12_phase2_beneficiary_quality_floor: float = 0.60
+    phase12_phase2_beneficiary_strong_prefill_quality_floor: float = 0.72
+    phase12_phase2_beneficiary_max_selected: int = 2
+    phase12_phase2_sparse_cashout_cooldown: int = 2
+    phase12_phase2_sparse_cashout_exception_quality: float = 0.90
     enable_vllm_lora_compat_patch: bool = True
 
     # Metrics
@@ -305,6 +319,32 @@ class WaveSliceMetrics:
             solo_us=solo_us,
             is_short=is_short,
         )
+
+    def snapshot_requests(
+        self,
+        request_ids: Optional[Iterable[str]] = None,
+    ) -> dict[str, dict[str, Any]]:
+        with self._lock:
+            if request_ids is None:
+                items = list(self._requests.items())
+            else:
+                wanted = {str(rid) for rid in request_ids}
+                items = [
+                    (rid, rec)
+                    for rid, rec in self._requests.items()
+                    if str(rid) in wanted
+                ]
+        return {
+            str(rid): {
+                "arrival_s": rec.arrival_s,
+                "input_tokens": rec.input_tokens,
+                "solo_us": rec.solo_us,
+                "is_short": rec.is_short,
+                "generated_tokens": rec.generated_tokens,
+                "finished": rec.finished,
+            }
+            for rid, rec in items
+        }
 
     def record_scheduler_decision(self, applied: bool) -> None:
         with self._lock:
@@ -762,6 +802,7 @@ class _PatchState:
     phase12_last_phase1_req_id: Optional[str] = None
     phase12_recent_phase1_strength: float = 0.0
     phase12_recent_phase1_chunk: int = 0
+    phase12_recent_phase2_cashout_cooldown: int = 0
 
 
 @dataclass
@@ -779,6 +820,30 @@ class _RunnerStreamState:
     device: Any
     fast_stream: Any
     inflight_events: Deque[Any] = field(default_factory=collections.deque)
+
+
+@dataclass(frozen=True)
+class _ScheduledReqInfo:
+    request_id: str
+    scheduled_tokens: int
+    remaining_tokens: int
+    input_tokens: Optional[int]
+    arrival_s: Optional[float]
+    is_short: bool
+    lora_rank: int
+
+
+@dataclass(frozen=True)
+class _Phase12BeneficiarySignal:
+    long_anchor_id: Optional[str]
+    beneficiary_prefill_ids: list[str]
+    beneficiary_prefill_count: int
+    beneficiary_fraction: float
+    beneficiary_wait_quality: float
+    beneficiary_size_quality: float
+    beneficiary_cashout_quality: float
+    beneficiary_selected_quality: float
+    beneficiary_selected_ids: list[str]
 
 
 @dataclass(frozen=True)
@@ -1168,9 +1233,49 @@ def _safe_wait_us(seq_group: Any, now_s: float) -> float:
     return max(0.0, (now_s - arrival_s) * 1e6)
 
 
-def _sorted_queue_by_remaining(queue_like: Iterable[Any]) -> Any:
+def _queue_reorder_key(
+    seq_group: Any,
+    *,
+    brain: WaveScheduler,
+    now_s: float,
+    mode: str,
+    aging_quantum_us: float,
+) -> Any:
+    remaining = max(1, int(_safe_remaining_tokens(seq_group) or 1))
+    service_us = _estimate_solo_us(brain, remaining) or float(remaining)
+    wait_us = _safe_wait_us(seq_group, now_s)
+    mode = str(mode or "sjf").strip().lower()
+
+    if mode == "hrrn":
+        # Highest Response Ratio Next: larger score gets higher priority.
+        response_ratio = (wait_us + service_us) / max(1.0, service_us)
+        return (-response_ratio, service_us, remaining)
+    if mode == "aging":
+        # Aging-SJF: old requests gradually shrink their effective service time.
+        quantum = max(1.0, float(aging_quantum_us))
+        aged_service = service_us / (1.0 + (wait_us / quantum))
+        return (aged_service, service_us, remaining)
+    return (service_us, remaining)
+
+
+def _reorder_queue(
+    queue_like: Iterable[Any],
+    *,
+    brain: WaveScheduler,
+    now_s: float,
+    mode: str,
+    aging_quantum_us: float,
+) -> Any:
     queue = list(queue_like)
-    queue.sort(key=lambda sg: _safe_remaining_tokens(sg) or 10**12)
+    queue.sort(
+        key=lambda sg: _queue_reorder_key(
+            sg,
+            brain=brain,
+            now_s=now_s,
+            mode=mode,
+            aging_quantum_us=aging_quantum_us,
+        )
+    )
     if isinstance(queue_like, collections.deque):
         return collections.deque(queue)
     if isinstance(queue_like, list):
@@ -2410,6 +2515,189 @@ def _phase12_collect_prefill_lora_state(seq_groups: list[Any]) -> tuple[list[int
     return prefill_lens, lora_ranks
 
 
+def _phase12_collect_scheduled_req_infos(
+    model_input: Any,
+    *,
+    runner_self: Optional[Any],
+    state: Optional[_PatchState],
+    policy: WaveSlicePolicy,
+) -> list[_ScheduledReqInfo]:
+    try:
+        num_sched = dict(getattr(model_input, "num_scheduled_tokens", {}) or {})
+    except Exception:
+        return []
+    if not num_sched:
+        return []
+
+    req_states = getattr(runner_self, "requests", {}) if runner_self is not None else {}
+    metric_snapshot = (
+        state.metrics.snapshot_requests(num_sched.keys())
+        if state is not None
+        else {}
+    )
+    infos: list[_ScheduledReqInfo] = []
+    for rid_raw, tok_raw in num_sched.items():
+        rid = str(rid_raw)
+        scheduled = max(0, int(tok_raw))
+        remaining = scheduled
+        rank = 1
+        st = req_states.get(rid) if isinstance(req_states, dict) else None
+        if st is not None:
+            try:
+                remaining = max(0, int(st.num_tokens) - int(st.num_computed_tokens))
+            except Exception:
+                remaining = scheduled
+            rank = max(1, _infer_lora_rank(getattr(st, "lora_request", None)) or 1)
+        metric = metric_snapshot.get(rid, {})
+        input_tokens = metric.get("input_tokens")
+        arrival_s = metric.get("arrival_s")
+        metric_is_short = metric.get("is_short")
+        is_short = bool(metric_is_short)
+        if metric_is_short is None and input_tokens is not None:
+            is_short = int(input_tokens) <= int(policy.metrics_short_request_tokens)
+        infos.append(
+            _ScheduledReqInfo(
+                request_id=rid,
+                scheduled_tokens=scheduled,
+                remaining_tokens=max(scheduled, remaining),
+                input_tokens=int(input_tokens) if input_tokens is not None else None,
+                arrival_s=float(arrival_s) if arrival_s is not None else None,
+                is_short=is_short,
+                lora_rank=rank,
+            )
+        )
+    return infos
+
+
+def _phase12_beneficiary_signal(
+    *,
+    state: _PatchState,
+    policy: WaveSlicePolicy,
+    req_infos: list[_ScheduledReqInfo],
+) -> _Phase12BeneficiarySignal:
+    if not req_infos:
+        return _Phase12BeneficiarySignal(None, [], 0, 0.0, 0.0, 0.0, 0.0, 0.0, [])
+    recent_ttl = int(getattr(state, "phase12_recent_phase1_apply_ttl", 0) or 0)
+    recent_chunk = max(0, int(getattr(state, "phase12_recent_phase1_chunk", 0) or 0))
+    if recent_ttl <= 0 or recent_chunk <= 0:
+        return _Phase12BeneficiarySignal(None, [], 0, 0.0, 0.0, 0.0, 0.0, 0.0, [])
+
+    anchor_id = str(getattr(state, "phase12_last_phase1_req_id", "") or "")
+    req_map = {info.request_id: info for info in req_infos}
+    anchor = req_map.get(anchor_id)
+    if anchor is None:
+        prefill_infos = [info for info in req_infos if info.remaining_tokens > 1]
+        if not prefill_infos:
+            return _Phase12BeneficiarySignal(None, [], 0, 0.0, 0.0, 0.0, 0.0, 0.0, [])
+        anchor = max(prefill_infos, key=lambda info: (info.remaining_tokens, info.scheduled_tokens))
+        anchor_id = anchor.request_id
+
+    anchor_arrival = anchor.arrival_s
+    now_s = time.perf_counter()
+    beneficiary_upper = max(
+        recent_chunk + 64,
+        int(float(recent_chunk) * max(1.0, float(policy.phase12_phase2_beneficiary_prefill_scale))),
+    )
+    beneficiary_ids: list[str] = []
+    beneficiary_scores: dict[str, float] = {}
+    candidate_pool = 0
+    candidate_waits: list[float] = []
+    candidate_sizes: list[int] = []
+    for info in req_infos:
+        if info.request_id == anchor_id:
+            continue
+        if info.remaining_tokens <= 1:
+            continue
+        candidate_pool += 1
+        size_ok = info.remaining_tokens <= beneficiary_upper
+        arrival_ok = (
+            anchor_arrival is None
+            or info.arrival_s is None
+            or float(info.arrival_s) >= float(anchor_arrival)
+        )
+        shortish_ok = info.is_short or (
+            info.input_tokens is not None and int(info.input_tokens) <= beneficiary_upper
+        )
+        if size_ok and arrival_ok and shortish_ok:
+            beneficiary_ids.append(info.request_id)
+            wait_s = max(0.0, now_s - float(info.arrival_s)) if info.arrival_s is not None else 0.0
+            candidate_waits.append(wait_s)
+            candidate_sizes.append(int(info.remaining_tokens))
+    beneficiary_fraction = (
+        float(len(beneficiary_ids)) / float(candidate_pool)
+        if candidate_pool > 0
+        else 0.0
+    )
+    if beneficiary_ids:
+        max_wait = max(candidate_waits) if candidate_waits else 0.0
+        selected_ids: list[str] = []
+        wait_scores: list[float] = []
+        size_scores: list[float] = []
+        score_threshold = max(
+            0.0,
+            min(1.0, float(getattr(policy, "phase12_phase2_beneficiary_score_threshold", 0.55) or 0.55)),
+        )
+        wait_weight = max(0.0, float(getattr(policy, "phase12_phase2_beneficiary_wait_weight", 0.40) or 0.40))
+        size_weight = max(0.0, float(getattr(policy, "phase12_phase2_beneficiary_size_weight", 0.60) or 0.60))
+        norm = max(1e-6, wait_weight + size_weight)
+        for rid in beneficiary_ids:
+            info = req_map.get(rid)
+            if info is None:
+                continue
+            wait_s = max(0.0, now_s - float(info.arrival_s)) if info.arrival_s is not None else 0.0
+            wait_quality = min(1.0, wait_s / max(1e-6, max_wait)) if max_wait > 0.0 else 0.0
+            if info.remaining_tokens <= recent_chunk:
+                size_quality = 1.0
+            elif info.remaining_tokens >= beneficiary_upper:
+                size_quality = 0.0
+            else:
+                size_quality = 1.0 - (
+                    float(info.remaining_tokens - recent_chunk)
+                    / float(max(1, beneficiary_upper - recent_chunk))
+                )
+            score = ((wait_weight * wait_quality) + (size_weight * size_quality)) / norm
+            beneficiary_scores[rid] = score
+            wait_scores.append(wait_quality)
+            size_scores.append(size_quality)
+            if score >= score_threshold:
+                selected_ids.append(rid)
+        selected_ids.sort(key=lambda rid: beneficiary_scores.get(rid, 0.0), reverse=True)
+        max_selected = max(0, int(getattr(policy, "phase12_phase2_beneficiary_max_selected", 2) or 0))
+        if max_selected > 0:
+            selected_ids = selected_ids[:max_selected]
+        beneficiary_wait_quality = sum(wait_scores) / float(len(wait_scores)) if wait_scores else 0.0
+        beneficiary_size_quality = sum(size_scores) / float(len(size_scores)) if size_scores else 0.0
+        beneficiary_cashout_quality = (
+            sum(beneficiary_scores.get(rid, 0.0) for rid in beneficiary_scores)
+            / float(len(beneficiary_scores))
+            if beneficiary_scores
+            else 0.0
+        )
+        beneficiary_selected_quality = (
+            sum(beneficiary_scores.get(rid, 0.0) for rid in selected_ids)
+            / float(len(selected_ids))
+            if selected_ids
+            else 0.0
+        )
+    else:
+        selected_ids = []
+        beneficiary_wait_quality = 0.0
+        beneficiary_size_quality = 0.0
+        beneficiary_cashout_quality = 0.0
+        beneficiary_selected_quality = 0.0
+    return _Phase12BeneficiarySignal(
+        long_anchor_id=anchor_id,
+        beneficiary_prefill_ids=beneficiary_ids,
+        beneficiary_prefill_count=len(beneficiary_ids),
+        beneficiary_fraction=beneficiary_fraction,
+        beneficiary_wait_quality=beneficiary_wait_quality,
+        beneficiary_size_quality=beneficiary_size_quality,
+        beneficiary_cashout_quality=beneficiary_cashout_quality,
+        beneficiary_selected_quality=beneficiary_selected_quality,
+        beneficiary_selected_ids=selected_ids,
+    )
+
+
 def _phase12_joint_phase1_floor(
     *,
     state: _PatchState,
@@ -2444,6 +2732,7 @@ def _phase12_joint_phase2_ready(
     prefill_lens: list[int],
     num_decode_tokens: int,
     lora_ranks: list[int],
+    req_infos: Optional[list[_ScheduledReqInfo]],
     strict_mode: bool,
 ) -> tuple[bool, str]:
     if not (policy.enable_phase1_scheduler and policy.enable_phase2_modelrunner):
@@ -2516,6 +2805,54 @@ def _phase12_joint_phase2_ready(
     recent_strength = float(getattr(state, "phase12_recent_phase1_strength", 0.0) or 0.0)
     if cap_live:
         recent_strength = max(recent_strength, 1.0)
+    beneficiary_signal = _phase12_beneficiary_signal(
+        state=state,
+        policy=policy,
+        req_infos=req_infos or [],
+    )
+    beneficiary_quality = min(
+        1.0,
+        float(beneficiary_signal.beneficiary_prefill_count)
+        / float(max(1, int(policy.phase12_phase2_min_beneficiary_prefills))),
+    )
+    beneficiary_quality = max(
+        beneficiary_quality,
+        float(beneficiary_signal.beneficiary_cashout_quality),
+    )
+    beneficiary_quality = max(
+        beneficiary_quality,
+        float(beneficiary_signal.beneficiary_selected_quality),
+    )
+    beneficiary_quality_floor = max(
+        0.0,
+        min(1.0, float(getattr(policy, "phase12_phase2_beneficiary_quality_floor", 0.60) or 0.60)),
+    )
+    require_beneficiary_signal = bool(
+        getattr(policy, "phase12_phase2_require_beneficiary_signal", True)
+    )
+    strong_prefill_beneficiary_floor = max(
+        beneficiary_quality_floor,
+        min(
+            1.0,
+            float(
+                getattr(policy, "phase12_phase2_beneficiary_strong_prefill_quality_floor", 0.72) or 0.72
+            ),
+        ),
+    )
+    sparse_cooldown = max(
+        0,
+        int(getattr(policy, "phase12_phase2_sparse_cashout_cooldown", 2) or 0),
+    )
+    sparse_exception_quality = max(
+        strong_prefill_beneficiary_floor,
+        min(
+            1.0,
+            float(
+                getattr(policy, "phase12_phase2_sparse_cashout_exception_quality", 0.90) or 0.90
+            ),
+        ),
+    )
+    phase2_cooldown_live = int(getattr(state, "phase12_recent_phase2_cashout_cooldown", 0) or 0)
     recent_chunk = max(0, int(getattr(state, "phase12_recent_phase1_chunk", 0) or 0))
     current_min_prefill = min(pos_prefills) if pos_prefills else 0
     chunk_match_scale = max(
@@ -2559,6 +2896,13 @@ def _phase12_joint_phase2_ready(
         + float(getattr(policy, "phase12_phase2_soft_window_chunk_weight", 0.25) or 0.25) * chunk_match_quality
         + float(getattr(policy, "phase12_phase2_soft_window_pressure_weight", 0.20) or 0.20) * pressure_quality
         + float(getattr(policy, "phase12_phase2_soft_window_ratio_weight", 0.10) or 0.10) * ratio_quality
+        + float(getattr(policy, "phase12_phase2_beneficiary_weight", 0.35) or 0.35)
+        * max(
+            beneficiary_quality,
+            float(beneficiary_signal.beneficiary_fraction),
+            float(beneficiary_signal.beneficiary_wait_quality),
+            float(beneficiary_signal.beneficiary_selected_quality),
+        )
         + (
             float(getattr(policy, "phase12_phase2_soft_window_decode_bonus", 0.10) or 0.10)
             if mixed_ok
@@ -2567,6 +2911,10 @@ def _phase12_joint_phase2_ready(
         + (0.10 if cap_live else 0.0)
         + (0.05 if lora_rank_hetero and selective_ok else 0.0)
     )
+    if require_beneficiary_signal:
+        beneficiary_deficit = max(0.0, beneficiary_quality_floor - float(beneficiary_signal.beneficiary_selected_quality))
+        if beneficiary_deficit > 0.0 and strong_prefill and not mixed_ok:
+            window_score -= min(0.25, beneficiary_deficit * 0.35)
     window_threshold = max(
         0.1,
         float(getattr(policy, "phase12_phase2_soft_window_score_threshold", 0.95) or 0.95),
@@ -2578,11 +2926,42 @@ def _phase12_joint_phase2_ready(
     ):
         return True, "joint_soft_window_quality"
     require_cashout_signal = bool(getattr(policy, "phase12_phase2_soft_require_cashout_signal", True))
+    if (
+        require_beneficiary_signal
+        and (cap_live or recent_ttl > 0 or strong_recent)
+        and selective_ok
+        and beneficiary_signal.beneficiary_prefill_count
+        < max(1, int(policy.phase12_phase2_min_beneficiary_prefills))
+        and not mixed_ok
+    ):
+        return False, "joint_soft_no_beneficiary"
+    if (
+        require_beneficiary_signal
+        and strong_prefill
+        and (
+            beneficiary_signal.beneficiary_selected_ids == []
+            or float(beneficiary_signal.beneficiary_selected_quality) < strong_prefill_beneficiary_floor
+        )
+        and not mixed_ok
+    ):
+        return False, "joint_soft_low_beneficiary_quality"
+    if (
+        sparse_cooldown > 0
+        and phase2_cooldown_live > 0
+        and strong_prefill
+        and float(beneficiary_signal.beneficiary_selected_quality) < sparse_exception_quality
+        and not mixed_ok
+    ):
+        return False, "joint_soft_sparse_cashout_cooldown"
     if strong_prefill and require_cashout_signal and window_score < window_threshold and not mixed_ok:
         return False, "joint_soft_low_window_quality"
     if not requires_recent_phase1 and selective_ok and window_score >= max(0.35, window_threshold * 0.55):
         return True, "joint_soft_window_quality_no_recent_req"
-    if strong_prefill:
+    if strong_prefill and (
+        not require_beneficiary_signal
+        or float(beneficiary_signal.beneficiary_selected_quality) >= strong_prefill_beneficiary_floor
+        or mixed_ok
+    ):
         return True, "joint_soft_strong_prefill"
     if strong_rank_signal and (window_score >= max(0.5, window_threshold * 0.8) or strong_recent):
         return True, "joint_soft_rank_pressure"
@@ -2602,6 +2981,12 @@ def _phase12_tick_recent_phase1(state: _PatchState) -> None:
     else:
         state.phase12_recent_phase1_strength = 0.0
         state.phase12_recent_phase1_chunk = 0
+
+
+def _phase12_tick_recent_phase2(state: _PatchState) -> None:
+    cooldown = int(getattr(state, "phase12_recent_phase2_cashout_cooldown", 0) or 0)
+    if cooldown > 0:
+        state.phase12_recent_phase2_cashout_cooldown = max(0, cooldown - 1)
 
 
 def _extract_prefill_lens(attn_meta: Any) -> list[int]:
@@ -2626,6 +3011,12 @@ def _phase2_decide(
     with _PATCH_LOCK:
         state = _PATCH_STATE
     lora_ranks = _extract_phase2_lora_ranks(model_input, runner_self=runner_self)
+    req_infos = _phase12_collect_scheduled_req_infos(
+        model_input,
+        runner_self=runner_self,
+        state=state,
+        policy=policy,
+    )
 
     # vLLM v1 path: GPUModelRunner.execute_model(scheduler_output, ...)
     if hasattr(model_input, "num_scheduled_tokens") and hasattr(model_input, "total_num_scheduled_tokens"):
@@ -2650,6 +3041,7 @@ def _phase2_decide(
                 prefill_lens=prefill_lens,
                 num_decode_tokens=num_decode_tokens,
                 lora_ranks=lora_ranks,
+                req_infos=req_infos,
                 strict_mode=strict_mode,
             )
         else:
@@ -2819,6 +3211,7 @@ def _phase2_decide(
             prefill_lens=prefill_lens,
             num_decode_tokens=num_decode_tokens,
             lora_ranks=lora_ranks,
+            req_infos=req_infos,
             strict_mode=strict_mode,
         )
     else:
@@ -2975,7 +3368,9 @@ def _safe_v1_pipeline_size(model_runner: Any) -> int:
 def _v1_partition_req_ids(
     model_input: Any,
     policy: WaveSlicePolicy,
+    *,
     runner_self: Optional[Any] = None,
+    state: Optional[_PatchState] = None,
 ) -> Optional[tuple[list[str], list[str]]]:
     try:
         num_sched = dict(getattr(model_input, "num_scheduled_tokens", {}) or {})
@@ -2984,23 +3379,46 @@ def _v1_partition_req_ids(
     if not num_sched:
         return None
 
-    req_states = getattr(runner_self, "requests", {}) if runner_self is not None else {}
+    req_infos = _phase12_collect_scheduled_req_infos(
+        model_input,
+        runner_self=runner_self,
+        state=state,
+        policy=policy,
+    )
+    if state is not None and bool(getattr(policy, "phase12_phase2_require_beneficiary_signal", True)):
+        beneficiary_signal = _phase12_beneficiary_signal(
+            state=state,
+            policy=policy,
+            req_infos=req_infos,
+        )
+        min_beneficiaries = max(1, int(policy.phase12_phase2_min_beneficiary_prefills))
+        if (
+            beneficiary_signal.long_anchor_id is not None
+            and len(beneficiary_signal.beneficiary_selected_ids) >= min_beneficiaries
+        ):
+            beneficiary_ids = set(beneficiary_signal.beneficiary_selected_ids)
+            short_ids = [
+                str(rid)
+                for rid in num_sched.keys()
+                if str(rid) in beneficiary_ids
+            ]
+            long_ids = [
+                str(rid)
+                for rid in num_sched.keys()
+                if str(rid) not in beneficiary_ids
+            ]
+            if short_ids and long_ids:
+                return short_ids, long_ids
+
+    req_info_map = {info.request_id: info for info in req_infos}
     prefill_items: list[tuple[str, int]] = []
     for rid_raw, tok_raw in num_sched.items():
         rid = str(rid_raw)
         tok = int(tok_raw)
-        approx_rem = tok
-        rank = 1
-        st = req_states.get(rid) if isinstance(req_states, dict) else None
-        if st is not None:
-            try:
-                approx_rem = max(0, int(st.num_tokens) - int(st.num_computed_tokens))
-            except Exception:
-                approx_rem = tok
-            rank = max(1, _infer_lora_rank(getattr(st, "lora_request", None)) or 1)
-        score = max(tok, approx_rem) * (
-            rank if policy.phase2_lora_rank_aware else 1
-        )
+        info = req_info_map.get(rid)
+        approx_rem = info.remaining_tokens if info is not None else tok
+        rank = info.lora_rank if info is not None else 1
+        score = max(tok, approx_rem) * (rank if policy.phase2_lora_rank_aware else 1)
         if score > 1:
             prefill_items.append((rid, score))
     if len(prefill_items) < 2:
@@ -3278,7 +3696,12 @@ def _try_v1_true_unbind_execute(
     except Exception:
         return None
 
-    split_ids = _v1_partition_req_ids(model_input, state.policy, runner_self=runner_self)
+    split_ids = _v1_partition_req_ids(
+        model_input,
+        state.policy,
+        runner_self=runner_self,
+        state=state,
+    )
     if split_ids is None:
         return None
     short_ids, long_ids = split_ids
@@ -3333,6 +3756,10 @@ def _try_v1_true_unbind_execute(
         len(long_ids),
         int(getattr(short_sched, "total_num_scheduled_tokens", 0)),
         int(getattr(long_sched, "total_num_scheduled_tokens", 0)),
+    )
+    state.phase12_recent_phase2_cashout_cooldown = max(
+        0,
+        int(getattr(state.policy, "phase12_phase2_sparse_cashout_cooldown", 2) or 0),
     )
     return merged
 
@@ -3411,11 +3838,25 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
         original_budget = getattr(scheduler_cfg, "max_num_batched_tokens", None)
         original_threshold = getattr(scheduler_cfg, "long_prefill_token_threshold", None)
         _phase12_tick_recent_phase1(state)
+        _phase12_tick_recent_phase2(state)
 
         try:
             if state.policy.enable_sjf_reorder:
-                self.running = _sorted_queue_by_remaining(running)
-                self.waiting = _sorted_queue_by_remaining(waiting)
+                now_s = time.time()
+                self.running = _reorder_queue(
+                    running,
+                    brain=state.brain,
+                    now_s=now_s,
+                    mode=state.policy.queue_reorder_mode,
+                    aging_quantum_us=state.policy.queue_reorder_aging_quantum_us,
+                )
+                self.waiting = _reorder_queue(
+                    waiting,
+                    brain=state.brain,
+                    now_s=now_s,
+                    mode=state.policy.queue_reorder_mode,
+                    aging_quantum_us=state.policy.queue_reorder_aging_quantum_us,
+                )
                 running = self.running
                 waiting = self.waiting
             if bool(state.policy.phase1_ingress_direct_authoritative):
