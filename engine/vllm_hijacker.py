@@ -10,987 +10,157 @@ All changes are applied via monkey patching and can be fully reverted.
 
 from __future__ import annotations
 
-import collections
 import contextlib
 import functools
-import importlib
-import json
 import logging
+import math
 import os
-import re
+import sys
 import threading
 import time
-from dataclasses import asdict, dataclass, field
-from typing import Any, Callable, Deque, Iterable, Optional
+from typing import Any, Callable, Iterable, Optional
 
-from engine.base_slicer import SlicePlan, WaveBaseSlicer
-from engine.runtime_bootstrap import bootstrap_vllm_runtime
 from scheduler.wave_scheduler import WaveScheduler
+from engine.hijack.autoinject import (
+    AUTO_ENV_ENABLED as _AUTO_ENV_ENABLED,
+    AUTO_ENV_GAMMA as _AUTO_ENV_GAMMA,
+    AUTO_ENV_MODEL as _AUTO_ENV_MODEL,
+    AUTO_ENV_POLICY as _AUTO_ENV_POLICY,
+    clear_autoinject_env as _clear_autoinject_env,
+    merge_cross_process_metrics as _merge_cross_process_metrics,
+    publish_autoinject_env as _publish_autoinject_env,
+    reset_cross_process_metrics_file as _reset_cross_process_metrics_file,
+)
+from engine.hijack.engine_hooks import (
+    build_add_request_hook as _build_add_request_hook_impl,
+    build_step_hook as _build_step_hook_impl,
+)
+from engine.hijack.common import (
+    collect_live_lengths as _collect_live_lengths,
+    collect_live_snapshot as _collect_live_snapshot,
+    compute_long_prefill_threshold as _compute_long_prefill_threshold,
+    estimate_prompt_tokens as _estimate_prompt_tokens,
+    estimate_solo_us as _estimate_solo_us,
+    infer_lora_rank as _infer_lora_rank,
+    is_phase2_async_experimental as _is_phase2_async_experimental,
+    is_phase2_strict as _is_phase2_strict,
+    phase12_expected_chunk_tokens as _phase12_expected_chunk_tokens,
+    queue_reorder_key as _queue_reorder_key,
+    rebuild_queue_like as _rebuild_queue_like,
+    reorder_queue as _reorder_queue,
+    safe_first_seq as _safe_first_seq,
+    safe_lora_path as _safe_lora_path,
+    safe_prefill_uncomputed_tokens as _safe_prefill_uncomputed_tokens,
+    safe_remaining_tokens as _safe_remaining_tokens,
+    safe_request_id as _safe_request_id,
+    safe_total_tokens as _safe_total_tokens,
+    safe_wait_us as _safe_wait_us,
+)
+from engine.hijack.v1_lifecycle import (
+    build_output_processor_add_request_hook as _build_output_processor_add_request_hook_impl,
+    build_output_processor_process_outputs_hook as _build_output_processor_process_outputs_hook_impl,
+    build_v1_scheduler_finish_requests_hook as _build_v1_scheduler_finish_requests_hook_impl,
+    build_v1_scheduler_update_from_output_hook as _build_v1_scheduler_update_from_output_hook_impl,
+    maybe_install_v1_runtime_lifecycle_hooks as _maybe_install_v1_runtime_lifecycle_hooks_impl,
+)
+from engine.hijack.phase1_math import (
+    compute_budget as _compute_budget,
+    compute_explicit_plan_budget as _compute_explicit_plan_budget,
+    maybe_force_phase1_chunk as _maybe_force_phase1_chunk,
+    need_wave_slice as _need_wave_slice,
+    phase1_adjusted_queue_len as _phase1_adjusted_queue_len,
+    phase1_authoritative_chunk as _phase1_authoritative_chunk,
+    phase1_authoritative_short_floor as _phase1_authoritative_short_floor,
+    phase1_baseline_chunk_proxy as _phase1_baseline_chunk_proxy,
+    phase1_cohort_target_len as _phase1_cohort_target_len,
+    phase1_effective_short_token_mass as _phase1_effective_short_token_mass,
+)
+from engine.hijack.phase1_stateful import (
+    phase1_apply_sticky_chunk as _phase1_apply_sticky_chunk,
+    phase1_build_direct_explicit_plans as _phase1_build_direct_explicit_plans,
+    phase1_direct_chunk_candidate as _phase1_direct_chunk_candidate,
+    phase1_explicit_chunk_from_plan as _phase1_explicit_chunk_from_plan,
+    phase1_maybe_seed_ingress_virtual as _phase1_maybe_seed_ingress_virtual,
+    phase1_update_sticky_chunk as _phase1_update_sticky_chunk,
+)
+from engine.hijack.phase12_beneficiary import (
+    phase12_beneficiary_signal as _phase12_beneficiary_signal,
+    phase12_collect_prefill_lora_state as _phase12_collect_prefill_lora_state,
+    phase12_collect_scheduled_req_infos as _phase12_collect_scheduled_req_infos,
+    phase12_collect_snapshot_req_infos as _phase12_collect_snapshot_req_infos,
+)
+from engine.hijack.phase12_cashout import (
+    phase12_scheduler_cashout_cooldown_for_grade as _phase12_scheduler_cashout_cooldown_for_grade,
+    phase12_scheduler_cashout_grade as _phase12_scheduler_cashout_grade,
+    phase12_scheduler_cashout_value_signal as _phase12_scheduler_cashout_value_signal,
+)
+from engine.hijack.phase12_priority import (
+    phase12_priority_bubble_waiting_queue as _phase12_priority_bubble_waiting_queue,
+)
+from engine.hijack.public_metadata import (
+    build_public_seq_group_metadata as _build_public_seq_group_metadata,
+)
+from engine.hijack.queue_ops import (
+    capture_queue_pair as _capture_queue_pair,
+    restore_hidden_queue_items as _restore_hidden_queue_items,
+    restore_queue_pair as _restore_queue_pair,
+)
+from engine.hijack.phase2_decision import (
+    phase2_decide_from_prefill_window as _phase2_decide_from_prefill_window,
+)
+from engine.hijack.hook_guards import (
+    has_running_waiting_queues as _has_running_waiting_queues,
+    phase2_modelrunner_passthrough as _phase2_modelrunner_passthrough,
+    phase2_scheduler_cashout_enabled as _phase2_scheduler_cashout_enabled,
+)
+from engine.hijack.v1_split import (
+    v1_build_subset_scheduler_output as _v1_build_subset_scheduler_output,
+    v1_execution_escape_req_ids as _v1_execution_escape_req_ids,
+    v1_partition_req_ids as _v1_partition_req_ids,
+)
+from engine.hijack.v1_merge import (
+    merge_v1_runner_outputs as _merge_v1_runner_outputs,
+)
+from engine.hijack.phase1_selection import (
+    phase1_basic_cohort as _phase1_basic_cohort,
+    phase1_build_cohort as _phase1_build_cohort,
+    phase1_find_ingress_virtual_candidate as _phase1_find_ingress_virtual_candidate,
+    phase1_find_seq_group_by_request_id as _phase1_find_seq_group_by_request_id,
+    phase1_live_cohort_from_snapshot as _phase1_live_cohort_from_snapshot,
+    phase1_prune_explicit_plans as _phase1_prune_explicit_plans,
+)
+from engine.hijack.phase2_gates import (
+    phase2_has_lora_heterogeneity as _phase2_has_lora_heterogeneity,
+    phase2_mixed_escape_ok as _phase2_mixed_escape_ok,
+    phase2_pressure_ratio as _phase2_pressure_ratio,
+    phase2_rank_ratio as _phase2_rank_ratio,
+    phase2_selective_gate as _phase2_selective_gate,
+)
+from engine.hijack.runtime_loaders import (
+    load_llm_engine_cls as _load_llm_engine_cls,
+    load_logits_processor_lora_cls as _load_logits_processor_lora_cls,
+    load_model_runner_cls as _load_model_runner_cls,
+    load_scheduler_target as _load_scheduler_target,
+    load_sequence_data_cls as _load_sequence_data_cls,
+    load_v1_output_processor_cls as _load_v1_output_processor_cls,
+)
+from engine.hijack.runtime_state import WaveSliceMetrics, WaveSlicePolicy
+from engine.hijack.types import (
+    _PatchState,
+    _Phase12BeneficiarySignal,
+    _Phase1CohortStats,
+    _Phase1IngressVirtualSlice,
+    _Phase2Decision,
+    _RunnerStreamState,
+    _ScheduledReqInfo,
+)
 
 logger = logging.getLogger("WaveSlice")
 logger.addHandler(logging.NullHandler())
 
-_AUTO_ENV_ENABLED = "WAVESLICE_AUTOINJECT_ENABLED"
-_AUTO_ENV_MODEL = "WAVESLICE_AUTOINJECT_MODEL_NAME"
-_AUTO_ENV_GAMMA = "WAVESLICE_AUTOINJECT_GAMMA"
-_AUTO_ENV_POLICY = "WAVESLICE_AUTOINJECT_POLICY_JSON"
-_AUTO_ENV_PREV_PYTHONPATH = "WAVESLICE_AUTOINJECT_PREV_PYTHONPATH"
-_AUTO_ENV_PREV_VLLM_PLUGINS = "WAVESLICE_AUTOINJECT_PREV_VLLM_PLUGINS"
-
-
-@dataclass(frozen=True)
-class WaveSlicePolicy:
-    """Runtime knobs for Phase I/II behavior and metrics."""
-
-    # Phase I (scheduler)
-    enable_phase1_scheduler: bool = True
-    min_hetero_ratio: float = 3.0
-    min_long_seq: int = 384
-    short_escape_multiplier: int = 12
-    max_budget_cap: int = 8192
-    enable_sjf_reorder: bool = True
-    queue_reorder_mode: str = "sjf"  # sjf | hrrn | aging
-    queue_reorder_aging_quantum_us: float = 20_000.0
-    enable_tick_hide: bool = False
-    allow_phase1_with_lora: bool = False
-    allow_phase1_threshold_with_lora: bool = True
-    allow_phase1_budget_with_lora: bool = False
-    allow_phase1_tick_hide_with_lora: bool = False
-    enable_phase1_dynamic_threshold: bool = True
-    enable_phase1_budget_guidance: bool = True
-    enable_phase1_baseline_relative: bool = True
-    enable_phase1_explicit_plan: bool = True
-    enable_phase1_direct_explicit_override: bool = True
-    phase1_ingress_direct_authoritative: bool = True
-    scheduler_objective_mode: str = "fair_escape"  # fair_escape | pure_gain
-    phase1_force_extreme_ratio: float = 6.0
-    phase1_force_queue_len: int = 1
-    phase1_force_min_chunk: int = 128
-    phase1_ingress_exact_chunk: bool = True
-    phase1_ingress_target_chunk: int = 384
-    phase1_ingress_min_chunk: int = 256
-    phase1_ingress_max_chunk: int = 512
-    phase1_target_short_mul: float = 4.0
-    phase1_target_long_fraction: float = 0.33
-    phase1_budget_short_mass_factor: float = 1.75
-    phase1_budget_bonus_tokens: int = 256
-    phase1_budget_queue_bonus: int = 64
-    phase1_explicit_budget_cap_tokens: int = 512
-    phase1_enable_cohort_mode: bool = False
-    phase1_enable_sticky_chunk: bool = False
-    phase1_short_cohort_long_fraction: float = 0.4
-    phase1_cohort_min_count: int = 2
-    phase1_cohort_queue_bonus: int = 2
-    phase1_cohort_mass_queue_factor: float = 0.5
-    phase1_cohort_target_mass_factor: float = 1.0
-    phase1_sticky_ttl: int = 4
-    phase1_sticky_reuse_ratio: float = 0.85
-
-    # Phase II (ModelRunner)
-    enable_phase2_modelrunner: bool = False
-    phase2_enable_mixed_prefill_decode: bool = True
-    phase2_min_prefill_count: int = 1
-    phase2_min_hetero_ratio: float = 2.0
-    phase2_min_long_prefill: int = 256
-    phase2_host_sync_after_dispatch: bool = False
-    phase2_consistency_mode: str = "balanced"  # balanced | strict
-    phase2_dispatch_mode: str = "synchronized"  # synchronized | async_experimental
-    phase2_max_inflight_events: int = 2
-    phase2_enable_v1_true_unbind: bool = False
-    phase2_lora_rank_aware: bool = True
-    phase2_min_lora_count: int = 2
-    phase2_min_rank_ratio: float = 1.5
-    phase2_min_rank_gap: int = 4
-    phase2_min_pressure_ratio: float = 2.0
-    phase2_selective_only: bool = True
-    phase2_extreme_hetero_ratio: float = 3.0
-    phase2_extreme_long_prefill: int = 512
-    phase2_extreme_pressure_ratio: float = 3.0
-    phase2_require_rank_hetero: bool = False
-    phase12_joint_coordination: bool = True
-    phase12_joint_min_chunk: int = 512
-    phase12_phase2_requires_recent_phase1: bool = True
-    phase12_phase2_recent_ttl: int = 4
-    phase12_phase2_gate_mode: str = "soft"  # hard | soft
-    phase12_phase2_soft_ratio_scale: float = 1.15
-    phase12_phase2_soft_pressure_scale: float = 1.10
-    phase12_phase2_soft_min_long_prefill: int = 512
-    phase12_phase2_soft_allow_mixed_decode: bool = True
-    phase12_phase2_soft_recent_strength_floor: float = 0.08
-    phase12_phase2_soft_require_cashout_signal: bool = True
-    phase12_phase2_soft_recent_chunk_match_scale: float = 1.5
-    phase12_phase2_soft_window_score_threshold: float = 0.95
-    phase12_phase2_soft_window_recent_weight: float = 0.40
-    phase12_phase2_soft_window_chunk_weight: float = 0.25
-    phase12_phase2_soft_window_pressure_weight: float = 0.20
-    phase12_phase2_soft_window_ratio_weight: float = 0.10
-    phase12_phase2_soft_window_decode_bonus: float = 0.10
-    phase12_phase2_beneficiary_weight: float = 0.35
-    phase12_phase2_beneficiary_prefill_scale: float = 1.5
-    phase12_phase2_min_beneficiary_prefills: int = 1
-    phase12_phase2_require_beneficiary_signal: bool = True
-    phase12_phase2_beneficiary_score_threshold: float = 0.55
-    phase12_phase2_beneficiary_wait_weight: float = 0.40
-    phase12_phase2_beneficiary_size_weight: float = 0.60
-    phase12_phase2_beneficiary_quality_floor: float = 0.60
-    phase12_phase2_beneficiary_strong_prefill_quality_floor: float = 0.72
-    phase12_phase2_beneficiary_max_selected: int = 2
-    phase12_phase2_sparse_cashout_cooldown: int = 2
-    phase12_phase2_sparse_cashout_exception_quality: float = 0.90
-    enable_vllm_lora_compat_patch: bool = True
-
-    # Metrics
-    enable_metrics_hook: bool = True
-    metrics_short_request_tokens: int = 256
-
-
-@dataclass
-class _RequestMetric:
-    request_id: str
-    arrival_s: Optional[float] = None
-    first_token_s: Optional[float] = None
-    finish_s: Optional[float] = None
-    input_tokens: Optional[int] = None
-    solo_us: Optional[float] = None
-    is_short: Optional[bool] = None
-    finished: bool = False
-    generated_tokens: int = 0
-
-
-class WaveSliceMetrics:
-    """Thread-safe in-process metrics registry."""
-
-    def __init__(self, short_threshold_tokens: int = 256):
-        self._short_threshold_tokens = short_threshold_tokens
-        self._lock = threading.RLock()
-        self._requests: dict[str, _RequestMetric] = {}
-        self._phase2_total = 0
-        self._phase2_applied = 0
-        self._phase2_v1_unbind_applied = 0
-        self._phase2_reason_counter: dict[str, int] = {}
-        self._sched_total = 0
-        self._sched_applied = 0
-        self._phase1_baseline_chunk_sum = 0.0
-        self._phase1_baseline_chunk_count = 0
-        self._phase1_chosen_chunk_sum = 0.0
-        self._phase1_chosen_chunk_count = 0
-        self._phase1_slice_ratio_sum = 0.0
-        self._phase1_slice_ratio_count = 0
-        self._phase1_explicit_total = 0
-        self._phase1_rewrite_applied = 0
-        self._phase1_rewrite_old_chunk_sum = 0.0
-        self._phase1_rewrite_new_chunk_sum = 0.0
-        self._phase1_rewrite_group_count = 0
-        self._phase1_rewrite_token_delta_sum = 0.0
-        self._phase1_virtual_cap_total = 0
-        self._phase1_virtual_cap_applied = 0
-        self._phase1_virtual_cap_old_sum = 0.0
-        self._phase1_virtual_cap_new_sum = 0.0
-        self._phase1_virtual_cap_target_set = 0
-        self._phase1_virtual_cap_helper_calls = 0
-        self._phase1_virtual_cap_prefill_calls = 0
-        self._phase1_virtual_cap_target_hits = 0
-        self._phase1_probe_total = 0
-        self._phase1_probe_slice_eligible = 0
-        self._phase1_probe_best_lt_long = 0
-        self._phase1_probe_short_sum = 0.0
-        self._phase1_probe_long_sum = 0.0
-        self._phase1_probe_baseline_sum = 0.0
-        self._phase1_probe_baseline_count = 0
-        self._phase1_probe_best_sum = 0.0
-        self._phase1_probe_best_count = 0
-        self._phase1_probe_queue_sum = 0.0
-        self._phase1_probe_wait_us_sum = 0.0
-        self._phase1_probe_reason_counter: dict[str, int] = {}
-        self._phase1_scheduler_prop_sum = 0.0
-        self._phase1_scheduler_prop_count = 0
-        self._phase1_direct_prop_sum = 0.0
-        self._phase1_direct_prop_count = 0
-        self._phase1_cohort_target_sum = 0.0
-        self._phase1_cohort_target_count = 0
-        self._phase1_direct_wins = 0
-        self._phase1_request_traces: dict[str, list[dict[str, Any]]] = {}
-        self._phase1_last_is_prompt: dict[str, bool] = {}
-
-    @staticmethod
-    def _percentile(values: list[float], p: float) -> Optional[float]:
-        if not values:
-            return None
-        if p <= 0:
-            return min(values)
-        if p >= 100:
-            return max(values)
-        ordered = sorted(values)
-        k = (len(ordered) - 1) * (p / 100.0)
-        lo = int(k)
-        hi = min(lo + 1, len(ordered) - 1)
-        if lo == hi:
-            return ordered[lo]
-        frac = k - lo
-        return ordered[lo] + (ordered[hi] - ordered[lo]) * frac
-
-    def reset(self) -> None:
-        with self._lock:
-            self._requests.clear()
-            self._phase2_total = 0
-            self._phase2_applied = 0
-            self._phase2_v1_unbind_applied = 0
-            self._phase2_reason_counter.clear()
-            self._sched_total = 0
-            self._sched_applied = 0
-            self._phase1_baseline_chunk_sum = 0.0
-            self._phase1_baseline_chunk_count = 0
-            self._phase1_chosen_chunk_sum = 0.0
-            self._phase1_chosen_chunk_count = 0
-            self._phase1_slice_ratio_sum = 0.0
-            self._phase1_slice_ratio_count = 0
-            self._phase1_explicit_total = 0
-            self._phase1_rewrite_applied = 0
-            self._phase1_rewrite_old_chunk_sum = 0.0
-            self._phase1_rewrite_new_chunk_sum = 0.0
-            self._phase1_rewrite_group_count = 0
-            self._phase1_rewrite_token_delta_sum = 0.0
-            self._phase1_virtual_cap_total = 0
-            self._phase1_virtual_cap_applied = 0
-            self._phase1_virtual_cap_old_sum = 0.0
-            self._phase1_virtual_cap_new_sum = 0.0
-            self._phase1_request_traces = {}
-            self._phase1_last_is_prompt = {}
-            self._phase1_virtual_cap_target_set = 0
-            self._phase1_virtual_cap_helper_calls = 0
-            self._phase1_virtual_cap_prefill_calls = 0
-            self._phase1_virtual_cap_target_hits = 0
-            self._phase1_probe_total = 0
-            self._phase1_probe_slice_eligible = 0
-            self._phase1_probe_best_lt_long = 0
-            self._phase1_probe_short_sum = 0.0
-            self._phase1_probe_long_sum = 0.0
-            self._phase1_probe_baseline_sum = 0.0
-            self._phase1_probe_baseline_count = 0
-            self._phase1_probe_best_sum = 0.0
-            self._phase1_probe_best_count = 0
-            self._phase1_probe_queue_sum = 0.0
-            self._phase1_probe_wait_us_sum = 0.0
-            self._phase1_probe_reason_counter = {}
-            self._phase1_scheduler_prop_sum = 0.0
-            self._phase1_scheduler_prop_count = 0
-            self._phase1_direct_prop_sum = 0.0
-            self._phase1_direct_prop_count = 0
-            self._phase1_cohort_target_sum = 0.0
-            self._phase1_cohort_target_count = 0
-            self._phase1_direct_wins = 0
-
-    def register_request(
-        self,
-        request_id: str,
-        *,
-        arrival_s: Optional[float] = None,
-        input_tokens: Optional[int] = None,
-        solo_us: Optional[float] = None,
-        is_short: Optional[bool] = None,
-    ) -> None:
-        with self._lock:
-            metric = self._requests.get(request_id)
-            if metric is None:
-                metric = _RequestMetric(request_id=request_id)
-                self._requests[request_id] = metric
-            if arrival_s is not None and metric.arrival_s is None:
-                metric.arrival_s = arrival_s
-            if input_tokens is not None:
-                metric.input_tokens = input_tokens
-            if solo_us is not None:
-                metric.solo_us = solo_us
-            if is_short is not None:
-                metric.is_short = is_short
-            if metric.is_short is None and metric.input_tokens is not None:
-                metric.is_short = metric.input_tokens <= self._short_threshold_tokens
-
-    def observe_scheduler_request(
-        self,
-        request_id: str,
-        *,
-        total_tokens: Optional[int] = None,
-        solo_us: Optional[float] = None,
-        is_short: Optional[bool] = None,
-    ) -> None:
-        self.register_request(
-            request_id=request_id,
-            input_tokens=total_tokens,
-            solo_us=solo_us,
-            is_short=is_short,
-        )
-
-    def snapshot_requests(
-        self,
-        request_ids: Optional[Iterable[str]] = None,
-    ) -> dict[str, dict[str, Any]]:
-        with self._lock:
-            if request_ids is None:
-                items = list(self._requests.items())
-            else:
-                wanted = {str(rid) for rid in request_ids}
-                items = [
-                    (rid, rec)
-                    for rid, rec in self._requests.items()
-                    if str(rid) in wanted
-                ]
-        return {
-            str(rid): {
-                "arrival_s": rec.arrival_s,
-                "input_tokens": rec.input_tokens,
-                "solo_us": rec.solo_us,
-                "is_short": rec.is_short,
-                "generated_tokens": rec.generated_tokens,
-                "finished": rec.finished,
-            }
-            for rid, rec in items
-        }
-
-    def record_scheduler_decision(self, applied: bool) -> None:
-        with self._lock:
-            self._sched_total += 1
-            if applied:
-                self._sched_applied += 1
-
-    def record_phase1_choice(
-        self,
-        *,
-        chosen_chunk: Optional[int],
-        baseline_chunk: Optional[int],
-        explicit_plan: bool,
-    ) -> None:
-        with self._lock:
-            if baseline_chunk is not None and baseline_chunk > 0:
-                self._phase1_baseline_chunk_sum += float(baseline_chunk)
-                self._phase1_baseline_chunk_count += 1
-            if chosen_chunk is not None and chosen_chunk > 0:
-                self._phase1_chosen_chunk_sum += float(chosen_chunk)
-                self._phase1_chosen_chunk_count += 1
-            if (
-                chosen_chunk is not None
-                and chosen_chunk > 0
-                and baseline_chunk is not None
-                and baseline_chunk > 0
-            ):
-                self._phase1_slice_ratio_sum += float(chosen_chunk) / float(baseline_chunk)
-                self._phase1_slice_ratio_count += 1
-            if explicit_plan:
-                self._phase1_explicit_total += 1
-
-    def record_phase1_rewrite(
-        self,
-        *,
-        rewritten_groups: int,
-        old_chunk_sum: int,
-        new_chunk_sum: int,
-        token_delta_sum: int,
-    ) -> None:
-        with self._lock:
-            if rewritten_groups <= 0:
-                return
-            self._phase1_rewrite_applied += 1
-            self._phase1_rewrite_group_count += int(rewritten_groups)
-            self._phase1_rewrite_old_chunk_sum += float(max(0, old_chunk_sum))
-            self._phase1_rewrite_new_chunk_sum += float(max(0, new_chunk_sum))
-            self._phase1_rewrite_token_delta_sum += float(max(0, token_delta_sum))
-
-    def record_phase1_virtual_cap(
-        self,
-        *,
-        old_total_tokens: int,
-        new_total_tokens: int,
-        applied: bool,
-    ) -> None:
-        with self._lock:
-            self._phase1_virtual_cap_total += 1
-            if not applied:
-                return
-            self._phase1_virtual_cap_applied += 1
-            self._phase1_virtual_cap_old_sum += float(max(0, old_total_tokens))
-            self._phase1_virtual_cap_new_sum += float(max(0, new_total_tokens))
-
-    def record_phase1_virtual_cap_probe(
-        self,
-        *,
-        target_set: bool = False,
-        helper_called: bool = False,
-        prefill_call: bool = False,
-        target_hit: bool = False,
-    ) -> None:
-        with self._lock:
-            if target_set:
-                self._phase1_virtual_cap_target_set += 1
-            if helper_called:
-                self._phase1_virtual_cap_helper_calls += 1
-            if prefill_call:
-                self._phase1_virtual_cap_prefill_calls += 1
-            if target_hit:
-                self._phase1_virtual_cap_target_hits += 1
-
-    @staticmethod
-    def _trace_request_key(request_id: str) -> bool:
-        rid = str(request_id or "")
-        if not rid:
-            return False
-        return rid == "long_b" or rid.endswith(":long_b")
-
-    def record_phase1_step_trace(
-        self,
-        *,
-        request_id: str,
-        event: str,
-        is_prefill: Optional[bool] = None,
-        token_chunk_size: Optional[int] = None,
-        num_computed_tokens: Optional[int] = None,
-        uncached: Optional[int] = None,
-        cached: Optional[int] = None,
-        target_chunk: Optional[int] = None,
-    ) -> None:
-        if not self._trace_request_key(request_id):
-            return
-        with self._lock:
-            traces = self._phase1_request_traces.setdefault(str(request_id), [])
-            rec: dict[str, Any] = {"event": str(event)}
-            if is_prefill is not None:
-                rec["is_prefill"] = bool(is_prefill)
-            if token_chunk_size is not None:
-                rec["token_chunk_size"] = int(token_chunk_size)
-            if num_computed_tokens is not None:
-                rec["num_computed_tokens"] = int(num_computed_tokens)
-            if uncached is not None:
-                rec["uncached"] = int(uncached)
-            if cached is not None:
-                rec["cached"] = int(cached)
-            if target_chunk is not None:
-                rec["target_chunk"] = int(target_chunk)
-            if is_prefill is not None:
-                prev = self._phase1_last_is_prompt.get(str(request_id))
-                if prev is not None and bool(prev) and not bool(is_prefill):
-                    rec["prefill_to_decode"] = True
-                self._phase1_last_is_prompt[str(request_id)] = bool(is_prefill)
-            traces.append(rec)
-            if len(traces) > 2048:
-                del traces[: len(traces) - 2048]
-
-    def record_phase1_probe(
-        self,
-        *,
-        reason: str,
-        short_len: Optional[int] = None,
-        long_len: Optional[int] = None,
-        baseline_chunk: Optional[int] = None,
-        best_chunk: Optional[int] = None,
-        queue_len: Optional[int] = None,
-        wait_us: Optional[float] = None,
-        slice_eligible: bool = False,
-    ) -> None:
-        with self._lock:
-            self._phase1_probe_total += 1
-            if slice_eligible:
-                self._phase1_probe_slice_eligible += 1
-            if (
-                best_chunk is not None
-                and long_len is not None
-                and int(best_chunk) > 0
-                and int(long_len) > 0
-                and int(best_chunk) < int(long_len)
-            ):
-                self._phase1_probe_best_lt_long += 1
-            if short_len is not None and int(short_len) > 0:
-                self._phase1_probe_short_sum += float(short_len)
-            if long_len is not None and int(long_len) > 0:
-                self._phase1_probe_long_sum += float(long_len)
-            if baseline_chunk is not None and int(baseline_chunk) > 0:
-                self._phase1_probe_baseline_sum += float(baseline_chunk)
-                self._phase1_probe_baseline_count += 1
-            if best_chunk is not None and int(best_chunk) > 0:
-                self._phase1_probe_best_sum += float(best_chunk)
-                self._phase1_probe_best_count += 1
-            if queue_len is not None and int(queue_len) >= 0:
-                self._phase1_probe_queue_sum += float(queue_len)
-            if wait_us is not None and float(wait_us) >= 0.0:
-                self._phase1_probe_wait_us_sum += float(wait_us)
-            self._phase1_probe_reason_counter[reason] = self._phase1_probe_reason_counter.get(reason, 0) + 1
-
-    def record_phase1_proposal(
-        self,
-        *,
-        scheduler_chunk: Optional[int] = None,
-        direct_chunk: Optional[int] = None,
-        cohort_target: Optional[int] = None,
-        direct_won: bool = False,
-    ) -> None:
-        with self._lock:
-            if scheduler_chunk is not None and int(scheduler_chunk) > 0:
-                self._phase1_scheduler_prop_sum += float(scheduler_chunk)
-                self._phase1_scheduler_prop_count += 1
-            if direct_chunk is not None and int(direct_chunk) > 0:
-                self._phase1_direct_prop_sum += float(direct_chunk)
-                self._phase1_direct_prop_count += 1
-            if cohort_target is not None and int(cohort_target) > 0:
-                self._phase1_cohort_target_sum += float(cohort_target)
-                self._phase1_cohort_target_count += 1
-            if direct_won:
-                self._phase1_direct_wins += 1
-
-    def record_phase2_decision(self, applied: bool, reason: str) -> None:
-        with self._lock:
-            self._phase2_total += 1
-            if applied:
-                self._phase2_applied += 1
-            self._phase2_reason_counter[reason] = self._phase2_reason_counter.get(reason, 0) + 1
-
-    def record_phase2_v1_unbind(self) -> None:
-        with self._lock:
-            self._phase2_v1_unbind_applied += 1
-
-    def observe_engine_outputs(self, outputs: Any, now_s: Optional[float] = None) -> None:
-        now = now_s if now_s is not None else time.perf_counter()
-        for out in outputs or []:
-            request_id = str(getattr(out, "request_id", ""))
-            if not request_id:
-                continue
-            with self._lock:
-                metric = self._requests.get(request_id)
-                if metric is None:
-                    metric = _RequestMetric(request_id=request_id, arrival_s=None)
-                    self._requests[request_id] = metric
-
-                token_count = 0
-                try:
-                    payload = out.outputs[0]
-                    token_count = len(getattr(payload, "token_ids", []) or [])
-                except Exception:
-                    token_count = 0
-
-                if token_count > 0 and metric.first_token_s is None and metric.arrival_s is not None:
-                    metric.first_token_s = now
-                metric.generated_tokens = max(metric.generated_tokens, token_count)
-
-                if bool(getattr(out, "finished", False)):
-                    metric.finished = True
-                    if metric.arrival_s is not None:
-                        metric.finish_s = now
-
-    def summary(self) -> dict[str, Any]:
-        with self._lock:
-            records = list(self._requests.values())
-
-        ttft_ms_all: list[float] = []
-        ttft_ms_short: list[float] = []
-        slowdown_all: list[float] = []
-        slowdown_short: list[float] = []
-
-        for rec in records:
-            if rec.arrival_s is not None and rec.first_token_s is not None:
-                ttft = (rec.first_token_s - rec.arrival_s) * 1000.0
-                ttft_ms_all.append(ttft)
-                if rec.is_short:
-                    ttft_ms_short.append(ttft)
-
-            if rec.arrival_s is not None and rec.finish_s is not None and rec.solo_us and rec.solo_us > 0:
-                slowdown = ((rec.finish_s - rec.arrival_s) * 1e6) / rec.solo_us
-                slowdown_all.append(slowdown)
-                if rec.is_short:
-                    slowdown_short.append(slowdown)
-
-        def _stat(values: list[float]) -> dict[str, Optional[float]]:
-            return {
-                "count": float(len(values)),
-                "p50": self._percentile(values, 50.0),
-                "p95": self._percentile(values, 95.0),
-                "p99": self._percentile(values, 99.0),
-            }
-
-        with self._lock:
-            phase2_total = self._phase2_total
-            phase2_applied = self._phase2_applied
-            phase2_v1_unbind_applied = self._phase2_v1_unbind_applied
-            phase2_reasons = dict(self._phase2_reason_counter)
-            sched_total = self._sched_total
-            sched_applied = self._sched_applied
-            phase1_baseline_chunk_sum = self._phase1_baseline_chunk_sum
-            phase1_baseline_chunk_count = self._phase1_baseline_chunk_count
-            phase1_chosen_chunk_sum = self._phase1_chosen_chunk_sum
-            phase1_chosen_chunk_count = self._phase1_chosen_chunk_count
-            phase1_slice_ratio_sum = self._phase1_slice_ratio_sum
-            phase1_slice_ratio_count = self._phase1_slice_ratio_count
-            phase1_explicit_total = self._phase1_explicit_total
-            phase1_rewrite_applied = self._phase1_rewrite_applied
-            phase1_rewrite_old_chunk_sum = self._phase1_rewrite_old_chunk_sum
-            phase1_rewrite_new_chunk_sum = self._phase1_rewrite_new_chunk_sum
-            phase1_rewrite_group_count = self._phase1_rewrite_group_count
-            phase1_rewrite_token_delta_sum = self._phase1_rewrite_token_delta_sum
-            phase1_virtual_cap_total = self._phase1_virtual_cap_total
-            phase1_virtual_cap_applied = self._phase1_virtual_cap_applied
-            phase1_virtual_cap_old_sum = self._phase1_virtual_cap_old_sum
-            phase1_virtual_cap_new_sum = self._phase1_virtual_cap_new_sum
-            phase1_virtual_cap_target_set = self._phase1_virtual_cap_target_set
-            phase1_virtual_cap_helper_calls = self._phase1_virtual_cap_helper_calls
-            phase1_virtual_cap_prefill_calls = self._phase1_virtual_cap_prefill_calls
-            phase1_virtual_cap_target_hits = self._phase1_virtual_cap_target_hits
-            phase1_request_traces = {
-                rid: list(rows) for rid, rows in self._phase1_request_traces.items()
-            }
-            phase1_probe_total = self._phase1_probe_total
-            phase1_probe_slice_eligible = self._phase1_probe_slice_eligible
-            phase1_probe_best_lt_long = self._phase1_probe_best_lt_long
-            phase1_probe_short_sum = self._phase1_probe_short_sum
-            phase1_probe_long_sum = self._phase1_probe_long_sum
-            phase1_probe_baseline_sum = self._phase1_probe_baseline_sum
-            phase1_probe_baseline_count = self._phase1_probe_baseline_count
-            phase1_probe_best_sum = self._phase1_probe_best_sum
-            phase1_probe_best_count = self._phase1_probe_best_count
-            phase1_probe_queue_sum = self._phase1_probe_queue_sum
-            phase1_probe_wait_us_sum = self._phase1_probe_wait_us_sum
-            phase1_probe_reason_counter = dict(self._phase1_probe_reason_counter)
-            phase1_scheduler_prop_sum = self._phase1_scheduler_prop_sum
-            phase1_scheduler_prop_count = self._phase1_scheduler_prop_count
-            phase1_direct_prop_sum = self._phase1_direct_prop_sum
-            phase1_direct_prop_count = self._phase1_direct_prop_count
-            phase1_cohort_target_sum = self._phase1_cohort_target_sum
-            phase1_cohort_target_count = self._phase1_cohort_target_count
-            phase1_direct_wins = self._phase1_direct_wins
-            req_total = len(self._requests)
-            req_finished = sum(1 for r in self._requests.values() if r.finished)
-
-        return {
-            "requests": {"total": req_total, "finished": req_finished},
-            "scheduler": {
-                "attempts": sched_total,
-                "applied": sched_applied,
-                "apply_ratio": (sched_applied / sched_total) if sched_total else 0.0,
-                "baseline_chunk_avg": (
-                    phase1_baseline_chunk_sum / phase1_baseline_chunk_count
-                    if phase1_baseline_chunk_count else None
-                ),
-                "chosen_chunk_avg": (
-                    phase1_chosen_chunk_sum / phase1_chosen_chunk_count
-                    if phase1_chosen_chunk_count else None
-                ),
-                "chosen_vs_baseline_ratio_avg": (
-                    phase1_slice_ratio_sum / phase1_slice_ratio_count
-                    if phase1_slice_ratio_count else None
-                ),
-                "explicit_plan_ratio": (
-                    phase1_explicit_total / sched_total if sched_total else 0.0
-                ),
-                "rewrite_applied": phase1_rewrite_applied,
-                "rewrite_apply_ratio": (
-                    phase1_rewrite_applied / sched_total if sched_total else 0.0
-                ),
-                "rewrite_group_count": phase1_rewrite_group_count,
-                "rewrite_old_chunk_avg": (
-                    phase1_rewrite_old_chunk_sum / phase1_rewrite_group_count
-                    if phase1_rewrite_group_count else None
-                ),
-                "rewrite_new_chunk_avg": (
-                    phase1_rewrite_new_chunk_sum / phase1_rewrite_group_count
-                    if phase1_rewrite_group_count else None
-                ),
-                "rewrite_token_delta_avg": (
-                    phase1_rewrite_token_delta_sum / phase1_rewrite_group_count
-                    if phase1_rewrite_group_count else None
-                ),
-                "virtual_cap_apply_ratio": (
-                    phase1_virtual_cap_applied / phase1_virtual_cap_total
-                    if phase1_virtual_cap_total else 0.0
-                ),
-                "virtual_cap_old_avg": (
-                    phase1_virtual_cap_old_sum / phase1_virtual_cap_applied
-                    if phase1_virtual_cap_applied else None
-                ),
-                "virtual_cap_new_avg": (
-                    phase1_virtual_cap_new_sum / phase1_virtual_cap_applied
-                    if phase1_virtual_cap_applied else None
-                ),
-                "virtual_cap_target_set": float(phase1_virtual_cap_target_set),
-                "virtual_cap_helper_calls": float(phase1_virtual_cap_helper_calls),
-                "virtual_cap_prefill_calls": float(phase1_virtual_cap_prefill_calls),
-                "virtual_cap_target_hits": float(phase1_virtual_cap_target_hits),
-                "request_traces": phase1_request_traces,
-                "probe_total": float(phase1_probe_total),
-                "probe_slice_eligible_ratio": (
-                    phase1_probe_slice_eligible / phase1_probe_total if phase1_probe_total else 0.0
-                ),
-                "probe_best_lt_long_ratio": (
-                    phase1_probe_best_lt_long / phase1_probe_total if phase1_probe_total else 0.0
-                ),
-                "probe_short_avg": (
-                    phase1_probe_short_sum / phase1_probe_total if phase1_probe_total else None
-                ),
-                "probe_long_avg": (
-                    phase1_probe_long_sum / phase1_probe_total if phase1_probe_total else None
-                ),
-                "probe_baseline_avg": (
-                    phase1_probe_baseline_sum / phase1_probe_baseline_count
-                    if phase1_probe_baseline_count else None
-                ),
-                "probe_best_avg": (
-                    phase1_probe_best_sum / phase1_probe_best_count
-                    if phase1_probe_best_count else None
-                ),
-                "probe_queue_avg": (
-                    phase1_probe_queue_sum / phase1_probe_total if phase1_probe_total else None
-                ),
-                "probe_wait_us_avg": (
-                    phase1_probe_wait_us_sum / phase1_probe_total if phase1_probe_total else None
-                ),
-                "proposal_scheduler_avg": (
-                    phase1_scheduler_prop_sum / phase1_scheduler_prop_count
-                    if phase1_scheduler_prop_count else None
-                ),
-                "proposal_direct_avg": (
-                    phase1_direct_prop_sum / phase1_direct_prop_count
-                    if phase1_direct_prop_count else None
-                ),
-                "proposal_cohort_target_avg": (
-                    phase1_cohort_target_sum / phase1_cohort_target_count
-                    if phase1_cohort_target_count else None
-                ),
-                "proposal_direct_win_ratio": (
-                    phase1_direct_wins / sched_total if sched_total else 0.0
-                ),
-                "probe_reasons": phase1_probe_reason_counter,
-            },
-            "phase2": {
-                "attempts": phase2_total,
-                "applied": phase2_applied,
-                "apply_ratio": (phase2_applied / phase2_total) if phase2_total else 0.0,
-                "v1_true_unbind_applied": phase2_v1_unbind_applied,
-                "v1_true_unbind_ratio": (phase2_v1_unbind_applied / phase2_total) if phase2_total else 0.0,
-                "reasons": phase2_reasons,
-            },
-            "ttft_ms_all": _stat(ttft_ms_all),
-            "ttft_ms_short": _stat(ttft_ms_short),
-            "slowdown_all": _stat(slowdown_all),
-            "slowdown_short": _stat(slowdown_short),
-        }
-
-
-@dataclass
-class _PatchState:
-    scheduler_cls: type
-    scheduler_method_name: str
-    original_schedule: Callable[..., Any]
-    brain: WaveScheduler
-    policy: WaveSlicePolicy
-    model_name: str
-    original_public_schedule: Optional[Callable[..., Any]] = None
-    metrics: WaveSliceMetrics = field(default_factory=WaveSliceMetrics)
-    slicer: WaveBaseSlicer = field(default_factory=WaveBaseSlicer)
-    model_runner_cls: Optional[type] = None
-    original_execute_model: Optional[Callable[..., Any]] = None
-    llm_engine_cls: Optional[type] = None
-    original_add_request: Optional[Callable[..., Any]] = None
-    original_step: Optional[Callable[..., Any]] = None
-    logits_processor_lora_cls: Optional[type] = None
-    original_lora_get_logits: Optional[Callable[..., Any]] = None
-    sequence_data_cls: Optional[type] = None
-    original_sequence_data_get_len: Optional[Callable[..., Any]] = None
-    original_get_new_uncached_and_cached_tokens: Optional[Callable[..., Any]] = None
-    phase1_sticky_req_id: Optional[str] = None
-    phase1_sticky_chunk: Optional[int] = None
-    phase1_sticky_ttl_left: int = 0
-    phase1_explicit_plans: dict[str, list[SlicePlan]] = field(default_factory=dict)
-    phase1_shadow_seq_lens: dict[int, int] = field(default_factory=dict)
-    phase1_virtual_token_caps: dict[str, int] = field(default_factory=dict)
-    phase1_active_prompt_tokens: dict[str, int] = field(default_factory=dict)
-    phase1_ingress_virtuals: dict[str, _Phase1IngressVirtualSlice] = field(default_factory=dict)
-    phase1_public_skip_rewrite_requests: set[str] = field(default_factory=set)
-    phase12_recent_phase1_apply_ttl: int = 0
-    phase12_last_phase1_req_id: Optional[str] = None
-    phase12_recent_phase1_strength: float = 0.0
-    phase12_recent_phase1_chunk: int = 0
-    phase12_recent_phase2_cashout_cooldown: int = 0
-
-
-@dataclass
-class _Phase2Decision:
-    apply: bool
-    reason: str
-    prefill_lens: list[int]
-    num_prefills: int
-    num_decode_tokens: int
-    lora_ranks: list[int] = field(default_factory=list)
-
-
-@dataclass
-class _RunnerStreamState:
-    device: Any
-    fast_stream: Any
-    inflight_events: Deque[Any] = field(default_factory=collections.deque)
-
-
-@dataclass(frozen=True)
-class _ScheduledReqInfo:
-    request_id: str
-    scheduled_tokens: int
-    remaining_tokens: int
-    input_tokens: Optional[int]
-    arrival_s: Optional[float]
-    is_short: bool
-    lora_rank: int
-
-
-@dataclass(frozen=True)
-class _Phase12BeneficiarySignal:
-    long_anchor_id: Optional[str]
-    beneficiary_prefill_ids: list[str]
-    beneficiary_prefill_count: int
-    beneficiary_fraction: float
-    beneficiary_wait_quality: float
-    beneficiary_size_quality: float
-    beneficiary_cashout_quality: float
-    beneficiary_selected_quality: float
-    beneficiary_selected_ids: list[str]
-
-
-@dataclass(frozen=True)
-class _Phase1CohortStats:
-    representative_short_len: int
-    short_count: int
-    short_token_mass: int
-    short_lengths: list[int]
-    long_len: int
-    long_req_id: Optional[str]
-    total_count: int
-
-
-@dataclass(frozen=True)
-class _Phase1IngressVirtualSlice:
-    long_req_id: str
-    representative_short_len: int
-    short_count: int
-    short_token_mass: int
-    short_lengths: list[int]
-    original_long_len: int
-    active_count: int
-
 
 _PATCH_LOCK = threading.RLock()
 _PATCH_STATE: Optional[_PatchState] = None
-_LORA_RANK_CACHE: dict[str, int] = {}
-_LORA_RANK_RE = re.compile(r"rank[_-]?(\d+)", re.IGNORECASE)
-
-
-def _is_phase2_strict(policy: WaveSlicePolicy) -> bool:
-    return str(policy.phase2_consistency_mode).strip().lower() == "strict"
-
-
-def _is_phase2_async_experimental(policy: WaveSlicePolicy) -> bool:
-    return str(policy.phase2_dispatch_mode).strip().lower() == "async_experimental"
-
-
-def _load_scheduler_target() -> tuple[type, str]:
-    bootstrap_vllm_runtime()
-    force_v1 = os.environ.get("VLLM_USE_V1", "").strip() == "1"
-
-    candidates: list[tuple[str, str]] = []
-    if force_v1:
-        candidates.append(("vllm.v1.core.sched.scheduler", "schedule"))
-        candidates.append(("vllm.core.scheduler", "_schedule"))
-    else:
-        candidates.append(("vllm.core.scheduler", "_schedule"))
-        candidates.append(("vllm.v1.core.sched.scheduler", "schedule"))
-
-    last_exc: Optional[Exception] = None
-    for module_name, method_name in candidates:
-        try:
-            mod = importlib.import_module(module_name)
-            cls = getattr(mod, "Scheduler", None)
-            if cls is None:
-                continue
-            method = getattr(cls, method_name, None)
-            if callable(method):
-                return cls, method_name
-        except Exception as exc:
-            last_exc = exc
-            continue
-    raise RuntimeError("vLLM Scheduler class/method not found.") from last_exc
-
-
-def _load_model_runner_cls() -> type:
-    bootstrap_vllm_runtime()
-    force_v1 = os.environ.get("VLLM_USE_V1", "").strip() == "1"
-    candidates = (
-        [("vllm.v1.worker.gpu_model_runner", "GPUModelRunner"), ("vllm.worker.model_runner", "ModelRunner")]
-        if force_v1
-        else [("vllm.worker.model_runner", "ModelRunner"), ("vllm.v1.worker.gpu_model_runner", "GPUModelRunner")]
-    )
-    last_exc: Optional[Exception] = None
-    for mod_name, cls_name in candidates:
-        try:
-            mod = importlib.import_module(mod_name)
-            cls = getattr(mod, cls_name, None)
-            if cls is not None:
-                return cls
-        except Exception as exc:
-            last_exc = exc
-    raise RuntimeError("vLLM ModelRunner/GPUModelRunner class not found.") from last_exc
-
-
-def _load_llm_engine_cls() -> type:
-    bootstrap_vllm_runtime()
-    force_v1 = os.environ.get("VLLM_USE_V1", "").strip() == "1"
-    candidates = (
-        [("vllm.v1.engine.llm_engine", "LLMEngine"), ("vllm.engine.llm_engine", "LLMEngine")]
-        if force_v1
-        else [("vllm.engine.llm_engine", "LLMEngine"), ("vllm.v1.engine.llm_engine", "LLMEngine")]
-    )
-    last_exc: Optional[Exception] = None
-    for mod_name, cls_name in candidates:
-        try:
-            mod = importlib.import_module(mod_name)
-            cls = getattr(mod, cls_name, None)
-            if cls is not None:
-                return cls
-        except Exception as exc:
-            last_exc = exc
-    raise RuntimeError("vLLM LLMEngine class not found.") from last_exc
-
-
-def _load_sequence_data_cls() -> type:
-    bootstrap_vllm_runtime()
-    mod = importlib.import_module("vllm.sequence")
-    cls = getattr(mod, "SequenceData", None)
-    if cls is None:
-        raise RuntimeError("vLLM SequenceData class not found.")
-    return cls
-
-
-def _load_logits_processor_lora_cls() -> type:
-    bootstrap_vllm_runtime()
-    mod = importlib.import_module("vllm.lora.layers")
-    cls = getattr(mod, "LogitsProcessorWithLoRA", None)
-    if cls is None:
-        raise RuntimeError("vLLM LogitsProcessorWithLoRA class not found.")
-    return cls
-
-
-def _safe_first_seq(seq_group: Any) -> Optional[Any]:
-    try:
-        return next(iter(seq_group.get_seqs()), None)
-    except Exception:
-        return None
-
-
-def _safe_total_tokens(seq_group: Any) -> Optional[int]:
-    seq = _safe_first_seq(seq_group)
-    if seq is None:
-        # vLLM v1 Request path
-        for attr in ("num_tokens_with_spec", "num_prompt_tokens"):
-            val = getattr(seq_group, attr, None)
-            if val is not None:
-                try:
-                    return int(val)
-                except Exception:
-                    pass
-        return None
-    try:
-        return int(seq.get_len())
-    except Exception:
-        return None
 
 
 def _build_sequence_data_get_len_hook(state: _PatchState) -> Callable[..., Any]:
@@ -1080,7 +250,8 @@ def _build_get_num_new_uncached_and_cached_tokens_hook(
                 fallback_target = min(max(1, int(fallback_target)), max(1, int(remaining) - 1))
                 if fallback_target > 0:
                     target_chunk = _phase1_authoritative_chunk(
-                        state,
+                        state.policy,
+                        state.slicer,
                         target=int(fallback_target),
                         short_len=int(fallback_cohort.representative_short_len),
                         upper=max(1, int(remaining) - 1),
@@ -1153,768 +324,6 @@ def _build_get_num_new_uncached_and_cached_tokens_hook(
 
     _wave_get_num_new_uncached_and_cached_tokens.__wave_slice_virtual_cap_hook__ = True  # type: ignore[attr-defined]
     return _wave_get_num_new_uncached_and_cached_tokens
-
-
-def _safe_remaining_tokens(seq_group: Any) -> Optional[int]:
-    seq = _safe_first_seq(seq_group)
-    if seq is None:
-        # vLLM v1 Request path
-        try:
-            total = int(getattr(seq_group, "num_tokens_with_spec"))
-            done = int(getattr(seq_group, "num_computed_tokens"))
-            return max(0, total - done)
-        except Exception:
-            return None
-    try:
-        total = int(seq.get_len())
-        done = int(seq.data.get_num_computed_tokens())
-    except Exception:
-        return None
-    return max(0, total - done)
-
-
-def _safe_prefill_uncomputed_tokens(seq_group: Any) -> Optional[int]:
-    seq = _safe_first_seq(seq_group)
-    if seq is None:
-        try:
-            is_prefill = bool(getattr(seq_group, "is_prefill")())
-        except Exception:
-            is_prefill = False
-        if not is_prefill:
-            return 0
-        try:
-            total = int(getattr(seq_group, "num_tokens_with_spec"))
-            done = int(getattr(seq_group, "num_computed_tokens"))
-            return max(0, total - done)
-        except Exception:
-            return None
-    try:
-        if not bool(seq.is_prefill()):
-            return 0
-    except Exception:
-        return 0
-    try:
-        return max(0, int(seq.get_num_uncomputed_tokens()))
-    except Exception:
-        pass
-    try:
-        total = int(seq.get_len())
-        done = int(seq.data.get_num_computed_tokens())
-        return max(0, total - done)
-    except Exception:
-        return None
-
-
-def _safe_request_id(seq_group: Any) -> Optional[str]:
-    for attr in ("request_id", "req_id", "id"):
-        val = getattr(seq_group, attr, None)
-        if val is not None:
-            return str(val)
-    seq = _safe_first_seq(seq_group)
-    if seq is None:
-        return None
-    for attr in ("request_id", "req_id", "id"):
-        val = getattr(seq, attr, None)
-        if val is not None:
-            return str(val)
-    return None
-
-
-def _safe_wait_us(seq_group: Any, now_s: float) -> float:
-    try:
-        arrival_s = float(seq_group.metrics.arrival_time)
-    except Exception:
-        try:
-            arrival_s = float(getattr(seq_group, "arrival_time"))
-        except Exception:
-            return 0.0
-    if arrival_s <= 0:
-        return 0.0
-    return max(0.0, (now_s - arrival_s) * 1e6)
-
-
-def _queue_reorder_key(
-    seq_group: Any,
-    *,
-    brain: WaveScheduler,
-    now_s: float,
-    mode: str,
-    aging_quantum_us: float,
-) -> Any:
-    remaining = max(1, int(_safe_remaining_tokens(seq_group) or 1))
-    service_us = _estimate_solo_us(brain, remaining) or float(remaining)
-    wait_us = _safe_wait_us(seq_group, now_s)
-    mode = str(mode or "sjf").strip().lower()
-
-    if mode == "hrrn":
-        # Highest Response Ratio Next: larger score gets higher priority.
-        response_ratio = (wait_us + service_us) / max(1.0, service_us)
-        return (-response_ratio, service_us, remaining)
-    if mode == "aging":
-        # Aging-SJF: old requests gradually shrink their effective service time.
-        quantum = max(1.0, float(aging_quantum_us))
-        aged_service = service_us / (1.0 + (wait_us / quantum))
-        return (aged_service, service_us, remaining)
-    return (service_us, remaining)
-
-
-def _reorder_queue(
-    queue_like: Iterable[Any],
-    *,
-    brain: WaveScheduler,
-    now_s: float,
-    mode: str,
-    aging_quantum_us: float,
-) -> Any:
-    queue = list(queue_like)
-    queue.sort(
-        key=lambda sg: _queue_reorder_key(
-            sg,
-            brain=brain,
-            now_s=now_s,
-            mode=mode,
-            aging_quantum_us=aging_quantum_us,
-        )
-    )
-    if isinstance(queue_like, collections.deque):
-        return collections.deque(queue)
-    if isinstance(queue_like, list):
-        return queue
-    return collections.deque(queue)
-
-
-def _collect_live_lengths(waiting: Iterable[Any], running: Iterable[Any]) -> tuple[list[int], float]:
-    lengths: list[int] = []
-    max_wait_us = 0.0
-    now_s = time.time()
-    for sg in waiting:
-        remaining = _safe_prefill_uncomputed_tokens(sg)
-        if remaining and remaining > 0:
-            lengths.append(remaining)
-            max_wait_us = max(max_wait_us, _safe_wait_us(sg, now_s))
-    for sg in running:
-        remaining = _safe_prefill_uncomputed_tokens(sg)
-        if remaining and remaining > 0:
-            lengths.append(remaining)
-    return lengths, max_wait_us
-
-
-def _collect_live_snapshot(waiting: Iterable[Any], running: Iterable[Any]) -> tuple[list[tuple[Any, int]], float]:
-    snapshot: list[tuple[Any, int]] = []
-    max_wait_us = 0.0
-    now_s = time.time()
-    for sg in list(waiting) + list(running):
-        remaining = _safe_prefill_uncomputed_tokens(sg)
-        if remaining and remaining > 0:
-            rem = int(remaining)
-            snapshot.append((sg, rem))
-            max_wait_us = max(max_wait_us, _safe_wait_us(sg, now_s))
-    return snapshot, max_wait_us
-
-
-def _phase1_build_cohort(snapshot: list[tuple[Any, int]], policy: WaveSlicePolicy) -> Optional[_Phase1CohortStats]:
-    positive = sorted(int(rem) for _, rem in snapshot if int(rem) > 0)
-    if len(positive) < 2:
-        return None
-    long_len = positive[-1]
-    cohort_cap = max(1, int(long_len * float(policy.phase1_short_cohort_long_fraction)))
-    short_lengths = [int(v) for v in positive[:-1] if int(v) <= cohort_cap]
-    if len(short_lengths) < int(policy.phase1_cohort_min_count):
-        short_lengths = positive[:-1]
-    if not short_lengths:
-        short_lengths = [positive[0]]
-    short_count = len(short_lengths)
-    short_token_mass = sum(short_lengths)
-    representative = max(1, int(round(short_token_mass / max(1, short_count))))
-    long_req_id = None
-    for seq_group, rem in snapshot:
-        if int(rem) == int(long_len):
-            long_req_id = _safe_request_id(seq_group)
-            break
-    return _Phase1CohortStats(
-        representative_short_len=representative,
-        short_count=short_count,
-        short_token_mass=short_token_mass,
-        short_lengths=list(short_lengths),
-        long_len=int(long_len),
-        long_req_id=long_req_id,
-        total_count=len(positive),
-    )
-
-
-def _phase1_basic_cohort(snapshot: list[tuple[Any, int]]) -> Optional[_Phase1CohortStats]:
-    positive = sorted(int(rem) for _, rem in snapshot if int(rem) > 0)
-    if len(positive) < 2:
-        return None
-    short_len = int(positive[0])
-    long_len = int(positive[-1])
-    long_req_id = None
-    for seq_group, rem in snapshot:
-        if int(rem) == long_len:
-            long_req_id = _safe_request_id(seq_group)
-            break
-    return _Phase1CohortStats(
-        representative_short_len=short_len,
-        short_count=1,
-        short_token_mass=short_len,
-        short_lengths=[short_len],
-        long_len=long_len,
-        long_req_id=long_req_id,
-        total_count=len(positive),
-    )
-
-
-def _phase1_live_cohort_from_snapshot(
-    snapshot: list[tuple[Any, int]],
-    policy: WaveSlicePolicy,
-) -> Optional[_Phase1CohortStats]:
-    if policy.phase1_enable_cohort_mode:
-        return _phase1_build_cohort(snapshot, policy)
-    return _phase1_basic_cohort(snapshot)
-
-
-def _phase1_maybe_seed_ingress_virtual(
-    state: _PatchState,
-    *,
-    request_id: str,
-    input_tokens: Optional[int],
-) -> None:
-    if input_tokens is None or int(input_tokens) <= 0:
-        return
-    state.phase1_active_prompt_tokens[str(request_id)] = int(input_tokens)
-    positive_items = [
-        (rid, int(tok))
-        for rid, tok in state.phase1_active_prompt_tokens.items()
-        if int(tok) > 0
-    ]
-    if len(positive_items) < 2:
-        return
-    positive = sorted(tok for _, tok in positive_items)
-    if not _need_wave_slice(positive, state.policy):
-        return
-    long_len = positive[-1]
-    short_len = positive[0]
-    long_req_id = None
-    for rid, tok in positive_items:
-        if int(tok) == int(long_len):
-            long_req_id = str(rid)
-            break
-    if long_req_id is None:
-        return
-    state.phase1_ingress_virtuals[long_req_id] = _Phase1IngressVirtualSlice(
-        long_req_id=long_req_id,
-        representative_short_len=int(short_len),
-        short_count=max(1, len(positive) - 1),
-        short_token_mass=int(sum(positive[:-1])) if len(positive) > 1 else int(short_len),
-        short_lengths=[int(v) for v in positive[:-1]] if len(positive) > 1 else [int(short_len)],
-        original_long_len=int(long_len),
-        active_count=len(positive_items),
-    )
-    if bool(state.policy.phase1_ingress_direct_authoritative):
-        seed_cohort = _Phase1CohortStats(
-            representative_short_len=int(short_len),
-            short_count=max(1, len(positive) - 1),
-            short_token_mass=int(sum(positive[:-1])) if len(positive) > 1 else int(short_len),
-            short_lengths=[int(v) for v in positive[:-1]] if len(positive) > 1 else [int(short_len)],
-            long_len=int(long_len),
-            long_req_id=str(long_req_id),
-            total_count=len(positive_items),
-        )
-        ingress_target = int(_phase1_cohort_target_len(seed_cohort, state.policy))
-        ingress_cap = _phase1_authoritative_chunk(
-            state,
-            target=int(ingress_target),
-            short_len=int(short_len),
-            upper=max(1, int(long_len) - 1),
-        )
-        state.phase1_virtual_token_caps[long_req_id] = max(1, int(ingress_cap))
-    logger.info(
-        "[Wave-Slice][P1-ingress-seed] long_req=%s short=%d long=%d active=%d",
-        long_req_id,
-        int(short_len),
-        int(long_len),
-        len(positive_items),
-    )
-
-
-def _phase1_authoritative_chunk(
-    state: _PatchState,
-    *,
-    target: int,
-    short_len: int = 0,
-    upper: Optional[int] = None,
-) -> int:
-    ingress_min = max(1, int(state.policy.phase1_ingress_min_chunk))
-    ingress_max = max(ingress_min, int(state.policy.phase1_ingress_max_chunk))
-    target = max(ingress_min, min(int(target), ingress_max))
-    floor = _phase1_authoritative_short_floor(
-        state,
-        short_len=int(short_len),
-        target=int(target),
-    )
-    if upper is None:
-        upper = max(floor + 1, target)
-    upper = max(floor + 1, int(upper))
-    target = min(target, upper)
-    if bool(state.policy.phase1_ingress_exact_chunk):
-        return max(floor, min(int(target), upper))
-    chunk = int(state.slicer._conservative_map_down(int(target)))
-    return max(floor, min(chunk, upper))
-
-
-def _phase1_authoritative_short_floor(
-    state: _PatchState,
-    *,
-    short_len: int,
-    target: int,
-) -> int:
-    base_floor = max(1, int(short_len))
-    if bool(state.policy.phase1_ingress_exact_chunk):
-        return max(1, min(base_floor, int(target)))
-    return base_floor
-
-
-def _phase1_find_ingress_virtual_candidate(
-    state: _PatchState,
-    *,
-    snapshot: list[tuple[Any, int]],
-) -> Optional[tuple[_Phase1IngressVirtualSlice, Any, int]]:
-    if not state.phase1_ingress_virtuals:
-        return None
-    for seq_group, remaining in snapshot:
-        req_id = _safe_request_id(seq_group)
-        if not req_id:
-            continue
-        candidate = state.phase1_ingress_virtuals.get(str(req_id))
-        if candidate is None:
-            continue
-        rem = int(remaining)
-        if rem <= 0:
-            continue
-        return candidate, seq_group, rem
-    return None
-
-
-def _need_wave_slice(lengths: list[int], policy: WaveSlicePolicy) -> bool:
-    if len(lengths) < 2:
-        return False
-    s_min = min(lengths)
-    s_max = max(lengths)
-    if s_min <= 0:
-        return False
-    if (
-        s_max >= int(max(1, policy.phase1_force_min_chunk))
-        and s_max >= int(s_min * max(1.0, policy.phase1_force_extreme_ratio))
-    ):
-        return True
-    if s_max <= policy.min_long_seq:
-        return False
-    return s_max >= int(s_min * policy.min_hetero_ratio)
-
-
-def _compute_budget(
-    best_chunk: int,
-    short_len: int,
-    long_len: int,
-    short_token_mass: int,
-    queue_len: int,
-    policy: WaveSlicePolicy,
-    original_budget: Any,
-    baseline_chunk: Optional[int] = None,
-) -> Optional[int]:
-    _ = long_len
-    if not isinstance(original_budget, int) or original_budget <= 0:
-        return None
-    escape_allowance = short_len * policy.short_escape_multiplier
-    mass_allowance = int(
-        max(0.0, float(short_token_mass))
-        * max(0.0, float(policy.phase1_budget_short_mass_factor))
-    )
-    queue_allowance = int(max(0, queue_len)) * int(
-        max(0, policy.phase1_budget_queue_bonus)
-    )
-    max_inflation = 1024
-    total_inflation = min(
-        max_inflation, escape_allowance + mass_allowance + queue_allowance
-    )
-
-    candidate = best_chunk + total_inflation + int(
-        max(0, policy.phase1_budget_bonus_tokens)
-    )
-    candidate = max(best_chunk, candidate)
-    if baseline_chunk is not None and int(baseline_chunk) > 0:
-        baseline_chunk = max(1, int(baseline_chunk))
-        baseline_ceiling = max(
-            best_chunk,
-            baseline_chunk
-            + total_inflation
-            + int(max(0, policy.phase1_budget_bonus_tokens)),
-        )
-        candidate = min(candidate, baseline_ceiling)
-    candidate = min(candidate, policy.max_budget_cap)
-    return max(1, candidate)
-
-
-def _compute_explicit_plan_budget(
-    *,
-    best_chunk: int,
-    short_len: int,
-    short_token_mass: int,
-    policy: WaveSlicePolicy,
-    original_budget: Any,
-    baseline_chunk: Optional[int],
-) -> Optional[int]:
-    if not isinstance(original_budget, int) or original_budget <= 0:
-        return None
-    explicit_inflation = min(
-        int(max(0, policy.phase1_explicit_budget_cap_tokens)),
-        max(
-            short_len,
-            int(
-                max(0.0, float(short_token_mass))
-                * max(0.0, float(policy.phase1_budget_short_mass_factor))
-            ),
-        ),
-    )
-    candidate = max(1, int(best_chunk) + explicit_inflation)
-    if baseline_chunk is not None and int(baseline_chunk) > 0:
-        candidate = min(candidate, int(baseline_chunk))
-    candidate = min(candidate, int(original_budget), int(policy.max_budget_cap))
-    return max(int(best_chunk), candidate)
-
-
-def _phase1_baseline_chunk_proxy(
-    *,
-    long_len: int,
-    original_budget: Any,
-    original_threshold: Any,
-    scheduler_cfg: Any,
-    policy: WaveSlicePolicy,
-) -> Optional[int]:
-    if not bool(policy.enable_phase1_baseline_relative):
-        return None
-    chunked_enabled = True
-    try:
-        chunked_enabled = bool(getattr(scheduler_cfg, "enable_chunked_prefill", True))
-    except Exception:
-        chunked_enabled = True
-    if not chunked_enabled:
-        return None
-
-    candidates = [max(1, int(long_len))]
-    if isinstance(original_budget, int) and original_budget > 0:
-        candidates.append(int(original_budget))
-    if isinstance(original_threshold, int) and original_threshold > 0:
-        candidates.append(int(original_threshold))
-    baseline_chunk = min(candidates)
-    if baseline_chunk >= int(long_len):
-        return None
-    return max(1, baseline_chunk)
-
-
-def _phase1_adjusted_queue_len(
-    cohort: _Phase1CohortStats,
-    queue_len: int,
-    policy: WaveSlicePolicy,
-) -> int:
-    extra = max(0, int(cohort.short_count) - 1) * int(max(0, policy.phase1_cohort_queue_bonus))
-    mass_units = float(cohort.short_token_mass) / float(max(1, cohort.representative_short_len))
-    extra += int(max(0.0, mass_units - 1.0) * max(0.0, float(policy.phase1_cohort_mass_queue_factor)))
-    return max(1, int(queue_len) + extra)
-
-
-def _phase1_cohort_target_len(
-    cohort: _Phase1CohortStats,
-    policy: WaveSlicePolicy,
-) -> int:
-    mean_short = max(1, int(round(cohort.short_token_mass / max(1, cohort.short_count))))
-    target_by_short = int(max(policy.phase1_force_min_chunk, mean_short * float(policy.phase1_target_short_mul)))
-    target_by_mass = int(max(policy.phase1_force_min_chunk, mean_short * float(policy.phase1_cohort_target_mass_factor)))
-    target_by_fraction = int(max(policy.phase1_force_min_chunk, cohort.long_len * float(policy.phase1_target_long_fraction)))
-    return max(1, min(target_by_fraction, max(target_by_short, target_by_mass), cohort.long_len - 1))
-
-
-def _phase1_effective_short_token_mass(
-    lengths: list[int],
-    *,
-    short_len: int,
-    best_chunk: int,
-    policy: WaveSlicePolicy,
-) -> int:
-    limit = max(int(best_chunk), int(short_len * max(1.0, policy.phase1_target_short_mul)))
-    mass = 0
-    for val in lengths:
-        iv = int(val)
-        if iv <= 0:
-            continue
-        if iv <= limit:
-            mass += iv
-    return max(short_len, mass)
-
-
-def _maybe_force_phase1_chunk(
-    *,
-    cohort: _Phase1CohortStats,
-    queue_len: int,
-    chosen_chunk: int,
-    slicer: WaveBaseSlicer,
-    policy: WaveSlicePolicy,
-) -> tuple[int, bool]:
-    short_len = max(1, int(cohort.representative_short_len))
-    long_len = max(short_len + 1, int(cohort.long_len))
-    chosen_chunk = max(short_len, min(int(chosen_chunk), long_len))
-    ratio = float(long_len) / float(max(1, short_len))
-    should_force = (
-        ratio >= float(policy.phase1_force_extreme_ratio)
-        and queue_len >= int(policy.phase1_force_queue_len)
-        and long_len >= int(policy.phase1_force_min_chunk)
-    )
-    if not should_force:
-        return chosen_chunk, False
-
-    cohort_target = _phase1_cohort_target_len(cohort, policy)
-    forced_cap = max(short_len + 1, min(int(cohort_target), long_len - 1))
-    forced_chunk = slicer._conservative_map_down(forced_cap)
-    forced_chunk = max(short_len, min(int(forced_chunk), long_len - 1))
-    if forced_chunk < chosen_chunk or chosen_chunk >= long_len:
-        return forced_chunk, True
-    return chosen_chunk, False
-
-
-def _phase1_apply_sticky_chunk(
-    *,
-    state: _PatchState,
-    cohort: _Phase1CohortStats,
-    chosen_chunk: int,
-    slicer: WaveBaseSlicer,
-) -> tuple[int, bool]:
-    sticky_req = state.phase1_sticky_req_id
-    sticky_chunk = state.phase1_sticky_chunk
-    ttl_left = state.phase1_sticky_ttl_left
-    if (
-        sticky_req
-        and sticky_chunk
-        and ttl_left > 0
-        and cohort.long_req_id
-        and sticky_req == cohort.long_req_id
-        and cohort.long_len >= int(sticky_chunk * max(1.0, float(state.policy.phase1_sticky_reuse_ratio)))
-    ):
-        reused = slicer._conservative_map_down(min(int(sticky_chunk), cohort.long_len - 1))
-        reused = max(cohort.representative_short_len, min(int(reused), cohort.long_len - 1))
-        state.phase1_sticky_ttl_left = max(0, ttl_left - 1)
-        return min(chosen_chunk, reused), True
-
-    state.phase1_sticky_req_id = None
-    state.phase1_sticky_chunk = None
-    state.phase1_sticky_ttl_left = 0
-    return chosen_chunk, False
-
-
-def _phase1_update_sticky_chunk(
-    *,
-    state: _PatchState,
-    cohort: _Phase1CohortStats,
-    chosen_chunk: int,
-    applied: bool,
-) -> None:
-    if applied and cohort.long_req_id:
-        state.phase1_sticky_req_id = cohort.long_req_id
-        state.phase1_sticky_chunk = int(chosen_chunk)
-        state.phase1_sticky_ttl_left = max(0, int(state.policy.phase1_sticky_ttl))
-        return
-    if state.phase1_sticky_ttl_left > 0:
-        state.phase1_sticky_ttl_left = max(0, state.phase1_sticky_ttl_left - 1)
-    if state.phase1_sticky_ttl_left == 0:
-        state.phase1_sticky_req_id = None
-        state.phase1_sticky_chunk = None
-
-
-def _phase1_find_seq_group_by_request_id(
-    snapshot: list[tuple[Any, int]],
-    request_id: Optional[str],
-) -> Optional[Any]:
-    if not request_id:
-        return None
-    for seq_group, _ in snapshot:
-        if _safe_request_id(seq_group) == request_id:
-            return seq_group
-    return None
-
-
-def _phase1_prune_explicit_plans(
-    plans: list[SlicePlan],
-    current_offset: int,
-) -> list[SlicePlan]:
-    kept = [
-        plan
-        for plan in plans
-        if int(plan.long_offset + plan.chunk_len) > int(current_offset)
-    ]
-    return kept
-
-
-def _phase1_build_direct_explicit_plans(
-    *,
-    state: _PatchState,
-    cohort: _Phase1CohortStats,
-    total_len: int,
-    done_offset: int,
-    remaining_len: int,
-    baseline_chunk: Optional[int],
-) -> list[SlicePlan]:
-    if not bool(state.policy.enable_phase1_direct_explicit_override):
-        return []
-    short_len = max(1, int(cohort.representative_short_len))
-    long_len = max(short_len + 1, int(remaining_len))
-    direct_target = _phase1_cohort_target_len(
-        _Phase1CohortStats(
-            representative_short_len=short_len,
-            short_count=cohort.short_count,
-            short_token_mass=cohort.short_token_mass,
-            short_lengths=list(cohort.short_lengths),
-            long_len=long_len,
-            long_req_id=cohort.long_req_id,
-            total_count=cohort.total_count,
-        ),
-        state.policy,
-    )
-    upper = long_len - 1
-    if baseline_chunk is not None and int(baseline_chunk) > 0:
-        upper = min(upper, int(baseline_chunk) - 1)
-    if upper <= short_len:
-        return []
-    ingress_min = max(1, int(state.policy.phase1_ingress_min_chunk))
-    ingress_max = max(ingress_min, int(state.policy.phase1_ingress_max_chunk))
-    if upper >= ingress_min:
-        direct_target = max(int(direct_target), ingress_min)
-    direct_target = min(int(direct_target), upper)
-    direct_chunk = _phase1_authoritative_chunk(
-        state,
-        target=int(direct_target),
-        short_len=int(short_len),
-        upper=int(upper),
-    )
-    direct_floor = _phase1_authoritative_short_floor(
-        state,
-        short_len=int(short_len),
-        target=int(direct_target),
-    )
-    direct_chunk = max(direct_floor, min(int(direct_chunk), upper))
-    if direct_chunk >= long_len:
-        return []
-    return [
-        state.slicer.make_plan(
-            short_len=short_len,
-            long_total_len=int(total_len),
-            chunk_len=int(direct_chunk),
-            long_offset=int(chunk_offset),
-        )
-        for chunk_offset, _ in state.slicer.iter_long_chunks(
-            long_total_len=int(total_len),
-            chunk_len=int(direct_chunk),
-            start_offset=int(done_offset),
-        )
-    ]
-
-
-def _phase1_direct_chunk_candidate(
-    *,
-    state: _PatchState,
-    cohort: _Phase1CohortStats,
-    total_len: int,
-    done_offset: int,
-    remaining_len: int,
-    baseline_chunk: Optional[int],
-) -> Optional[int]:
-    plans = _phase1_build_direct_explicit_plans(
-        state=state,
-        cohort=cohort,
-        total_len=int(total_len),
-        done_offset=int(done_offset),
-        remaining_len=int(remaining_len),
-        baseline_chunk=baseline_chunk,
-    )
-    if not plans:
-        return None
-    return int(plans[0].chunk_len)
-
-
-def _phase1_explicit_chunk_from_plan(
-    *,
-    state: _PatchState,
-    cohort: _Phase1CohortStats,
-    snapshot: list[tuple[Any, int]],
-    t_wait_us: float,
-    queue_length: int,
-    baseline_chunk: Optional[int],
-) -> Optional[tuple[int, str]]:
-    if not bool(state.policy.enable_phase1_explicit_plan):
-        return None
-    request_id = cohort.long_req_id
-    if not request_id:
-        return None
-    seq_group = _phase1_find_seq_group_by_request_id(snapshot, request_id)
-    if seq_group is None:
-        state.phase1_explicit_plans.pop(request_id, None)
-        return None
-
-    total_len = _safe_total_tokens(seq_group)
-    remaining_len = _safe_remaining_tokens(seq_group)
-    if total_len is None or remaining_len is None:
-        state.phase1_explicit_plans.pop(request_id, None)
-        return None
-    done_offset = max(0, int(total_len) - int(remaining_len))
-    if remaining_len <= 0:
-        state.phase1_explicit_plans.pop(request_id, None)
-        return None
-
-    existing_plans = list(state.phase1_explicit_plans.get(request_id, []))
-    plans = _phase1_prune_explicit_plans(
-        existing_plans,
-        done_offset,
-    )
-    plan_kind = "reuse" if plans else "new"
-    if not plans:
-        plans = state.slicer.build_long_prefill_plan(
-            short_len=int(cohort.representative_short_len),
-            long_total_len=int(total_len),
-            scheduler=state.brain,
-            t_wait_us=float(max(0.0, t_wait_us)),
-            queue_length=int(max(0, queue_length)),
-            start_offset=int(done_offset),
-            baseline_chunk=baseline_chunk,
-        )
-    direct_plans = _phase1_build_direct_explicit_plans(
-        state=state,
-        cohort=cohort,
-        total_len=int(total_len),
-        done_offset=int(done_offset),
-        remaining_len=int(remaining_len),
-        baseline_chunk=baseline_chunk,
-    )
-    if direct_plans:
-        if bool(state.policy.phase1_ingress_direct_authoritative) and request_id in state.phase1_ingress_virtuals:
-            plans = direct_plans
-            plan_kind = "direct_authoritative"
-        else:
-            first_direct = direct_plans[0]
-            first_plan = plans[0] if plans else None
-            current_chunk = int(first_plan.chunk_len) if first_plan is not None else int(remaining_len)
-            direct_chunk = int(first_direct.chunk_len)
-            ingress_min = max(1, int(state.policy.phase1_ingress_min_chunk))
-            if direct_chunk < current_chunk or (
-                current_chunk < ingress_min <= direct_chunk
-            ):
-                plans = direct_plans
-                plan_kind = "direct"
-    if not plans:
-        state.phase1_explicit_plans.pop(request_id, None)
-        return None
-
-    state.phase1_explicit_plans[request_id] = plans
-    active = plans[0]
-    chunk_len = max(1, min(int(active.chunk_len), int(remaining_len)))
-    return chunk_len, plan_kind
 
 
 def _phase1_rewrite_scheduler_outputs(
@@ -2049,13 +458,21 @@ def _phase1_force_public_schedule_rewrite(
         return scheduler_outputs, False
 
     if state.policy.phase1_enable_cohort_mode:
-        cohort = _phase1_build_cohort(snapshot, state.policy)
+        cohort = _phase1_build_cohort(
+            snapshot,
+            state.policy,
+            request_id_getter=_safe_request_id,
+        )
     else:
-        cohort = _phase1_basic_cohort(snapshot)
+        cohort = _phase1_basic_cohort(snapshot, request_id_getter=_safe_request_id)
     if cohort is None or not cohort.long_req_id:
         return scheduler_outputs, False
 
-    long_seq_group = _phase1_find_seq_group_by_request_id(snapshot, cohort.long_req_id)
+    long_seq_group = _phase1_find_seq_group_by_request_id(
+        snapshot,
+        cohort.long_req_id,
+        request_id_getter=_safe_request_id,
+    )
     if long_seq_group is None:
         return scheduler_outputs, False
 
@@ -2133,6 +550,14 @@ def _phase1_force_public_schedule_rewrite(
         token_delta_sum=token_delta_sum,
     )
     if rewritten:
+        WaveSliceMetrics._emit_cross_process_event(
+            "phase1_public_rewrite_applied",
+            {
+                "request_id": str(cohort.long_req_id),
+                "best_chunk": int(best_chunk),
+                "rewritten_groups": int(rewritten_groups),
+            },
+        )
         logger.info(
             "[Wave-Slice][P1-public-force] req=%s baseline_chunk=%s chunk=%d explicit_plan=%s groups=%d",
             str(cohort.long_req_id),
@@ -2236,135 +661,6 @@ def _phase1_rewrite_schedule_tuple(
     return seq_group_metadata_list, scheduler_outputs, rewritten
 
 
-def _compute_long_prefill_threshold(
-    best_chunk: int,
-    original_threshold: Any,
-    scheduler_obj: Any,
-) -> Optional[int]:
-    if best_chunk <= 0:
-        return None
-    max_model_len = None
-    try:
-        scheduler_cfg = getattr(scheduler_obj, "scheduler_config", None)
-        max_model_len = getattr(scheduler_cfg, "max_model_len", None)
-    except Exception:
-        max_model_len = None
-    threshold = int(best_chunk)
-    if isinstance(max_model_len, int) and max_model_len > 0:
-        threshold = min(threshold, max_model_len)
-    if isinstance(original_threshold, int) and original_threshold > 0:
-        threshold = min(threshold, max(original_threshold, 1))
-    return max(1, threshold)
-
-
-def _estimate_prompt_tokens(
-    prompt_or_ids: Any,
-    *,
-    engine_self: Any = None,
-    lora_request: Any = None,
-) -> Optional[int]:
-    if prompt_or_ids is None:
-        return None
-    if isinstance(prompt_or_ids, dict):
-        prompt_token_ids = prompt_or_ids.get("prompt_token_ids")
-        if isinstance(prompt_token_ids, (list, tuple)):
-            return len(prompt_token_ids)
-        prompt_text = prompt_or_ids.get("prompt")
-        if isinstance(prompt_text, str):
-            prompt_or_ids = prompt_text
-    if isinstance(prompt_or_ids, str):
-        if engine_self is not None:
-            try:
-                tokenizer = engine_self.get_tokenizer(lora_request=lora_request)
-            except Exception:
-                tokenizer = None
-            if tokenizer is not None:
-                try:
-                    encoded = tokenizer.encode(prompt_or_ids, add_special_tokens=False)
-                    if isinstance(encoded, (list, tuple)):
-                        return len(encoded)
-                except TypeError:
-                    try:
-                        encoded = tokenizer.encode(prompt_or_ids)
-                        if isinstance(encoded, (list, tuple)):
-                            return len(encoded)
-                    except Exception:
-                        pass
-                except Exception:
-                    pass
-        return max(1, len(prompt_or_ids.split()))
-    if isinstance(prompt_or_ids, (list, tuple)):
-        return len(prompt_or_ids)
-    return None
-
-
-def _estimate_solo_us(brain: WaveScheduler, input_tokens: Optional[int]) -> Optional[float]:
-    if input_tokens is None or input_tokens <= 0:
-        return None
-    try:
-        bucket = brain._conservative_map_up(input_tokens)
-        return float(brain.t_solo_dict.get(bucket, 0.0)) or None
-    except Exception:
-        return None
-
-
-def _safe_lora_path(lora_request: Any) -> Optional[str]:
-    if lora_request is None:
-        return None
-    for attr in ("lora_path", "path", "lora_local_path", "local_path"):
-        try:
-            val = getattr(lora_request, attr, None)
-        except Exception:
-            val = None
-        if isinstance(val, str) and val.strip():
-            return val.strip()
-    return None
-
-
-def _extract_rank_from_text(text: str) -> int:
-    if not text:
-        return 0
-    match = _LORA_RANK_RE.search(text)
-    if match is None:
-        return 0
-    try:
-        return max(0, int(match.group(1)))
-    except Exception:
-        return 0
-
-
-def _infer_lora_rank(lora_request: Any) -> int:
-    if lora_request is None:
-        return 0
-
-    path = _safe_lora_path(lora_request)
-    if path:
-        cached = _LORA_RANK_CACHE.get(path)
-        if cached is not None:
-            return cached
-
-        rank = 0
-        cfg_path = os.path.join(path, "adapter_config.json")
-        if os.path.exists(cfg_path):
-            try:
-                with open(cfg_path, "r", encoding="utf-8") as f:
-                    payload = json.load(f)
-                rank = int(payload.get("r") or payload.get("rank") or 0)
-            except Exception:
-                rank = 0
-
-        if rank <= 0:
-            rank = _extract_rank_from_text(path)
-        if rank <= 0:
-            rank = _extract_rank_from_text(str(getattr(lora_request, "lora_name", "") or ""))
-
-        rank = max(0, int(rank))
-        _LORA_RANK_CACHE[path] = rank
-        return rank
-
-    return _extract_rank_from_text(str(getattr(lora_request, "lora_name", "") or ""))
-
-
 def _extract_phase2_lora_ranks(
     model_input: Any,
     runner_self: Optional[Any] = None,
@@ -2401,315 +697,25 @@ def _extract_phase2_lora_ranks(
     return sorted(ranks)
 
 
-def _phase2_has_lora_heterogeneity(ranks: list[int], policy: WaveSlicePolicy) -> bool:
-    if not policy.phase2_lora_rank_aware:
-        return False
-    pos = [int(r) for r in ranks if int(r) > 0]
-    if len(pos) < max(2, int(policy.phase2_min_lora_count)):
-        return False
-    min_rank = max(1, min(pos))
-    max_rank = max(pos)
-    rank_ratio = float(max_rank) / float(min_rank)
-    rank_gap = int(max_rank) - int(min_rank)
-    return rank_ratio >= float(policy.phase2_min_rank_ratio) and rank_gap >= int(policy.phase2_min_rank_gap)
-
-
-def _phase2_rank_ratio(lora_ranks: list[int]) -> float:
-    pos = [int(r) for r in lora_ranks if int(r) > 0]
-    if len(pos) < 2:
-        return 1.0
-    min_rank = max(1, min(pos))
-    max_rank = max(pos)
-    return float(max_rank) / float(min_rank)
-
-
-def _phase2_pressure_ratio(prefill_lens: list[int], lora_ranks: list[int]) -> float:
-    if not prefill_lens:
-        return 1.0
-    min_len = max(1, min(int(v) for v in prefill_lens if int(v) > 0))
-    max_len = max(int(v) for v in prefill_lens if int(v) > 0)
-    length_ratio = float(max_len) / float(min_len)
-    pos_ranks = [int(r) for r in lora_ranks if int(r) > 0]
-    if not pos_ranks:
-        return length_ratio
-    min_rank = max(1, min(pos_ranks))
-    max_rank = max(pos_ranks)
-    rank_ratio = float(max_rank) / float(min_rank)
-    return length_ratio * rank_ratio
-
-
-def _phase2_selective_gate(
-    *,
-    prefill_lens: list[int],
-    lora_ranks: list[int],
-    policy: WaveSlicePolicy,
-    strict_mode: bool,
-) -> tuple[bool, float, float, bool]:
-    pos_prefills = [int(v) for v in prefill_lens if int(v) > 0]
-    if not pos_prefills:
-        return False, 1.0, 1.0, False
-    min_len = max(1, min(pos_prefills))
-    max_len = max(pos_prefills)
-    length_ratio = float(max_len) / float(min_len)
-    pressure_ratio = _phase2_pressure_ratio(pos_prefills, lora_ranks)
-    rank_ratio = _phase2_rank_ratio(lora_ranks)
-    ratio = max(length_ratio, rank_ratio)
-    lora_rank_hetero = _phase2_has_lora_heterogeneity(lora_ranks, policy)
-    need_rank_hetero = bool(policy.phase2_require_rank_hetero)
-    if need_rank_hetero and not lora_rank_hetero:
-        return False, ratio, pressure_ratio, lora_rank_hetero
-
-    # Balanced mode should honor the normal Phase-II thresholds. The
-    # "extreme_*" knobs are for optional escalation paths, not the default
-    # selective gate; otherwise balanced mode is silently promoted to a much
-    # stricter policy and almost never applies.
-    min_ratio = max(
-        float(policy.phase2_min_hetero_ratio),
-        3.0 if strict_mode else 0.0,
-    )
-    min_long_prefill = max(
-        int(policy.phase2_min_long_prefill),
-        512 if strict_mode else 0,
-    )
-    min_pressure = float(policy.phase2_min_pressure_ratio)
-    selective = ratio >= min_ratio and max_len >= min_long_prefill and pressure_ratio >= min_pressure
-    return selective, ratio, pressure_ratio, lora_rank_hetero
-
-
-def _phase2_mixed_escape_ok(
-    *,
-    prefill_lens: list[int],
-    num_decode_tokens: int,
-    ratio: float,
-    pressure_ratio: float,
-    lora_rank_hetero: bool,
-    policy: WaveSlicePolicy,
-    strict_mode: bool,
-) -> bool:
-    if strict_mode or num_decode_tokens <= 0:
-        return False
-    pos_prefills = [int(v) for v in prefill_lens if int(v) > 0]
-    if not pos_prefills:
-        return False
-    max_len = max(pos_prefills)
-    if max_len < int(policy.phase2_min_long_prefill):
-        return False
-    soft_ratio = max(1.25, float(policy.phase2_min_hetero_ratio) * 0.75)
-    soft_pressure = max(1.5, float(policy.phase2_min_pressure_ratio))
-    return (
-        ratio >= soft_ratio
-        and (pressure_ratio >= soft_pressure or lora_rank_hetero)
-    )
-
-
-def _phase12_collect_prefill_lora_state(seq_groups: list[Any]) -> tuple[list[int], list[int]]:
-    prefill_lens: list[int] = []
-    lora_ranks: list[int] = []
-    for seq_group in seq_groups:
-        remaining = _safe_prefill_uncomputed_tokens(seq_group) or 0
-        if remaining <= 0:
-            continue
-        prefill_lens.append(int(remaining))
-        rank = max(1, _infer_lora_rank(getattr(seq_group, "lora_request", None)) or 1)
-        lora_ranks.append(int(rank))
-    return prefill_lens, lora_ranks
-
-
-def _phase12_collect_scheduled_req_infos(
-    model_input: Any,
-    *,
-    runner_self: Optional[Any],
-    state: Optional[_PatchState],
-    policy: WaveSlicePolicy,
-) -> list[_ScheduledReqInfo]:
-    try:
-        num_sched = dict(getattr(model_input, "num_scheduled_tokens", {}) or {})
-    except Exception:
-        return []
-    if not num_sched:
-        return []
-
-    req_states = getattr(runner_self, "requests", {}) if runner_self is not None else {}
-    metric_snapshot = (
-        state.metrics.snapshot_requests(num_sched.keys())
-        if state is not None
-        else {}
-    )
-    infos: list[_ScheduledReqInfo] = []
-    for rid_raw, tok_raw in num_sched.items():
-        rid = str(rid_raw)
-        scheduled = max(0, int(tok_raw))
-        remaining = scheduled
-        rank = 1
-        st = req_states.get(rid) if isinstance(req_states, dict) else None
-        if st is not None:
-            try:
-                remaining = max(0, int(st.num_tokens) - int(st.num_computed_tokens))
-            except Exception:
-                remaining = scheduled
-            rank = max(1, _infer_lora_rank(getattr(st, "lora_request", None)) or 1)
-        metric = metric_snapshot.get(rid, {})
-        input_tokens = metric.get("input_tokens")
-        arrival_s = metric.get("arrival_s")
-        metric_is_short = metric.get("is_short")
-        is_short = bool(metric_is_short)
-        if metric_is_short is None and input_tokens is not None:
-            is_short = int(input_tokens) <= int(policy.metrics_short_request_tokens)
-        infos.append(
-            _ScheduledReqInfo(
-                request_id=rid,
-                scheduled_tokens=scheduled,
-                remaining_tokens=max(scheduled, remaining),
-                input_tokens=int(input_tokens) if input_tokens is not None else None,
-                arrival_s=float(arrival_s) if arrival_s is not None else None,
-                is_short=is_short,
-                lora_rank=rank,
-            )
-        )
-    return infos
-
-
-def _phase12_beneficiary_signal(
-    *,
-    state: _PatchState,
-    policy: WaveSlicePolicy,
-    req_infos: list[_ScheduledReqInfo],
-) -> _Phase12BeneficiarySignal:
-    if not req_infos:
-        return _Phase12BeneficiarySignal(None, [], 0, 0.0, 0.0, 0.0, 0.0, 0.0, [])
-    recent_ttl = int(getattr(state, "phase12_recent_phase1_apply_ttl", 0) or 0)
-    recent_chunk = max(0, int(getattr(state, "phase12_recent_phase1_chunk", 0) or 0))
-    if recent_ttl <= 0 or recent_chunk <= 0:
-        return _Phase12BeneficiarySignal(None, [], 0, 0.0, 0.0, 0.0, 0.0, 0.0, [])
-
-    anchor_id = str(getattr(state, "phase12_last_phase1_req_id", "") or "")
-    req_map = {info.request_id: info for info in req_infos}
-    anchor = req_map.get(anchor_id)
-    if anchor is None:
-        prefill_infos = [info for info in req_infos if info.remaining_tokens > 1]
-        if not prefill_infos:
-            return _Phase12BeneficiarySignal(None, [], 0, 0.0, 0.0, 0.0, 0.0, 0.0, [])
-        anchor = max(prefill_infos, key=lambda info: (info.remaining_tokens, info.scheduled_tokens))
-        anchor_id = anchor.request_id
-
-    anchor_arrival = anchor.arrival_s
-    now_s = time.perf_counter()
-    beneficiary_upper = max(
-        recent_chunk + 64,
-        int(float(recent_chunk) * max(1.0, float(policy.phase12_phase2_beneficiary_prefill_scale))),
-    )
-    beneficiary_ids: list[str] = []
-    beneficiary_scores: dict[str, float] = {}
-    candidate_pool = 0
-    candidate_waits: list[float] = []
-    candidate_sizes: list[int] = []
-    for info in req_infos:
-        if info.request_id == anchor_id:
-            continue
-        if info.remaining_tokens <= 1:
-            continue
-        candidate_pool += 1
-        size_ok = info.remaining_tokens <= beneficiary_upper
-        arrival_ok = (
-            anchor_arrival is None
-            or info.arrival_s is None
-            or float(info.arrival_s) >= float(anchor_arrival)
-        )
-        shortish_ok = info.is_short or (
-            info.input_tokens is not None and int(info.input_tokens) <= beneficiary_upper
-        )
-        if size_ok and arrival_ok and shortish_ok:
-            beneficiary_ids.append(info.request_id)
-            wait_s = max(0.0, now_s - float(info.arrival_s)) if info.arrival_s is not None else 0.0
-            candidate_waits.append(wait_s)
-            candidate_sizes.append(int(info.remaining_tokens))
-    beneficiary_fraction = (
-        float(len(beneficiary_ids)) / float(candidate_pool)
-        if candidate_pool > 0
-        else 0.0
-    )
-    if beneficiary_ids:
-        max_wait = max(candidate_waits) if candidate_waits else 0.0
-        selected_ids: list[str] = []
-        wait_scores: list[float] = []
-        size_scores: list[float] = []
-        score_threshold = max(
-            0.0,
-            min(1.0, float(getattr(policy, "phase12_phase2_beneficiary_score_threshold", 0.55) or 0.55)),
-        )
-        wait_weight = max(0.0, float(getattr(policy, "phase12_phase2_beneficiary_wait_weight", 0.40) or 0.40))
-        size_weight = max(0.0, float(getattr(policy, "phase12_phase2_beneficiary_size_weight", 0.60) or 0.60))
-        norm = max(1e-6, wait_weight + size_weight)
-        for rid in beneficiary_ids:
-            info = req_map.get(rid)
-            if info is None:
-                continue
-            wait_s = max(0.0, now_s - float(info.arrival_s)) if info.arrival_s is not None else 0.0
-            wait_quality = min(1.0, wait_s / max(1e-6, max_wait)) if max_wait > 0.0 else 0.0
-            if info.remaining_tokens <= recent_chunk:
-                size_quality = 1.0
-            elif info.remaining_tokens >= beneficiary_upper:
-                size_quality = 0.0
-            else:
-                size_quality = 1.0 - (
-                    float(info.remaining_tokens - recent_chunk)
-                    / float(max(1, beneficiary_upper - recent_chunk))
-                )
-            score = ((wait_weight * wait_quality) + (size_weight * size_quality)) / norm
-            beneficiary_scores[rid] = score
-            wait_scores.append(wait_quality)
-            size_scores.append(size_quality)
-            if score >= score_threshold:
-                selected_ids.append(rid)
-        selected_ids.sort(key=lambda rid: beneficiary_scores.get(rid, 0.0), reverse=True)
-        max_selected = max(0, int(getattr(policy, "phase12_phase2_beneficiary_max_selected", 2) or 0))
-        if max_selected > 0:
-            selected_ids = selected_ids[:max_selected]
-        beneficiary_wait_quality = sum(wait_scores) / float(len(wait_scores)) if wait_scores else 0.0
-        beneficiary_size_quality = sum(size_scores) / float(len(size_scores)) if size_scores else 0.0
-        beneficiary_cashout_quality = (
-            sum(beneficiary_scores.get(rid, 0.0) for rid in beneficiary_scores)
-            / float(len(beneficiary_scores))
-            if beneficiary_scores
-            else 0.0
-        )
-        beneficiary_selected_quality = (
-            sum(beneficiary_scores.get(rid, 0.0) for rid in selected_ids)
-            / float(len(selected_ids))
-            if selected_ids
-            else 0.0
-        )
-    else:
-        selected_ids = []
-        beneficiary_wait_quality = 0.0
-        beneficiary_size_quality = 0.0
-        beneficiary_cashout_quality = 0.0
-        beneficiary_selected_quality = 0.0
-    return _Phase12BeneficiarySignal(
-        long_anchor_id=anchor_id,
-        beneficiary_prefill_ids=beneficiary_ids,
-        beneficiary_prefill_count=len(beneficiary_ids),
-        beneficiary_fraction=beneficiary_fraction,
-        beneficiary_wait_quality=beneficiary_wait_quality,
-        beneficiary_size_quality=beneficiary_size_quality,
-        beneficiary_cashout_quality=beneficiary_cashout_quality,
-        beneficiary_selected_quality=beneficiary_selected_quality,
-        beneficiary_selected_ids=selected_ids,
-    )
-
-
 def _phase12_joint_phase1_floor(
     *,
     state: _PatchState,
-    snapshot: _SchedulerSnapshot,
+    snapshot: Any,
     policy: WaveSlicePolicy,
 ) -> Optional[int]:
     if not (policy.enable_phase1_scheduler and policy.enable_phase2_modelrunner):
         return None
     if not bool(policy.phase12_joint_coordination):
         return None
-    seq_groups = list(snapshot.running) + list(snapshot.waiting)
-    prefill_lens, lora_ranks = _phase12_collect_prefill_lora_state(seq_groups)
+    if hasattr(snapshot, "running") and hasattr(snapshot, "waiting"):
+        seq_groups = list(snapshot.running) + list(snapshot.waiting)
+    else:
+        seq_groups = [seq_group for seq_group, _ in list(snapshot or [])]
+    prefill_lens, lora_ranks = _phase12_collect_prefill_lora_state(
+        seq_groups,
+        rank_infer=_infer_lora_rank,
+        remaining_getter=_safe_prefill_uncomputed_tokens,
+    )
     if len(prefill_lens) < max(2, int(policy.phase2_min_prefill_count)):
         return None
     selective_ok, _ratio, pressure_ratio, lora_rank_hetero = _phase2_selective_gate(
@@ -2987,6 +993,530 @@ def _phase12_tick_recent_phase2(state: _PatchState) -> None:
     cooldown = int(getattr(state, "phase12_recent_phase2_cashout_cooldown", 0) or 0)
     if cooldown > 0:
         state.phase12_recent_phase2_cashout_cooldown = max(0, cooldown - 1)
+    lane_ttl = int(getattr(state, "phase2_escape_lane_ttl", 0) or 0)
+    if lane_ttl > 0:
+        state.phase2_escape_lane_ttl = max(0, lane_ttl - 1)
+    if int(getattr(state, "phase2_escape_lane_ttl", 0) or 0) <= 0:
+        state.phase2_escape_active_ids.clear()
+        state.phase2_escape_deferred_ids.clear()
+
+
+def _phase12_activate_escape_lane(
+    state: _PatchState,
+    *,
+    beneficiary_ids: Iterable[str],
+    deferred_ids: Iterable[str],
+    lane_ttl: Optional[int] = None,
+) -> None:
+    active = {str(rid) for rid in beneficiary_ids if str(rid)}
+    deferred = {str(rid) for rid in deferred_ids if str(rid)}
+    state.phase2_escape_active_ids = active
+    state.phase2_escape_deferred_ids = deferred
+    base_ttl = (
+        int(lane_ttl)
+        if lane_ttl is not None
+        else int(getattr(state.policy, "phase12_phase2_escape_lane_ttl", 2) or 2)
+    )
+    state.phase2_escape_lane_ttl = max(1, base_ttl)
+    state.metrics.record_escape_lane_activation(
+        active_ids=active,
+        deferred_ids=deferred,
+        lane_ttl=int(state.phase2_escape_lane_ttl),
+    )
+
+
+def _phase12_activate_execution_escape(
+    state: _PatchState,
+    *,
+    active_ids: Iterable[str],
+    deferred_ids: Iterable[str],
+) -> bool:
+    active = [str(rid) for rid in active_ids if str(rid)]
+    deferred = [str(rid) for rid in deferred_ids if str(rid)]
+    if not active or not deferred:
+        return False
+    _phase12_activate_escape_lane(
+        state,
+        beneficiary_ids=active,
+        deferred_ids=deferred,
+        lane_ttl=int(getattr(state.policy, "phase2_execution_escape_lane_ttl", 1) or 1),
+    )
+    return True
+
+
+def _phase12_clear_escape_lane(
+    state: _PatchState,
+    *,
+    request_ids: Optional[Iterable[str]] = None,
+) -> None:
+    if request_ids is None:
+        state.phase2_escape_active_ids.clear()
+        state.phase2_escape_deferred_ids.clear()
+        state.phase2_escape_lane_ttl = 0
+        return
+    for rid in request_ids:
+        srid = str(rid)
+        if not srid:
+            continue
+        state.phase2_escape_active_ids.discard(srid)
+        state.phase2_escape_deferred_ids.discard(srid)
+    if not state.phase2_escape_active_ids:
+        state.phase2_escape_deferred_ids.clear()
+        state.phase2_escape_lane_ttl = 0
+
+
+def _phase12_scheduler_cashout_rewrite(
+    *,
+    state: _PatchState,
+    scheduler_outputs: Any,
+) -> tuple[Any, bool]:
+    WaveSliceMetrics._emit_cross_process_event("phase2_sched_post_enter", {})
+    policy = state.policy
+    if not (policy.enable_phase2_modelrunner and bool(policy.phase2_enable_scheduler_cashout)):
+        return scheduler_outputs, False
+    scheduled = getattr(scheduler_outputs, "scheduled_seq_groups", None)
+    if not isinstance(scheduled, list) or len(scheduled) < 2:
+        return scheduler_outputs, False
+
+    snapshot: list[tuple[Any, int]] = []
+    seq_groups: list[Any] = []
+    for group in scheduled:
+        seq_group = getattr(group, "seq_group", None)
+        if seq_group is None:
+            continue
+        seq_groups.append(seq_group)
+        try:
+            is_prefill = bool(seq_group.is_prefill())
+        except Exception:
+            is_prefill = False
+        if not is_prefill:
+            continue
+        remaining = _safe_prefill_uncomputed_tokens(seq_group) or 0
+        if remaining > 1:
+            snapshot.append((seq_group, int(remaining)))
+    if len(snapshot) < 2:
+        state.metrics.record_phase2_decision(False, "scheduler_cashout_no_prefill")
+        return scheduler_outputs, False
+
+    prefill_lens, lora_ranks = _phase12_collect_prefill_lora_state(
+        seq_groups,
+        rank_infer=_infer_lora_rank,
+        remaining_getter=_safe_prefill_uncomputed_tokens,
+    )
+    req_infos = _phase12_collect_snapshot_req_infos(
+        snapshot,
+        state=state,
+        policy=policy,
+        request_id_getter=_safe_request_id,
+        expected_chunk_getter=_phase12_expected_chunk_tokens,
+        rank_infer=_infer_lora_rank,
+    )
+    phase12_ready, phase12_reason = _phase12_joint_phase2_ready(
+        state=state,
+        policy=policy,
+        prefill_lens=prefill_lens,
+        num_decode_tokens=0,
+        lora_ranks=lora_ranks,
+        req_infos=req_infos,
+        strict_mode=_is_phase2_strict(policy),
+    )
+    if not phase12_ready:
+        state.metrics.record_phase2_decision(False, f"{phase12_reason}_sched")
+        return scheduler_outputs, False
+
+    beneficiary_signal = _phase12_beneficiary_signal(
+        state=state,
+        policy=policy,
+        req_infos=req_infos,
+    )
+    removable_prefills = 0
+    for group in scheduled:
+        seq_group = getattr(group, "seq_group", None)
+        if seq_group is None:
+            continue
+        request_id = _safe_request_id(seq_group)
+        try:
+            is_prefill = bool(seq_group.is_prefill())
+        except Exception:
+            is_prefill = False
+        if not is_prefill:
+            continue
+        remaining = _safe_prefill_uncomputed_tokens(seq_group) or 0
+        if remaining > 1 and (request_id is None or str(request_id) not in set(str(rid) for rid in beneficiary_signal.beneficiary_selected_ids)):
+            removable_prefills += 1
+    grade = _phase12_scheduler_cashout_grade(
+        policy=policy,
+        selected_ids=[str(rid) for rid in beneficiary_signal.beneficiary_selected_ids],
+        selected_quality=float(beneficiary_signal.beneficiary_selected_quality),
+        removable_count=removable_prefills,
+        value_signal=_phase12_scheduler_cashout_value_signal(
+            req_infos=req_infos,
+            beneficiary_signal=beneficiary_signal,
+        ),
+    )
+    if not grade or not grade["allowed"]:
+        state.metrics.record_phase2_decision(
+            False,
+            "scheduler_cashout_low_quality",
+            selected_quality=float(beneficiary_signal.beneficiary_selected_quality),
+            quality_floor=float((grade or {}).get("hard_floor", 0.0)),
+            quality_soft_floor=float((grade or {}).get("soft_floor", 0.0)),
+            selected_count=int(len(beneficiary_signal.beneficiary_selected_ids or [])),
+            strength=float((grade or {}).get("strength", 0.0)),
+            value_score=float((grade or {}).get("value_score", 0.0)),
+            net_value=float((grade or {}).get("net_value", 0.0)),
+            gain_score=float((grade or {}).get("gain_score", 0.0)),
+            cost_score=float((grade or {}).get("cost_score", 0.0)),
+            wait_gap=float((grade or {}).get("wait_gap", 0.0)),
+        )
+        return scheduler_outputs, False
+
+    beneficiary_ids = set(str(rid) for rid in beneficiary_signal.beneficiary_selected_ids[: int(grade["selected_cap"])])
+    keep_groups: list[Any] = []
+    removed_groups = 0
+    removed_tokens = 0
+    kept_prefills = 0
+    remove_cap = int(grade["remove_cap"])
+    for group in scheduled:
+        seq_group = getattr(group, "seq_group", None)
+        if seq_group is None:
+            keep_groups.append(group)
+            continue
+        request_id = _safe_request_id(seq_group)
+        try:
+            is_prefill = bool(seq_group.is_prefill())
+        except Exception:
+            is_prefill = False
+        if not is_prefill:
+            keep_groups.append(group)
+            continue
+        remaining = _safe_prefill_uncomputed_tokens(seq_group) or 0
+        is_beneficiary = request_id is not None and str(request_id) in beneficiary_ids
+        if is_beneficiary:
+            keep_groups.append(group)
+            kept_prefills += 1
+            continue
+        if remaining > 1 and removed_groups < remove_cap:
+            removed_groups += 1
+            removed_tokens += max(0, int(getattr(group, "token_chunk_size", 0) or 0))
+            continue
+        keep_groups.append(group)
+
+    min_removed = max(
+        1,
+        int(getattr(policy, "phase12_phase2_scheduler_cashout_min_removed_prefills", 1) or 1),
+    )
+    if removed_groups < min_removed or not beneficiary_ids:
+        state.metrics.record_phase2_decision(False, "scheduler_cashout_not_enough_removed")
+        return scheduler_outputs, False
+
+    scheduler_outputs.scheduled_seq_groups = keep_groups
+    try:
+        scheduler_outputs.num_batched_tokens = max(
+            0,
+            int(getattr(scheduler_outputs, "num_batched_tokens", 0)) - int(removed_tokens),
+        )
+    except Exception:
+        pass
+    try:
+        scheduler_outputs.num_prefill_groups = max(0, int(kept_prefills))
+    except Exception:
+        pass
+
+    state.metrics.record_phase2_decision(
+        True,
+        "scheduler_cashout_beneficiary",
+        selected_quality=float(beneficiary_signal.beneficiary_selected_quality),
+        quality_floor=float(grade["hard_floor"]),
+        quality_soft_floor=float(grade["soft_floor"]),
+        selected_count=int(len(beneficiary_ids)),
+        strength=float(grade["strength"]),
+        remove_cap=int(remove_cap),
+        value_score=float(grade.get("value_score", 0.0)),
+        net_value=float(grade.get("net_value", 0.0)),
+        gain_score=float(grade.get("gain_score", 0.0)),
+        cost_score=float(grade.get("cost_score", 0.0)),
+        wait_gap=float(grade.get("wait_gap", 0.0)),
+    )
+    state.phase12_recent_phase2_cashout_cooldown = _phase12_scheduler_cashout_cooldown_for_grade(
+        policy=policy,
+        grade=grade,
+    )
+    logger.info(
+        "[Wave-Slice][P2-scheduler-cashout] beneficiaries=%d removed_prefills=%d removed_tokens=%d quality=%.3f",
+        len(beneficiary_ids),
+        removed_groups,
+        removed_tokens,
+        float(beneficiary_signal.beneficiary_selected_quality),
+    )
+    return scheduler_outputs, True
+
+
+def _phase12_apply_scheduler_cashout_to_queues(
+    *,
+    state: _PatchState,
+    running: Any,
+    waiting: Any,
+) -> tuple[Any, Any, list[Any], list[Any], bool]:
+    WaveSliceMetrics._emit_cross_process_event("phase2_sched_pre_enter", {})
+    policy = state.policy
+    if not (policy.enable_phase2_modelrunner and bool(policy.phase2_enable_scheduler_cashout)):
+        return running, waiting, [], [], False
+    cooldown_live = int(getattr(state, "phase12_recent_phase2_cashout_cooldown", 0) or 0)
+    if cooldown_live > 0:
+        state.metrics.record_phase2_decision(False, "scheduler_cashout_cooldown")
+        return running, waiting, [], [], False
+
+    snapshot, _ = _collect_live_snapshot(waiting, running)
+    if len(snapshot) < 2:
+        state.metrics.record_phase2_decision(False, "scheduler_cashout_no_prefill")
+        return running, waiting, [], [], False
+
+    req_infos = _phase12_collect_snapshot_req_infos(
+        snapshot,
+        state=state,
+        policy=policy,
+        request_id_getter=_safe_request_id,
+        expected_chunk_getter=_phase12_expected_chunk_tokens,
+        rank_infer=_infer_lora_rank,
+    )
+    prefill_lens, lora_ranks = _phase12_collect_prefill_lora_state(
+        [sg for sg, _ in snapshot],
+        rank_infer=_infer_lora_rank,
+        remaining_getter=_safe_prefill_uncomputed_tokens,
+    )
+    combined = list(waiting) + list(running)
+    num_decode_tokens = sum(
+        1
+        for sg in combined
+        if (_safe_prefill_uncomputed_tokens(sg) or 0) <= 0 and (_safe_remaining_tokens(sg) or 0) > 0
+    )
+    phase12_ready, phase12_reason = _phase12_joint_phase2_ready(
+        state=state,
+        policy=policy,
+        prefill_lens=prefill_lens,
+        num_decode_tokens=num_decode_tokens,
+        lora_ranks=lora_ranks,
+        req_infos=req_infos,
+        strict_mode=_is_phase2_strict(policy),
+    )
+    if not phase12_ready:
+        state.metrics.record_phase2_decision(False, f"{phase12_reason}_sched_pre")
+        return running, waiting, [], [], False
+
+    beneficiary_signal = _phase12_beneficiary_signal(
+        state=state,
+        policy=policy,
+        req_infos=req_infos,
+    )
+    beneficiary_selected_ids = [str(rid) for rid in beneficiary_signal.beneficiary_selected_ids]
+    req_info_map = {str(info.request_id): info for info in req_infos}
+    removable_candidate_request_ids: list[str] = []
+    removable_candidate_chunk_tokens: dict[str, int] = {}
+    waiting_request_ids = {
+        str(rid)
+        for rid in (
+            _safe_request_id(seq_group)
+            for seq_group in list(waiting)
+        )
+        if rid
+    }
+    max_expected_chunk = max((int(info.expected_chunk_tokens) for info in req_infos if int(info.expected_chunk_tokens) > 0), default=0)
+    candidate_pool = max(
+        1,
+        int(getattr(policy, "phase12_phase2_scheduler_cashout_candidate_pool", 3) or 3),
+    )
+    candidate_size_ceiling = max(
+        0.0,
+        min(
+            1.0,
+            float(
+                getattr(policy, "phase12_phase2_scheduler_cashout_candidate_size_ceiling", 0.20)
+                or 0.20
+            ),
+        ),
+    )
+    fragment_cap_tokens = max(
+        1,
+        int(getattr(policy, "phase12_phase2_scheduler_cashout_fragment_cap_tokens", 256) or 256),
+    )
+    fragment_recent_scale = max(
+        0.25,
+        float(getattr(policy, "phase12_phase2_scheduler_cashout_fragment_recent_scale", 0.75) or 0.75),
+    )
+    recent_chunk = max(0, int(getattr(state, "phase12_recent_phase1_chunk", 0) or 0))
+    removable_prefills = sum(
+        1
+        for seq_group in list(waiting)
+        if (_safe_prefill_uncomputed_tokens(seq_group) or 0) > 1
+        and (
+            (_safe_request_id(seq_group) is None)
+            or (str(_safe_request_id(seq_group)) not in set(beneficiary_selected_ids))
+        )
+    )
+    removable_candidates: list[tuple[float, float, str, int]] = []
+    now_s = time.time()
+    for seq_group in list(waiting):
+        rid = _safe_request_id(seq_group)
+        remaining = _safe_prefill_uncomputed_tokens(seq_group) or 0
+        if remaining <= 1:
+            continue
+        if rid is not None and str(rid) in set(beneficiary_selected_ids):
+            continue
+        if not rid:
+            continue
+        info = req_info_map.get(str(rid))
+        chunk_tokens = int(getattr(info, "expected_chunk_tokens", remaining) if info is not None else remaining)
+        fragment_tokens = max(1, min(int(chunk_tokens), int(fragment_cap_tokens)))
+        if recent_chunk > 0:
+            fragment_tokens = max(
+                1,
+                min(fragment_tokens, int(max(1.0, float(recent_chunk) * fragment_recent_scale))),
+            )
+        size_quality = (
+            min(1.0, float(max(0, fragment_tokens)) / float(max_expected_chunk))
+            if max_expected_chunk > 0
+            else 0.0
+        )
+        if size_quality > candidate_size_ceiling:
+            continue
+        arrival_s = getattr(getattr(seq_group, "metrics", None), "arrival_time", None)
+        if arrival_s is None:
+            arrival_s = getattr(seq_group, "arrival_time", None)
+        wait_s = max(0.0, now_s - float(arrival_s)) if arrival_s is not None else 0.0
+        removable_candidates.append((size_quality, wait_s, str(rid), int(fragment_tokens)))
+    removable_candidates.sort(key=lambda item: (item[0], item[1], item[2]))
+    chosen_candidates = removable_candidates[:candidate_pool]
+    removable_candidate_request_ids = [rid for _, _, rid, _ in chosen_candidates]
+    removable_candidate_chunk_tokens = {rid: int(tokens) for _, _, rid, tokens in chosen_candidates}
+    grade = _phase12_scheduler_cashout_grade(
+        policy=policy,
+        selected_ids=beneficiary_selected_ids,
+        selected_quality=float(beneficiary_signal.beneficiary_selected_quality),
+        removable_count=removable_prefills,
+        value_signal=_phase12_scheduler_cashout_value_signal(
+            req_infos=req_infos,
+            beneficiary_signal=beneficiary_signal,
+            removable_request_ids=waiting_request_ids,
+            removable_candidate_request_ids=removable_candidate_request_ids,
+            removable_candidate_chunk_tokens=removable_candidate_chunk_tokens,
+        ),
+    )
+    if not grade or not grade["allowed"]:
+        state.metrics.record_phase2_decision(
+            False,
+            "scheduler_cashout_low_quality",
+            selected_quality=float(beneficiary_signal.beneficiary_selected_quality),
+            quality_floor=float((grade or {}).get("hard_floor", 0.0)),
+            quality_soft_floor=float((grade or {}).get("soft_floor", 0.0)),
+            selected_count=int(len(beneficiary_signal.beneficiary_selected_ids or [])),
+            strength=float((grade or {}).get("strength", 0.0)),
+            value_score=float((grade or {}).get("value_score", 0.0)),
+            net_value=float((grade or {}).get("net_value", 0.0)),
+            gain_score=float((grade or {}).get("gain_score", 0.0)),
+            cost_score=float((grade or {}).get("cost_score", 0.0)),
+            wait_gap=float((grade or {}).get("wait_gap", 0.0)),
+            candidate_wait_quality=float((grade or {}).get("candidate_wait_quality", 0.0)),
+            candidate_size_quality=float((grade or {}).get("candidate_size_quality", 0.0)),
+            candidate_shape_penalty=float((grade or {}).get("candidate_shape_penalty", 0.0)),
+            small_candidate_bonus=float((grade or {}).get("small_candidate_bonus", 0.0)),
+            medium_candidate_penalty=float((grade or {}).get("medium_candidate_penalty", 0.0)),
+        )
+        return running, waiting, [], [], False
+
+    beneficiary_ids = set(beneficiary_selected_ids[: int(grade["selected_cap"])])
+    target_remove_ids = set(removable_candidate_request_ids[: int(grade["remove_cap"])])
+    hidden_running: list[Any] = []
+    hidden_waiting: list[Any] = []
+    hidden_request_ids: list[str] = []
+    remove_cap = int(grade["remove_cap"])
+    strength = float(grade["strength"])
+    removed_prefills = 0
+
+    def _filter_queue(queue_obj: Any, hidden_out: list[Any]) -> Any:
+        nonlocal removed_prefills
+        kept: list[Any] = []
+        for seq_group in list(queue_obj):
+            request_id = _safe_request_id(seq_group)
+            remaining = _safe_prefill_uncomputed_tokens(seq_group) or 0
+            if (
+                remaining > 1
+                and removed_prefills < remove_cap
+                and request_id is not None
+                and str(request_id) in target_remove_ids
+                and str(request_id) not in beneficiary_ids
+            ):
+                hidden_out.append(seq_group)
+                removed_prefills += 1
+                if request_id:
+                    hidden_request_ids.append(str(request_id))
+            else:
+                kept.append(seq_group)
+        return _rebuild_queue_like(queue_obj, kept)
+
+    new_running = running
+    new_waiting = _filter_queue(waiting, hidden_waiting)
+    min_removed = max(
+        1,
+        int(getattr(policy, "phase12_phase2_scheduler_cashout_min_removed_prefills", 1) or 1),
+    )
+    if removed_prefills < min_removed:
+        state.metrics.record_phase2_decision(False, "scheduler_cashout_not_enough_removed")
+        return running, waiting, [], [], False
+
+    now_s = time.time()
+    new_waiting = _phase12_priority_bubble_waiting_queue(
+        new_waiting,
+        beneficiary_signal=beneficiary_signal,
+        beneficiary_ids=beneficiary_ids,
+        strength=strength,
+        brain=state.brain,
+        now_s=now_s,
+        remaining_getter=_safe_remaining_tokens,
+        wait_getter=_safe_wait_us,
+        request_id_getter=_safe_request_id,
+        solo_us_estimator=_estimate_solo_us,
+        queue_rebuilder=_rebuild_queue_like,
+    )
+
+    state.metrics.record_phase2_decision(
+        True,
+        "scheduler_cashout_beneficiary",
+        selected_quality=float(beneficiary_signal.beneficiary_selected_quality),
+        quality_floor=float(grade["hard_floor"]),
+        quality_soft_floor=float(grade["soft_floor"]),
+        selected_count=int(len(beneficiary_ids)),
+        strength=float(grade["strength"]),
+        remove_cap=int(remove_cap),
+        value_score=float(grade.get("value_score", 0.0)),
+        net_value=float(grade.get("net_value", 0.0)),
+        gain_score=float(grade.get("gain_score", 0.0)),
+        cost_score=float(grade.get("cost_score", 0.0)),
+        wait_gap=float(grade.get("wait_gap", 0.0)),
+        candidate_wait_quality=float(grade.get("candidate_wait_quality", 0.0)),
+        candidate_size_quality=float(grade.get("candidate_size_quality", 0.0)),
+        candidate_shape_penalty=float(grade.get("candidate_shape_penalty", 0.0)),
+        small_candidate_bonus=float(grade.get("small_candidate_bonus", 0.0)),
+        medium_candidate_penalty=float(grade.get("medium_candidate_penalty", 0.0)),
+    )
+    state.phase12_recent_phase2_cashout_cooldown = _phase12_scheduler_cashout_cooldown_for_grade(
+        policy=policy,
+        grade=grade,
+    )
+    _phase12_activate_escape_lane(
+        state,
+        beneficiary_ids=list(beneficiary_ids),
+        deferred_ids=hidden_request_ids,
+        lane_ttl=int(grade["lane_ttl"]),
+    )
+    logger.info(
+        "[Wave-Slice][P2-scheduler-prehide] beneficiaries=%d hidden_running=%d hidden_waiting=%d quality=%.3f",
+        len(beneficiary_ids),
+        len(hidden_running),
+        len(hidden_waiting),
+        float(beneficiary_signal.beneficiary_selected_quality),
+    )
+    return new_running, new_waiting, hidden_running, hidden_waiting, True
 
 
 def _extract_prefill_lens(attn_meta: Any) -> list[int]:
@@ -3016,9 +1546,9 @@ def _phase2_decide(
         runner_self=runner_self,
         state=state,
         policy=policy,
+        rank_infer=_infer_lora_rank,
     )
 
-    # vLLM v1 path: GPUModelRunner.execute_model(scheduler_output, ...)
     if hasattr(model_input, "num_scheduled_tokens") and hasattr(model_input, "total_num_scheduled_tokens"):
         strict_mode = _is_phase2_strict(policy)
         try:
@@ -3028,12 +1558,6 @@ def _phase2_decide(
         prefill_lens = [v for v in vals if v > 1]
         num_prefills = len(prefill_lens)
         num_decode_tokens = sum(1 for v in vals if v <= 1)
-        selective_ok, ratio, pressure_ratio, lora_rank_hetero = _phase2_selective_gate(
-            prefill_lens=prefill_lens,
-            lora_ranks=lora_ranks,
-            policy=policy,
-            strict_mode=strict_mode,
-        )
         if state is not None:
             phase12_ready, phase12_reason = _phase12_joint_phase2_ready(
                 state=state,
@@ -3046,33 +1570,23 @@ def _phase2_decide(
             )
         else:
             phase12_ready, phase12_reason = True, "joint_state_absent"
-        if not phase12_ready:
-            return _Phase2Decision(
-                False,
-                f"{phase12_reason}_v1",
-                prefill_lens,
-                num_prefills,
-                num_decode_tokens,
-                lora_ranks,
-            )
-
-        if strict_mode and num_decode_tokens > 0:
-            return _Phase2Decision(
-                False,
-                "strict_no_mixed_prefill_decode",
-                prefill_lens,
-                num_prefills,
-                num_decode_tokens,
-                lora_ranks,
-            )
-
-        if (
-            not strict_mode
-            and policy.phase2_enable_mixed_prefill_decode
-            and num_prefills > 0
-            and num_decode_tokens > 0
-        ):
-            mixed_escape_ok = _phase2_mixed_escape_ok(
+        return _phase2_decide_from_prefill_window(
+            policy=policy,
+            prefill_lens=prefill_lens,
+            num_prefills=num_prefills,
+            num_decode_tokens=num_decode_tokens,
+            lora_ranks=lora_ranks,
+            strict_mode=strict_mode,
+            phase12_ready=phase12_ready,
+            phase12_reason=phase12_reason,
+            reason_suffix="_v1",
+            selective_gate=lambda prefill_lens, lora_ranks, policy, strict_mode: _phase2_selective_gate(
+                prefill_lens=prefill_lens,
+                lora_ranks=lora_ranks,
+                policy=policy,
+                strict_mode=strict_mode,
+            ),
+            mixed_escape_ok_fn=lambda prefill_lens, num_decode_tokens, ratio, pressure_ratio, lora_rank_hetero, policy, strict_mode: _phase2_mixed_escape_ok(
                 prefill_lens=prefill_lens,
                 num_decode_tokens=num_decode_tokens,
                 ratio=ratio,
@@ -3080,114 +1594,8 @@ def _phase2_decide(
                 lora_rank_hetero=lora_rank_hetero,
                 policy=policy,
                 strict_mode=strict_mode,
-            )
-            if bool(policy.phase2_selective_only) and not selective_ok:
-                if mixed_escape_ok:
-                    return _Phase2Decision(
-                        True,
-                        "selective_mixed_prefill_decode_soft_v1",
-                        prefill_lens,
-                        num_prefills,
-                        num_decode_tokens,
-                        lora_ranks,
-                    )
-                return _Phase2Decision(
-                    False,
-                    "mixed_prefill_decode_not_extreme_v1",
-                    prefill_lens,
-                    num_prefills,
-                    num_decode_tokens,
-                    lora_ranks,
-                )
-            return _Phase2Decision(
-                True,
-                "selective_mixed_prefill_decode_v1",
-                prefill_lens,
-                num_prefills,
-                num_decode_tokens,
-                lora_ranks,
-            )
-
-        if not strict_mode and num_prefills >= max(1, policy.phase2_min_prefill_count):
-            if bool(policy.phase2_selective_only) and not selective_ok:
-                return _Phase2Decision(
-                    False,
-                    "prefill_batch_not_extreme_v1",
-                    prefill_lens,
-                    num_prefills,
-                    num_decode_tokens,
-                    lora_ranks,
-                )
-            return _Phase2Decision(
-                True,
-                "selective_lora_extreme_prefill_v1",
-                prefill_lens,
-                num_prefills,
-                num_decode_tokens,
-                lora_ranks,
-            )
-
-        if len(prefill_lens) < max(2 if strict_mode else 1, policy.phase2_min_prefill_count):
-            return _Phase2Decision(
-                False,
-                "insufficient_prefill_batch",
-                prefill_lens,
-                num_prefills,
-                num_decode_tokens,
-                lora_ranks,
-            )
-
-        min_len = max(1, min(prefill_lens))
-        max_len = max(prefill_lens)
-        ratio = float(max_len) / float(min_len)
-        pressure_ratio = _phase2_pressure_ratio(prefill_lens, lora_ranks)
-        min_hetero_ratio = max(policy.phase2_min_hetero_ratio, 3.0 if strict_mode else 0.0)
-        min_long_prefill = max(policy.phase2_min_long_prefill, 512 if strict_mode else 0)
-        if ratio < min_hetero_ratio:
-            if lora_rank_hetero and pressure_ratio >= float(policy.phase2_min_pressure_ratio) and selective_ok:
-                return _Phase2Decision(
-                    True,
-                    "strict_selective_lora_rank_pressure_prefill_v1"
-                    if strict_mode
-                    else "selective_lora_rank_pressure_prefill_v1",
-                    prefill_lens,
-                    num_prefills,
-                    num_decode_tokens,
-                    lora_ranks,
-                )
-            return _Phase2Decision(
-                False,
-                "strict_hetero_ratio_too_low" if strict_mode else "hetero_ratio_too_low",
-                prefill_lens,
-                num_prefills,
-                num_decode_tokens,
-                lora_ranks,
-            )
-        if max_len < min_long_prefill:
-            return _Phase2Decision(
-                False,
-                "strict_long_prefill_too_short" if strict_mode else "long_prefill_too_short",
-                prefill_lens,
-                num_prefills,
-                num_decode_tokens,
-                lora_ranks,
-            )
-        if bool(policy.phase2_selective_only) and not selective_ok:
-            return _Phase2Decision(
-                False,
-                "strict_prefill_not_extreme_v1" if strict_mode else "prefill_not_extreme_v1",
-                prefill_lens,
-                num_prefills,
-                num_decode_tokens,
-                lora_ranks,
-            )
-        return _Phase2Decision(
-            True,
-            "strict_selective_lora_extreme_prefill_v1" if strict_mode else "selective_lora_extreme_prefill_v1",
-            prefill_lens,
-            num_prefills,
-            num_decode_tokens,
-            lora_ranks,
+            ),
+            pressure_ratio_fn=_phase2_pressure_ratio,
         )
 
     attn_meta = getattr(model_input, "attn_metadata", None)
@@ -3198,12 +1606,6 @@ def _phase2_decide(
     num_decode_tokens = int(getattr(attn_meta, "num_decode_tokens", 0) or 0)
     prefill_lens = _extract_prefill_lens(attn_meta)
     strict_mode = _is_phase2_strict(policy)
-    selective_ok, ratio, pressure_ratio, lora_rank_hetero = _phase2_selective_gate(
-        prefill_lens=prefill_lens,
-        lora_ranks=lora_ranks,
-        policy=policy,
-        strict_mode=strict_mode,
-    )
     if state is not None:
         phase12_ready, phase12_reason = _phase12_joint_phase2_ready(
             state=state,
@@ -3216,34 +1618,22 @@ def _phase2_decide(
         )
     else:
         phase12_ready, phase12_reason = True, "joint_state_absent"
-    if not phase12_ready:
-        return _Phase2Decision(
-            False,
-            phase12_reason,
-            prefill_lens,
-            num_prefills,
-            num_decode_tokens,
-            lora_ranks,
-        )
-
-    if strict_mode and num_decode_tokens > 0:
-        return _Phase2Decision(
-            False,
-            "strict_no_mixed_prefill_decode",
-            prefill_lens,
-            num_prefills,
-            num_decode_tokens,
-            lora_ranks,
-        )
-
-    if (
-        not strict_mode
-        and
-        policy.phase2_enable_mixed_prefill_decode
-        and num_prefills > 0
-        and num_decode_tokens > 0
-    ):
-        mixed_escape_ok = _phase2_mixed_escape_ok(
+    return _phase2_decide_from_prefill_window(
+        policy=policy,
+        prefill_lens=prefill_lens,
+        num_prefills=num_prefills,
+        num_decode_tokens=num_decode_tokens,
+        lora_ranks=lora_ranks,
+        strict_mode=strict_mode,
+        phase12_ready=phase12_ready,
+        phase12_reason=phase12_reason,
+        selective_gate=lambda prefill_lens, lora_ranks, policy, strict_mode: _phase2_selective_gate(
+            prefill_lens=prefill_lens,
+            lora_ranks=lora_ranks,
+            policy=policy,
+            strict_mode=strict_mode,
+        ),
+        mixed_escape_ok_fn=lambda prefill_lens, num_decode_tokens, ratio, pressure_ratio, lora_rank_hetero, policy, strict_mode: _phase2_mixed_escape_ok(
             prefill_lens=prefill_lens,
             num_decode_tokens=num_decode_tokens,
             ratio=ratio,
@@ -3251,101 +1641,8 @@ def _phase2_decide(
             lora_rank_hetero=lora_rank_hetero,
             policy=policy,
             strict_mode=strict_mode,
-        )
-        if bool(policy.phase2_selective_only) and not selective_ok:
-            if mixed_escape_ok:
-                return _Phase2Decision(
-                    True,
-                    "selective_mixed_prefill_decode_soft",
-                    prefill_lens,
-                    num_prefills,
-                    num_decode_tokens,
-                    lora_ranks,
-                )
-            return _Phase2Decision(
-                False,
-                "mixed_prefill_decode_not_extreme",
-                prefill_lens,
-                num_prefills,
-                num_decode_tokens,
-                lora_ranks,
-            )
-        return _Phase2Decision(
-            True,
-            "selective_mixed_prefill_decode",
-            prefill_lens,
-            num_prefills,
-            num_decode_tokens,
-            lora_ranks,
-        )
-
-    min_prefill_count = policy.phase2_min_prefill_count
-    if strict_mode:
-        min_prefill_count = max(min_prefill_count, 2)
-
-    if len(prefill_lens) < min_prefill_count:
-        return _Phase2Decision(
-            False,
-            "insufficient_prefill_batch",
-            prefill_lens,
-            num_prefills,
-            num_decode_tokens,
-            lora_ranks,
-        )
-
-    min_len = max(1, min(prefill_lens))
-    max_len = max(prefill_lens)
-    min_hetero_ratio = policy.phase2_min_hetero_ratio
-    min_long_prefill = policy.phase2_min_long_prefill
-    if strict_mode:
-        min_hetero_ratio = max(min_hetero_ratio, 3.0)
-        min_long_prefill = max(min_long_prefill, 512)
-
-    if ratio < min_hetero_ratio:
-        if lora_rank_hetero and pressure_ratio >= float(policy.phase2_min_pressure_ratio) and selective_ok:
-            return _Phase2Decision(
-                True,
-                "strict_selective_lora_rank_pressure_prefill"
-                if strict_mode
-                else "selective_lora_rank_pressure_prefill",
-                prefill_lens,
-                num_prefills,
-                num_decode_tokens,
-                lora_ranks,
-            )
-        return _Phase2Decision(
-            False,
-            "strict_hetero_ratio_too_low" if strict_mode else "hetero_ratio_too_low",
-            prefill_lens,
-            num_prefills,
-            num_decode_tokens,
-            lora_ranks,
-        )
-    if max_len < min_long_prefill:
-        return _Phase2Decision(
-            False,
-            "strict_long_prefill_too_short" if strict_mode else "long_prefill_too_short",
-            prefill_lens,
-            num_prefills,
-            num_decode_tokens,
-            lora_ranks,
-        )
-    if bool(policy.phase2_selective_only) and not selective_ok:
-        return _Phase2Decision(
-            False,
-            "strict_prefill_not_extreme" if strict_mode else "prefill_not_extreme",
-            prefill_lens,
-            num_prefills,
-            num_decode_tokens,
-            lora_ranks,
-        )
-    return _Phase2Decision(
-        True,
-        "strict_selective_lora_extreme_prefill" if strict_mode else "selective_lora_extreme_prefill",
-        prefill_lens,
-        num_prefills,
-        num_decode_tokens,
-        lora_ranks,
+        ),
+        pressure_ratio_fn=_phase2_pressure_ratio,
     )
 
 
@@ -3363,284 +1660,6 @@ def _safe_v1_pipeline_size(model_runner: Any) -> int:
         return int(getattr(pc, "pipeline_parallel_size", 1) or 1)
     except Exception:
         return 1
-
-
-def _v1_partition_req_ids(
-    model_input: Any,
-    policy: WaveSlicePolicy,
-    *,
-    runner_self: Optional[Any] = None,
-    state: Optional[_PatchState] = None,
-) -> Optional[tuple[list[str], list[str]]]:
-    try:
-        num_sched = dict(getattr(model_input, "num_scheduled_tokens", {}) or {})
-    except Exception:
-        return None
-    if not num_sched:
-        return None
-
-    req_infos = _phase12_collect_scheduled_req_infos(
-        model_input,
-        runner_self=runner_self,
-        state=state,
-        policy=policy,
-    )
-    if state is not None and bool(getattr(policy, "phase12_phase2_require_beneficiary_signal", True)):
-        beneficiary_signal = _phase12_beneficiary_signal(
-            state=state,
-            policy=policy,
-            req_infos=req_infos,
-        )
-        min_beneficiaries = max(1, int(policy.phase12_phase2_min_beneficiary_prefills))
-        if (
-            beneficiary_signal.long_anchor_id is not None
-            and len(beneficiary_signal.beneficiary_selected_ids) >= min_beneficiaries
-        ):
-            beneficiary_ids = set(beneficiary_signal.beneficiary_selected_ids)
-            short_ids = [
-                str(rid)
-                for rid in num_sched.keys()
-                if str(rid) in beneficiary_ids
-            ]
-            long_ids = [
-                str(rid)
-                for rid in num_sched.keys()
-                if str(rid) not in beneficiary_ids
-            ]
-            if short_ids and long_ids:
-                return short_ids, long_ids
-
-    req_info_map = {info.request_id: info for info in req_infos}
-    prefill_items: list[tuple[str, int]] = []
-    for rid_raw, tok_raw in num_sched.items():
-        rid = str(rid_raw)
-        tok = int(tok_raw)
-        info = req_info_map.get(rid)
-        approx_rem = info.remaining_tokens if info is not None else tok
-        rank = info.lora_rank if info is not None else 1
-        score = max(tok, approx_rem) * (rank if policy.phase2_lora_rank_aware else 1)
-        if score > 1:
-            prefill_items.append((rid, score))
-    if len(prefill_items) < 2:
-        return None
-
-    prefill_sorted = sorted(prefill_items, key=lambda x: x[1])
-    min_tok = prefill_sorted[0][1]
-    max_tok = prefill_sorted[-1][1]
-    if min_tok <= 0:
-        return None
-    ratio = float(max_tok) / float(min_tok)
-    if ratio < max(2.0, float(policy.phase2_min_hetero_ratio)):
-        return None
-
-    pivot = max(min_tok * 2, int((min_tok * max_tok) ** 0.5))
-    short_prefill = [rid for rid, tok in prefill_sorted if tok <= pivot]
-    long_prefill = [rid for rid, tok in prefill_sorted if tok > pivot]
-    if not short_prefill or not long_prefill:
-        half = max(1, len(prefill_sorted) // 2)
-        short_prefill = [rid for rid, _ in prefill_sorted[:half]]
-        long_prefill = [rid for rid, _ in prefill_sorted[half:]]
-        if not short_prefill or not long_prefill:
-            return None
-
-    short_ids_set = set(short_prefill)
-    long_ids_set = set(long_prefill)
-    short_ids = [str(rid) for rid in num_sched.keys() if str(rid) in short_ids_set]
-    long_ids = [str(rid) for rid in num_sched.keys() if str(rid) in long_ids_set]
-    if not short_ids or not long_ids:
-        return None
-    return short_ids, long_ids
-
-
-def _v1_filter_cached_reqs(cached: Any, selected_req_ids: set[str]) -> Any:
-    req_ids = [str(r) for r in list(getattr(cached, "req_ids", []) or [])]
-    indices = [i for i, rid in enumerate(req_ids) if rid in selected_req_ids]
-    cls = type(cached)
-    return cls(
-        req_ids=[req_ids[i] for i in indices],
-        resumed_from_preemption=[getattr(cached, "resumed_from_preemption", [])[i] for i in indices],
-        new_token_ids=[getattr(cached, "new_token_ids", [])[i] for i in indices],
-        new_block_ids=[getattr(cached, "new_block_ids", [])[i] for i in indices],
-        num_computed_tokens=[getattr(cached, "num_computed_tokens", [])[i] for i in indices],
-    )
-
-
-def _v1_build_subset_scheduler_output(
-    model_input: Any,
-    selected_req_ids: list[str],
-    *,
-    carry_finished: bool,
-    carry_kv_metadata: bool,
-) -> Any:
-    selected_set = set(str(r) for r in selected_req_ids)
-    output_cls = type(model_input)
-    scheduled_new = [r for r in list(getattr(model_input, "scheduled_new_reqs", []) or []) if str(getattr(r, "req_id", "")) in selected_set]
-    cached = _v1_filter_cached_reqs(getattr(model_input, "scheduled_cached_reqs"), selected_set)
-
-    num_sched = {
-        str(rid): int(tok)
-        for rid, tok in dict(getattr(model_input, "num_scheduled_tokens", {}) or {}).items()
-        if str(rid) in selected_set
-    }
-    spec_tokens = {
-        str(rid): list(tokens)
-        for rid, tokens in dict(getattr(model_input, "scheduled_spec_decode_tokens", {}) or {}).items()
-        if str(rid) in selected_set
-    }
-    encoder_inputs = {
-        str(rid): list(inputs)
-        for rid, inputs in dict(getattr(model_input, "scheduled_encoder_inputs", {}) or {}).items()
-        if str(rid) in selected_set
-    }
-    structured_ids = {
-        str(rid): int(idx)
-        for rid, idx in dict(getattr(model_input, "structured_output_request_ids", {}) or {}).items()
-        if str(rid) in selected_set
-    }
-    finished_ids = set(getattr(model_input, "finished_req_ids", set()) or set()) if carry_finished else set()
-    free_encoder_ids = [
-        (str(req_id), int(inp_idx))
-        for req_id, inp_idx in list(getattr(model_input, "free_encoder_input_ids", []) or [])
-        if (not carry_finished) or (str(req_id) in selected_set)
-    ] if carry_finished else []
-    num_common_prefix_blocks = [
-        0 for _ in list(getattr(model_input, "num_common_prefix_blocks", []) or [])
-    ]
-
-    return output_cls(
-        scheduled_new_reqs=scheduled_new,
-        scheduled_cached_reqs=cached,
-        num_scheduled_tokens=num_sched,
-        total_num_scheduled_tokens=int(sum(num_sched.values())),
-        scheduled_spec_decode_tokens=spec_tokens,
-        scheduled_encoder_inputs=encoder_inputs,
-        num_common_prefix_blocks=num_common_prefix_blocks,
-        finished_req_ids=finished_ids,
-        free_encoder_input_ids=free_encoder_ids,
-        structured_output_request_ids=structured_ids,
-        grammar_bitmask=None,
-        kv_connector_metadata=getattr(model_input, "kv_connector_metadata", None) if carry_kv_metadata else None,
-    )
-
-
-def _merge_kv_connector_outputs(a: Any, b: Any) -> Any:
-    if a is None:
-        return b
-    if b is None:
-        return a
-    cls = type(a)
-    finished_sending = set(getattr(a, "finished_sending", set()) or set()) | set(
-        getattr(b, "finished_sending", set()) or set()
-    )
-    finished_recving = set(getattr(a, "finished_recving", set()) or set()) | set(
-        getattr(b, "finished_recving", set()) or set()
-    )
-    return cls(
-        finished_sending=finished_sending or None,
-        finished_recving=finished_recving or None,
-    )
-
-
-def _merge_v1_runner_outputs(original_order: list[str], out_a: Any, out_b: Any) -> Any:
-    if not hasattr(out_a, "req_ids") or not hasattr(out_b, "req_ids"):
-        raise TypeError("v1 split merge requires ModelRunnerOutput-like outputs.")
-
-    a_ids = [str(x) for x in list(getattr(out_a, "req_ids", []) or [])]
-    b_ids = [str(x) for x in list(getattr(out_b, "req_ids", []) or [])]
-    a_map = {rid: i for i, rid in enumerate(a_ids)}
-    b_map = {rid: i for i, rid in enumerate(b_ids)}
-    all_ids = set(a_ids) | set(b_ids)
-    req_ids = [rid for rid in original_order if rid in all_ids]
-    req_id_to_index = {rid: i for i, rid in enumerate(req_ids)}
-
-    def _pick_list_attr(obj: Any, attr: str, idx: int, default: Any) -> Any:
-        vals = getattr(obj, attr, None)
-        if vals is None:
-            return default
-        try:
-            return vals[idx]
-        except Exception:
-            return default
-
-    sampled_token_ids: list[list[int]] = []
-    pooler_output: list[Optional[Any]] = []
-    spec_token_ids_needed = (getattr(out_a, "spec_token_ids", None) is not None) or (
-        getattr(out_b, "spec_token_ids", None) is not None
-    )
-    spec_token_ids: Optional[list[list[int]]] = [] if spec_token_ids_needed else None
-
-    for rid in req_ids:
-        if rid in a_map:
-            idx = a_map[rid]
-            sampled = list(_pick_list_attr(out_a, "sampled_token_ids", idx, []))
-            pool_val = _pick_list_attr(out_a, "pooler_output", idx, None)
-            spec_val = (
-                list(_pick_list_attr(out_a, "spec_token_ids", idx, []))
-                if spec_token_ids_needed
-                else []
-            )
-        else:
-            idx = b_map[rid]
-            sampled = list(_pick_list_attr(out_b, "sampled_token_ids", idx, []))
-            pool_val = _pick_list_attr(out_b, "pooler_output", idx, None)
-            spec_val = (
-                list(_pick_list_attr(out_b, "spec_token_ids", idx, []))
-                if spec_token_ids_needed
-                else []
-            )
-        sampled_token_ids.append(sampled)
-        pooler_output.append(pool_val)
-        if spec_token_ids is not None:
-            spec_token_ids.append(spec_val)
-
-    logprobs = None
-    if getattr(out_a, "logprobs", None) is not None or getattr(out_b, "logprobs", None) is not None:
-        lp_cls = type(getattr(out_a, "logprobs", None) or getattr(out_b, "logprobs", None))
-        a_lp = getattr(out_a, "logprobs", None)
-        b_lp = getattr(out_b, "logprobs", None)
-        logprob_token_ids = []
-        logprobs_vals = []
-        sampled_token_ranks = []
-        for rid in req_ids:
-            if rid in a_map and a_lp is not None:
-                i = a_map[rid]
-                logprob_token_ids.append(list(a_lp.logprob_token_ids[i]))
-                logprobs_vals.append(list(a_lp.logprobs[i]))
-                sampled_token_ranks.append(int(a_lp.sampled_token_ranks[i]))
-            elif rid in b_map and b_lp is not None:
-                i = b_map[rid]
-                logprob_token_ids.append(list(b_lp.logprob_token_ids[i]))
-                logprobs_vals.append(list(b_lp.logprobs[i]))
-                sampled_token_ranks.append(int(b_lp.sampled_token_ranks[i]))
-            else:
-                logprob_token_ids.append([])
-                logprobs_vals.append([])
-                sampled_token_ranks.append(0)
-        logprobs = lp_cls(logprob_token_ids, logprobs_vals, sampled_token_ranks)
-
-    prompt_logprobs_dict = {}
-    prompt_logprobs_dict.update(getattr(out_a, "prompt_logprobs_dict", {}) or {})
-    prompt_logprobs_dict.update(getattr(out_b, "prompt_logprobs_dict", {}) or {})
-
-    num_nans_in_logits = {}
-    num_nans_in_logits.update(getattr(out_a, "num_nans_in_logits", {}) or {})
-    num_nans_in_logits.update(getattr(out_b, "num_nans_in_logits", {}) or {})
-
-    out_cls = type(out_a)
-    return out_cls(
-        req_ids=req_ids,
-        req_id_to_index=req_id_to_index,
-        sampled_token_ids=sampled_token_ids,
-        spec_token_ids=spec_token_ids,
-        logprobs=logprobs,
-        prompt_logprobs_dict=prompt_logprobs_dict,
-        pooler_output=pooler_output,
-        kv_connector_output=_merge_kv_connector_outputs(
-            getattr(out_a, "kv_connector_output", None),
-            getattr(out_b, "kv_connector_output", None),
-        ),
-        num_nans_in_logits=num_nans_in_logits or None,
-    )
 
 
 def _call_original_execute_with_model_input(
@@ -3701,6 +1720,18 @@ def _try_v1_true_unbind_execute(
         state.policy,
         runner_self=runner_self,
         state=state,
+        req_info_collector=lambda model_input, runner_self, state, policy: _phase12_collect_scheduled_req_infos(
+            model_input,
+            runner_self=runner_self,
+            state=state,
+            policy=policy,
+            rank_infer=_infer_lora_rank,
+        ),
+        beneficiary_signal_builder=lambda state, policy, req_infos: _phase12_beneficiary_signal(
+            state=state,
+            policy=policy,
+            req_infos=req_infos,
+        ),
     )
     if split_ids is None:
         return None
@@ -3769,6 +1800,28 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
 
     @functools.wraps(original_schedule)
     def _wave_schedule_hook(self: Any, *args: Any, **kwargs: Any) -> Any:
+        WaveSliceMetrics._emit_cross_process_event("schedule_hook_enter", {})
+
+        def _emit_schedule_hook_early(reason: str, **payload: Any) -> None:
+            WaveSliceMetrics._emit_cross_process_event(
+                "schedule_hook_early_return",
+                {"reason": str(reason), **payload},
+            )
+
+        def _maybe_apply_phase2_schedule_cashout(outputs: Any) -> Any:
+            if (
+                state.scheduler_method_name == "schedule"
+                and bool(state.policy.phase2_enable_scheduler_cashout)
+            ):
+                try:
+                    outputs, _ = _phase12_scheduler_cashout_rewrite(
+                        state=state,
+                        scheduler_outputs=outputs,
+                    )
+                except Exception:
+                    logger.exception("[Wave-Slice] inline scheduler cashout rewrite failed.")
+            return outputs
+
         def _is_lora_mode_enabled(scheduler_obj: Any) -> bool:
             # Conservative detection across vLLM variants.
             direct = getattr(scheduler_obj, "lora_config", None)
@@ -3784,17 +1837,20 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                         return True
             return False
 
-        if not hasattr(self, "running") or not hasattr(self, "waiting"):
-            return original_schedule(self, *args, **kwargs)
+        if not _has_running_waiting_queues(self):
+            _emit_schedule_hook_early("missing_running_waiting")
+            return _maybe_apply_phase2_schedule_cashout(original_schedule(self, *args, **kwargs))
 
         running = self.running
         waiting = self.waiting
         if running is None or waiting is None:
-            return original_schedule(self, *args, **kwargs)
+            _emit_schedule_hook_early("null_running_waiting")
+            return _maybe_apply_phase2_schedule_cashout(original_schedule(self, *args, **kwargs))
 
         if not state.policy.enable_phase1_scheduler:
             state.metrics.record_scheduler_decision(False)
-            return original_schedule(self, *args, **kwargs)
+            _emit_schedule_hook_early("phase1_disabled")
+            return _maybe_apply_phase2_schedule_cashout(original_schedule(self, *args, **kwargs))
 
         lora_mode_enabled = _is_lora_mode_enabled(self)
         can_phase1_threshold = state.policy.enable_phase1_dynamic_threshold and (
@@ -3817,7 +1873,8 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
         # enabled under LoRA, while queue hiding / budget shaping stay off.
         if lora_mode_enabled and not (can_phase1_threshold or can_phase1_budget or can_phase1_tick_hide):
             state.metrics.record_scheduler_decision(False)
-            return original_schedule(self, *args, **kwargs)
+            _emit_schedule_hook_early("lora_guard")
+            return _maybe_apply_phase2_schedule_cashout(original_schedule(self, *args, **kwargs))
 
         # Metrics-side request observation from scheduler internals.
         for sg in list(waiting) + list(running):
@@ -3874,14 +1931,19 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
 
             snapshot, max_wait_us = _collect_live_snapshot(waiting, running)
             ingress_candidate = _phase1_find_ingress_virtual_candidate(
-                state,
+                state.phase1_ingress_virtuals,
                 snapshot=snapshot,
+                request_id_getter=_safe_request_id,
             )
             lengths = [int(rem) for _, rem in snapshot]
             cohort = None
             if ingress_candidate is not None:
                 ingress_virtual, _ingress_seq_group, ingress_remaining = ingress_candidate
-                live_cohort = _phase1_live_cohort_from_snapshot(snapshot, state.policy)
+                live_cohort = _phase1_live_cohort_from_snapshot(
+                    snapshot,
+                    state.policy,
+                    request_id_getter=_safe_request_id,
+                )
                 if live_cohort is not None:
                     cohort = _Phase1CohortStats(
                         representative_short_len=max(1, int(live_cohort.representative_short_len)),
@@ -3926,9 +1988,23 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                     state.phase1_sticky_ttl_left = 0
                     if not waiting and not running:
                         state.phase1_explicit_plans.clear()
-                    return original_schedule(self, *args, **kwargs)
+                    _emit_schedule_hook_early(
+                        "no_need_wave_slice",
+                        snapshot_count=len(lengths),
+                        min_len=(min(lengths) if lengths else 0),
+                        max_len=(max(lengths) if lengths else 0),
+                        hetero_ratio=(
+                            (float(max(lengths)) / float(max(1, min(lengths))))
+                            if lengths else 0.0
+                        ),
+                    )
+                    return _maybe_apply_phase2_schedule_cashout(original_schedule(self, *args, **kwargs))
 
-                cohort = _phase1_live_cohort_from_snapshot(snapshot, state.policy)
+                cohort = _phase1_live_cohort_from_snapshot(
+                    snapshot,
+                    state.policy,
+                    request_id_getter=_safe_request_id,
+                )
                 if cohort is None:
                     state.metrics.record_phase1_probe(
                         reason="no_cohort",
@@ -3939,9 +2015,14 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                         slice_eligible=False,
                     )
                     state.metrics.record_scheduler_decision(False)
-                    return original_schedule(self, *args, **kwargs)
+                    _emit_schedule_hook_early("no_cohort")
+                    return _maybe_apply_phase2_schedule_cashout(original_schedule(self, *args, **kwargs))
 
-            long_seq_group = _phase1_find_seq_group_by_request_id(snapshot, cohort.long_req_id)
+            long_seq_group = _phase1_find_seq_group_by_request_id(
+                snapshot,
+                cohort.long_req_id,
+                request_id_getter=_safe_request_id,
+            )
 
             short_len = int(cohort.representative_short_len)
             long_len = int(cohort.long_len)
@@ -3967,13 +2048,14 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                 if upper >= ingress_min:
                     eager_target = max(eager_target, ingress_min)
                 eager_chunk = _phase1_authoritative_chunk(
-                    state,
+                    state.policy,
+                    state.slicer,
                     target=int(eager_target),
                     short_len=int(short_len),
                     upper=int(upper),
                 )
                 eager_floor = _phase1_authoritative_short_floor(
-                    state,
+                    state.policy,
                     short_len=int(short_len),
                     target=int(eager_target),
                 )
@@ -4012,6 +2094,8 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                 t_wait_us=max_wait_us,
                 queue_length=adjusted_queue_len,
                 baseline_chunk=baseline_chunk,
+                total_tokens_getter=_safe_total_tokens,
+                request_id_getter=_safe_request_id,
             )
             if explicit_chunk is not None:
                 direct_chunk_raw = int(explicit_chunk[0])
@@ -4089,16 +2173,26 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                     chosen_chunk=best_chunk,
                     applied=False,
                 )
-                return original_schedule(self, *args, **kwargs)
+                _emit_schedule_hook_early("best_chunk_ge_long")
+                return _maybe_apply_phase2_schedule_cashout(original_schedule(self, *args, **kwargs))
         except Exception as exc:
             logger.exception("Wave-Slice Phase I pre-check failed; fallback to original scheduler.")
             state.metrics.record_phase1_probe(
                 reason=f"precheck_exception:{type(exc).__name__}",
             )
             state.metrics.record_scheduler_decision(False)
-            return original_schedule(self, *args, **kwargs)
+            _emit_schedule_hook_early(
+                f"precheck_exception:{type(exc).__name__}",
+                detail=str(exc)[:240],
+                snapshot_count=len(snapshot) if "snapshot" in locals() else 0,
+                min_len=(min(lengths) if "lengths" in locals() and lengths else 0),
+                max_len=(max(lengths) if "lengths" in locals() and lengths else 0),
+            )
+            return _maybe_apply_phase2_schedule_cashout(original_schedule(self, *args, **kwargs))
 
         hidden_long_tasks: list[Any] = []
+        hidden_phase2_running: list[Any] = []
+        hidden_phase2_waiting: list[Any] = []
         state.metrics.record_scheduler_decision(True)
         short_token_mass = _phase1_effective_short_token_mass(
             cohort.short_lengths,
@@ -4166,14 +2260,14 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
             if can_phase1_tick_hide and waiting_short_count > 0:
                 first_wait_len = _safe_remaining_tokens(waiting[0]) or 0
                 if first_wait_len > 0 and first_wait_len <= max(best_chunk, short_len):
-                    new_running = [] if isinstance(running, list) else collections.deque()
+                    new_running_items: list[Any] = []
                     for seq_group in running:
                         remaining = _safe_remaining_tokens(seq_group) or 0
                         if remaining > best_chunk:
                             hidden_long_tasks.append(seq_group)
                         else:
-                            new_running.append(seq_group)
-                    self.running = new_running
+                            new_running_items.append(seq_group)
+                    self.running = _rebuild_queue_like(running, new_running_items)
 
             new_threshold = None
             if can_phase1_threshold and scheduler_cfg is not None:
@@ -4225,7 +2319,13 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                 str(new_threshold) if new_threshold is not None else "unchanged",
                 str(new_budget) if new_budget is not None else "unchanged",
             )
+            self.running, self.waiting, hidden_phase2_running, hidden_phase2_waiting, _ = _phase12_apply_scheduler_cashout_to_queues(
+                state=state,
+                running=self.running,
+                waiting=self.waiting,
+            )
             outputs = original_schedule(self, *args, **kwargs)
+            outputs = _maybe_apply_phase2_schedule_cashout(outputs)
             outputs, rewritten, rewritten_groups, old_chunk_sum, new_chunk_sum, token_delta_sum = _phase1_rewrite_scheduler_outputs(
                 outputs=outputs,
                 request_id=cohort.long_req_id,
@@ -4263,6 +2363,24 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                     self.running.extend(hidden_long_tasks)
                 except Exception:
                     pass
+            if hidden_phase2_running and hasattr(self, "running"):
+                try:
+                    self.running = _restore_hidden_queue_items(
+                        self.running,
+                        hidden_phase2_running,
+                        queue_rebuilder=_rebuild_queue_like,
+                    )
+                except Exception:
+                    pass
+            if hidden_phase2_waiting and hasattr(self, "waiting"):
+                try:
+                    self.waiting = _restore_hidden_queue_items(
+                        self.waiting,
+                        hidden_phase2_waiting,
+                        queue_rebuilder=_rebuild_queue_like,
+                    )
+                except Exception:
+                    pass
 
     _wave_schedule_hook.__wave_slice_hook__ = True  # type: ignore[attr-defined]
     return _wave_schedule_hook
@@ -4283,7 +2401,31 @@ def _build_public_schedule_hook(state: _PatchState) -> Callable[..., Any]:
     def _wave_public_schedule_hook(self: Any, *args: Any, **kwargs: Any) -> Any:
         try:
             scheduler_start_time = time.perf_counter()
-            scheduler_outputs = getattr(self, state.scheduler_method_name)(*args, **kwargs)
+            hidden_phase2_running: list[Any] = []
+            hidden_phase2_waiting: list[Any] = []
+            restore_phase2_running = None
+            restore_phase2_waiting = None
+            if _phase2_scheduler_cashout_enabled(state.policy) and _has_running_waiting_queues(self):
+                try:
+                    restore_phase2_running, restore_phase2_waiting = _capture_queue_pair(self)
+                    self.running, self.waiting, hidden_phase2_running, hidden_phase2_waiting, _ = (
+                        _phase12_apply_scheduler_cashout_to_queues(
+                            state=state,
+                            running=self.running,
+                            waiting=self.waiting,
+                        )
+                    )
+                except Exception:
+                    logger.exception("[Wave-Slice] public pre-schedule cashout failed.")
+                    hidden_phase2_running = []
+                    hidden_phase2_waiting = []
+            try:
+                scheduler_outputs = getattr(self, state.scheduler_method_name)(*args, **kwargs)
+            finally:
+                try:
+                    _restore_queue_pair(self, restore_phase2_running, restore_phase2_waiting)
+                except Exception:
+                    pass
             now = time.time()
 
             if state.policy.enable_phase1_scheduler:
@@ -4292,116 +2434,27 @@ def _build_public_schedule_hook(state: _PatchState) -> Callable[..., Any]:
                     scheduler_obj=self,
                     scheduler_outputs=scheduler_outputs,
                 )
-
-            if not self.cache_config.enable_prefix_caching:
-                common_computed_block_nums = []
+            if bool(state.policy.phase2_enable_scheduler_cashout):
+                scheduler_outputs, _ = _phase12_scheduler_cashout_rewrite(
+                    state=state,
+                    scheduler_outputs=scheduler_outputs,
+                )
 
             allow_async_output_proc = self.use_async_output_proc
             seq_group_metadata_list: list[Any] = []
-            for i, scheduled_seq_group in enumerate(scheduler_outputs.scheduled_seq_groups):
+            for scheduled_seq_group in scheduler_outputs.scheduled_seq_groups:
                 seq_group = scheduled_seq_group.seq_group
-                token_chunk_size = scheduled_seq_group.token_chunk_size
-                seq_group.maybe_set_first_scheduled_time(now)
-                trace_request_id = _safe_request_id(seq_group)
-                trace_is_prompt = None
-                trace_num_computed_tokens = None
-                try:
-                    trace_is_prompt = bool(seq_group.is_prefill())
-                except Exception:
-                    trace_is_prompt = None
-                try:
-                    seqs_for_trace = seq_group.get_seqs()
-                    if seqs_for_trace:
-                        trace_num_computed_tokens = int(
-                            seqs_for_trace[0].data.get_num_computed_tokens()
-                        )
-                except Exception:
-                    trace_num_computed_tokens = None
-                if trace_request_id:
-                    state.metrics.record_phase1_step_trace(
-                        request_id=str(trace_request_id),
-                        event="public_schedule_group",
-                        is_prefill=trace_is_prompt,
-                        token_chunk_size=int(token_chunk_size),
-                        num_computed_tokens=trace_num_computed_tokens,
-                    )
-
-                seq_group_metadata = self._seq_group_metadata_cache[self.cache_id].get_object()
-                seq_group_metadata.seq_data.clear()
-                seq_group_metadata.block_tables.clear()
-
-                seq_data: dict[int, Any] = {}
-                block_tables: dict[int, list[int]] = {}
-
-                if seq_group.is_encoder_decoder():
-                    encoder_seq = seq_group.get_encoder_seq()
-                    assert encoder_seq is not None
-                    encoder_seq_data = encoder_seq.data
-                    cross_block_table = self.block_manager.get_cross_block_table(seq_group)
-                else:
-                    encoder_seq_data = None
-                    cross_block_table = None
-
-                for seq in seq_group.get_seqs(status=SequenceStatus.RUNNING):
-                    seq_id = seq.seq_id
-                    seq_data[seq_id] = seq.data
-                    block_tables[seq_id] = self.block_manager.get_block_table(seq)
-                    self.block_manager.access_all_blocks_in_seq(seq, now)
-
-                if self.cache_config.enable_prefix_caching:
-                    common_computed_block_nums = self.block_manager.get_common_computed_block_ids(
-                        seq_group.get_seqs(status=SequenceStatus.RUNNING)
-                    )
-
-                do_sample = True
-                is_prompt = seq_group.is_prefill()
-                is_first_prefill = False
-                if is_prompt:
-                    seqs = seq_group.get_seqs()
-                    assert len(seqs) == 1
-                    num_computed_tokens = seqs[0].data.get_num_computed_tokens()
-                    is_first_prefill = num_computed_tokens == 0
-                    if token_chunk_size + num_computed_tokens < seqs[0].data.get_len():
-                        do_sample = False
-
-                if is_first_prefill or not self.scheduler_config.send_delta_data:
-                    seq_group_metadata = SequenceGroupMetadata(
-                        request_id=seq_group.request_id,
-                        is_prompt=is_prompt,
-                        seq_data=seq_data,
-                        sampling_params=seq_group.sampling_params,
-                        block_tables=block_tables,
-                        do_sample=do_sample,
-                        pooling_params=seq_group.pooling_params,
-                        token_chunk_size=token_chunk_size,
-                        lora_request=seq_group.lora_request,
-                        computed_block_nums=common_computed_block_nums,
-                        encoder_seq_data=encoder_seq_data,
-                        cross_block_table=cross_block_table,
-                        state=seq_group.state,
-                        token_type_ids=seq_group.token_type_ids,
-                        multi_modal_data=(
-                            seq_group.multi_modal_data
-                            if scheduler_outputs.num_prefill_groups > 0 else None
-                        ),
-                        multi_modal_placeholders=(
-                            seq_group.multi_modal_placeholders
-                            if scheduler_outputs.num_prefill_groups > 0 else None
-                        ),
-                    )
-                else:
-                    seq_data_delta = {}
-                    for seq_id, data in seq_data.items():
-                        seq_data_delta[seq_id] = data.get_delta_and_reset()
-                    seq_group_metadata = SequenceGroupMetadataDelta(
-                        seq_data_delta,
-                        seq_group.request_id,
-                        block_tables,
-                        is_prompt,
-                        do_sample=do_sample,
-                        token_chunk_size=token_chunk_size,
-                        computed_block_nums=common_computed_block_nums,
-                    )
+                seq_group_metadata = _build_public_seq_group_metadata(
+                    scheduler_obj=self,
+                    scheduled_seq_group=scheduled_seq_group,
+                    scheduler_outputs=scheduler_outputs,
+                    now=now,
+                    state=state,
+                    sequence_status_cls=SequenceStatus,
+                    sequence_group_metadata_cls=SequenceGroupMetadata,
+                    sequence_group_metadata_delta_cls=SequenceGroupMetadataDelta,
+                    request_id_getter=_safe_request_id,
+                )
                 seq_group_metadata_list.append(seq_group_metadata)
 
                 if allow_async_output_proc:
@@ -4492,8 +2545,68 @@ def _build_model_runner_hook(state: _PatchState) -> Callable[..., Any]:
     def _wave_execute_model_hook(self: Any, *args: Any, **kwargs: Any) -> Any:
         if not state.policy.enable_phase2_modelrunner:
             return original_execute(self, *args, **kwargs)
+        if _phase2_modelrunner_passthrough(state.policy):
+            return original_execute(self, *args, **kwargs)
 
         model_input = args[0] if len(args) > 0 else kwargs.get("model_input")
+
+        if bool(getattr(state.policy, "phase2_enable_execution_escape", False)):
+            try:
+                split_ids = None
+                if _is_v1_scheduler_output(model_input):
+                    split_ids = _v1_execution_escape_req_ids(
+                        model_input,
+                        state.policy,
+                        runner_self=self,
+                        state=state,
+                        req_info_collector=lambda model_input, runner_self, state, policy: _phase12_collect_scheduled_req_infos(
+                            model_input,
+                            runner_self=runner_self,
+                            state=state,
+                            policy=policy,
+                            rank_infer=_infer_lora_rank,
+                        ),
+                        beneficiary_signal_builder=lambda state, policy, req_infos: _phase12_beneficiary_signal(
+                            state=state,
+                            policy=policy,
+                            req_infos=req_infos,
+                        ),
+                    )
+                if split_ids is not None:
+                    active_ids, deferred_ids = split_ids
+                    activated = _phase12_activate_execution_escape(
+                        state,
+                        active_ids=active_ids,
+                        deferred_ids=deferred_ids,
+                    )
+                    state.metrics.record_phase2_decision(
+                        activated,
+                        "execution_escape_activate" if activated else "execution_escape_noop",
+                        selected_count=int(len(active_ids or [])),
+                    )
+                else:
+                    # V0 model_input does not expose the V1 scheduler output shape
+                    # needed by the execution-escape lane. Fall back to the legacy
+                    # Phase-II decision path below instead of short-circuiting the
+                    # whole Phase-II block as a permanent no-candidate.
+                    state.metrics.record_phase2_decision(False, "execution_escape_v0_fallback")
+            except Exception:
+                logger.exception("Wave-Slice execution escape activation failed; falling back to original execute.")
+                exc_type, exc, _tb = sys.exc_info()
+                state.metrics.record_phase2_decision(
+                    False,
+                    "execution_escape_exception",
+                    exception_type=str(getattr(exc_type, "__name__", "UnknownError")),
+                    exception_message=str(exc)[:240] if exc is not None else "",
+                )
+                return original_execute(self, *args, **kwargs)
+            if _is_v1_scheduler_output(model_input):
+                return original_execute(self, *args, **kwargs)
+
+        if _phase2_scheduler_cashout_enabled(state.policy) and not bool(
+            getattr(state.policy, "phase2_enable_v1_true_unbind", False)
+        ):
+            return original_execute(self, *args, **kwargs)
         decision = _phase2_decide(model_input, state.policy, runner_self=self)
         state.metrics.record_phase2_decision(decision.apply, decision.reason)
         if not decision.apply:
@@ -4573,82 +2686,66 @@ def _build_model_runner_hook(state: _PatchState) -> Callable[..., Any]:
 
 
 def _build_add_request_hook(state: _PatchState) -> Callable[..., Any]:
-    original_add_request = state.original_add_request
-    if original_add_request is None:
-        raise RuntimeError("internal error: original add_request is missing")
-
-    @functools.wraps(original_add_request)
-    def _wave_add_request_hook(self: Any, *args: Any, **kwargs: Any) -> Any:
-        result = original_add_request(self, *args, **kwargs)
-        try:
-            request_id = None
-            if len(args) >= 1:
-                request_id = str(args[0])
-            elif "request_id" in kwargs:
-                request_id = str(kwargs["request_id"])
-            if not request_id:
-                return result
-
-            prompt_obj = args[1] if len(args) >= 2 else kwargs.get("prompt")
-            if prompt_obj is None:
-                prompt_obj = kwargs.get("prompt_token_ids")
-            lora_request = kwargs.get("lora_request")
-            if lora_request is None and len(args) >= 4:
-                lora_request = args[3]
-            input_tokens = _estimate_prompt_tokens(
-                prompt_obj,
-                engine_self=self,
-                lora_request=lora_request,
-            )
-            solo_us = _estimate_solo_us(state.brain, input_tokens)
-            is_short = (input_tokens is not None) and (input_tokens <= state.policy.metrics_short_request_tokens)
-            state.metrics.register_request(
-                request_id,
-                arrival_s=time.perf_counter(),
-                input_tokens=input_tokens,
-                solo_us=solo_us,
-                is_short=is_short,
-            )
-            _phase1_maybe_seed_ingress_virtual(
-                state,
-                request_id=request_id,
-                input_tokens=input_tokens,
-            )
-        except Exception:
-            logger.exception("Wave-Slice metrics add_request hook failed.")
-        return result
-
-    _wave_add_request_hook.__wave_slice_metrics_hook__ = True  # type: ignore[attr-defined]
-    return _wave_add_request_hook
+    return _build_add_request_hook_impl(
+        state,
+        estimate_prompt_tokens=_estimate_prompt_tokens,
+        estimate_solo_us=_estimate_solo_us,
+        phase1_maybe_seed_ingress_virtual=_phase1_maybe_seed_ingress_virtual,
+    )
 
 
 def _build_step_hook(state: _PatchState) -> Callable[..., Any]:
-    original_step = state.original_step
-    if original_step is None:
-        raise RuntimeError("internal error: original step is missing")
+    return _build_step_hook_impl(
+        state,
+        maybe_install_v1_runtime_lifecycle_hooks=_maybe_install_v1_runtime_lifecycle_hooks,
+        phase12_clear_escape_lane=_phase12_clear_escape_lane,
+    )
 
-    @functools.wraps(original_step)
-    def _wave_step_hook(self: Any, *args: Any, **kwargs: Any) -> Any:
-        outputs = original_step(self, *args, **kwargs)
-        try:
-            for out in outputs or []:
-                try:
-                    if bool(getattr(out, "finished", False)):
-                        req_id = str(getattr(out, "request_id", ""))
-                        if req_id:
-                            state.phase1_explicit_plans.pop(req_id, None)
-                            state.phase1_active_prompt_tokens.pop(req_id, None)
-                            state.phase1_ingress_virtuals.pop(req_id, None)
-                            state.phase1_virtual_token_caps.pop(req_id, None)
-                except Exception:
-                    continue
-            state.metrics.observe_engine_outputs(outputs, now_s=time.perf_counter())
-        except Exception:
-            logger.exception("Wave-Slice metrics step hook failed.")
-        return outputs
 
-    _wave_step_hook.__wave_slice_metrics_hook__ = True  # type: ignore[attr-defined]
-    return _wave_step_hook
+def _maybe_install_v1_runtime_lifecycle_hooks(state: _PatchState) -> None:
+    return _maybe_install_v1_runtime_lifecycle_hooks_impl(
+        state,
+        patch_lock=_PATCH_LOCK,
+        load_v1_output_processor_cls=_load_v1_output_processor_cls,
+        build_output_processor_add_request_hook=_build_output_processor_add_request_hook,
+        build_output_processor_process_outputs_hook=lambda st: _build_output_processor_process_outputs_hook(
+            st,
+            phase12_clear_escape_lane=_phase12_clear_escape_lane,
+        ),
+        build_v1_scheduler_update_from_output_hook=lambda st: _build_v1_scheduler_update_from_output_hook(
+            st,
+            phase12_clear_escape_lane=_phase12_clear_escape_lane,
+        ),
+        build_v1_scheduler_finish_requests_hook=lambda st: _build_v1_scheduler_finish_requests_hook(
+            st,
+            phase12_clear_escape_lane=_phase12_clear_escape_lane,
+        ),
+    )
+
+
+def _build_output_processor_add_request_hook(state: _PatchState) -> Callable[..., Any]:
+    return _build_output_processor_add_request_hook_impl(state)
+
+
+def _build_output_processor_process_outputs_hook(state: _PatchState) -> Callable[..., Any]:
+    return _build_output_processor_process_outputs_hook_impl(
+        state,
+        phase12_clear_escape_lane=_phase12_clear_escape_lane,
+    )
+
+
+def _build_v1_scheduler_update_from_output_hook(state: _PatchState) -> Callable[..., Any]:
+    return _build_v1_scheduler_update_from_output_hook_impl(
+        state,
+        phase12_clear_escape_lane=_phase12_clear_escape_lane,
+    )
+
+
+def _build_v1_scheduler_finish_requests_hook(state: _PatchState) -> Callable[..., Any]:
+    return _build_v1_scheduler_finish_requests_hook_impl(
+        state,
+        phase12_clear_escape_lane=_phase12_clear_escape_lane,
+    )
 
 
 def _build_lora_logits_compat_hook(state: _PatchState) -> Callable[..., Any]:
@@ -4734,50 +2831,6 @@ def _build_lora_logits_compat_hook(state: _PatchState) -> Callable[..., Any]:
 
     _wave_logits_compat.__wave_slice_lora_compat_hook__ = True  # type: ignore[attr-defined]
     return _wave_logits_compat
-
-
-def _publish_autoinject_env(model_name: str, gamma: float, policy: WaveSlicePolicy) -> None:
-    try:
-        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        prev_pythonpath = os.environ.get("PYTHONPATH")
-        prev_vllm_plugins = os.environ.get("VLLM_PLUGINS")
-        os.environ[_AUTO_ENV_ENABLED] = "1"
-        os.environ[_AUTO_ENV_MODEL] = str(model_name)
-        os.environ[_AUTO_ENV_GAMMA] = str(float(gamma))
-        os.environ[_AUTO_ENV_POLICY] = json.dumps(asdict(policy), sort_keys=True)
-        os.environ[_AUTO_ENV_PREV_PYTHONPATH] = prev_pythonpath if prev_pythonpath is not None else ""
-        os.environ[_AUTO_ENV_PREV_VLLM_PLUGINS] = prev_vllm_plugins if prev_vllm_plugins is not None else ""
-
-        py_entries = [p for p in (prev_pythonpath or "").split(os.pathsep) if p]
-        if repo_root not in py_entries:
-            py_entries.insert(0, repo_root)
-        os.environ["PYTHONPATH"] = os.pathsep.join(py_entries)
-
-        plugin_entries = [p.strip() for p in (prev_vllm_plugins or "").split(",") if p.strip()]
-        if "waveslice_autoinject" not in plugin_entries:
-            plugin_entries.append("waveslice_autoinject")
-        os.environ["VLLM_PLUGINS"] = ",".join(plugin_entries)
-    except Exception:
-        logger.exception("[Wave-Slice] failed to publish child auto-inject env.")
-
-
-def _clear_autoinject_env() -> None:
-    prev_pythonpath = os.environ.pop(_AUTO_ENV_PREV_PYTHONPATH, None)
-    prev_vllm_plugins = os.environ.pop(_AUTO_ENV_PREV_VLLM_PLUGINS, None)
-    if prev_pythonpath is not None:
-        if prev_pythonpath:
-            os.environ["PYTHONPATH"] = prev_pythonpath
-        else:
-            os.environ.pop("PYTHONPATH", None)
-    if prev_vllm_plugins is not None:
-        if prev_vllm_plugins:
-            os.environ["VLLM_PLUGINS"] = prev_vllm_plugins
-        else:
-            os.environ.pop("VLLM_PLUGINS", None)
-    for key in (_AUTO_ENV_ENABLED, _AUTO_ENV_MODEL, _AUTO_ENV_GAMMA, _AUTO_ENV_POLICY):
-        os.environ.pop(key, None)
-
-
 def _maybe_auto_inject_from_env() -> None:
     if os.environ.get(_AUTO_ENV_ENABLED, "").strip() != "1":
         return
@@ -4909,6 +2962,10 @@ def inject_wave_slice(
             except Exception:
                 logger.exception("[Wave-Slice] metrics hook injection failed; continue without metrics hooks.")
 
+        # v1 lifecycle hooks are installed lazily from the first engine.step call.
+        # Eagerly importing/patching v1 engine/output modules before the runtime is
+        # fully initialized can interfere with CUDA/fork startup in v1.
+
         # Compatibility hook for known LoRA shape mismatches in some vLLM versions.
         if chosen_policy.enable_vllm_lora_compat_patch:
             try:
@@ -4994,6 +3051,30 @@ def uninject_wave_slice() -> None:
                 except Exception:
                     logger.exception("[Wave-Slice] failed to restore LLMEngine.step")
 
+        if state.v1_output_processor_cls is not None:
+            if state.original_output_processor_add_request is not None:
+                try:
+                    state.v1_output_processor_cls.add_request = state.original_output_processor_add_request
+                except Exception:
+                    logger.exception("[Wave-Slice] failed to restore OutputProcessor.add_request")
+            if state.original_output_processor_process_outputs is not None:
+                try:
+                    state.v1_output_processor_cls.process_outputs = state.original_output_processor_process_outputs
+                except Exception:
+                    logger.exception("[Wave-Slice] failed to restore OutputProcessor.process_outputs")
+
+        if state.original_scheduler_update_from_output is not None:
+            try:
+                setattr(state.scheduler_cls, "update_from_output", state.original_scheduler_update_from_output)
+            except Exception:
+                logger.exception("[Wave-Slice] failed to restore Scheduler.update_from_output")
+
+        if state.original_scheduler_finish_requests is not None:
+            try:
+                setattr(state.scheduler_cls, "finish_requests", state.original_scheduler_finish_requests)
+            except Exception:
+                logger.exception("[Wave-Slice] failed to restore Scheduler.finish_requests")
+
         if state.logits_processor_lora_cls is not None and state.original_lora_get_logits is not None:
             try:
                 state.logits_processor_lora_cls._get_logits = state.original_lora_get_logits
@@ -5015,13 +3096,14 @@ def get_wave_slice_metrics(*, reset: bool = False) -> dict[str, Any]:
         state = _PATCH_STATE
     if state is None:
         return {}
-    report = state.metrics.summary()
+    report = _merge_cross_process_metrics(state.metrics.summary())
     if reset:
         state.metrics.reset()
     return report
 
 
 def reset_wave_slice_metrics() -> None:
+    _reset_cross_process_metrics_file()
     with _PATCH_LOCK:
         state = _PATCH_STATE
     if state is not None:

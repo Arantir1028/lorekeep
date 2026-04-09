@@ -10,96 +10,30 @@ from __future__ import annotations
 
 import argparse
 import csv
-import json
 import os
 import re
 import subprocess
 import sys
 import time
 import traceback
-from pathlib import Path
 from typing import Any, Optional
 
 os.environ.setdefault("VLLM_NO_USAGE_STATS", "1")
 
 from config.experiment_catalog import (
     DEFAULT_EXPERIMENT_MODELS,
-    DEFAULT_SYNTHETIC_ADAPTER_PRESETS,
     ExperimentModelSpec as ModelSpec,
     get_model_specs,
     safe_key,
 )
 from engine.runtime_bootstrap import bootstrap_vllm_runtime
-from tools.synthetic_lora_builder import AdapterSpec, build_synthetic_adapters
+from experiments.model_assets import ensure_adapters, resolve_local_snapshot
 
 bootstrap_vllm_runtime()
 
 
-def _percentile(values: list[float], p: float) -> Optional[float]:
-    if not values:
-        return None
-    if p <= 0:
-        return min(values)
-    if p >= 100:
-        return max(values)
-    ordered = sorted(values)
-    k = (len(ordered) - 1) * (p / 100.0)
-    lo = int(k)
-    hi = min(lo + 1, len(ordered) - 1)
-    if lo == hi:
-        return ordered[lo]
-    frac = k - lo
-    return ordered[lo] + (ordered[hi] - ordered[lo]) * frac
-
-
-def _resolve_local_snapshot(model_id: str) -> Optional[str]:
-    home = Path.home()
-    hub_dir = home / ".cache" / "huggingface" / "hub"
-    repo_name = "models--" + model_id.replace("/", "--")
-    snapshots_dir = hub_dir / repo_name / "snapshots"
-    if not snapshots_dir.exists():
-        return None
-    dirs = [p for p in snapshots_dir.iterdir() if p.is_dir()]
-    if not dirs:
-        return None
-    # pick the most recent *usable* snapshot (must include config.json).
-    dirs.sort(key=lambda p: p.stat().st_mtime, reverse=True)
-    for snap in dirs:
-        if (snap / "config.json").exists():
-            return str(snap)
-    return None
-
-
-def _ensure_adapters(
-    *,
-    base_model_path: str,
-    out_dir: str,
-    trust_remote_code: bool,
-) -> tuple[str, str]:
-    preset_a, preset_b = DEFAULT_SYNTHETIC_ADAPTER_PRESETS[:2]
-    path_a = os.path.join(out_dir, preset_a.name)
-    path_b = os.path.join(out_dir, preset_b.name)
-    marker_a = os.path.join(path_a, "adapter_config.json")
-    marker_b = os.path.join(path_b, "adapter_config.json")
-    if os.path.exists(marker_a) and os.path.exists(marker_b):
-        return path_a, path_b
-
-    generated = build_synthetic_adapters(
-        base_model=base_model_path,
-        out_dir=out_dir,
-        specs=[
-            AdapterSpec(
-                name=spec.name,
-                rank=spec.rank,
-                alpha=spec.alpha,
-                seed=spec.seed,
-                init_std=spec.init_std,
-            )
-            for spec in DEFAULT_SYNTHETIC_ADAPTER_PRESETS
-        ],
-        trust_remote_code=trust_remote_code,
-    )
-    return generated[0], generated[1]
+_resolve_local_snapshot = resolve_local_snapshot
+_ensure_adapters = ensure_adapters
 
 
 def _run_model(

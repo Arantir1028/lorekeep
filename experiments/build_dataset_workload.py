@@ -20,6 +20,47 @@ from config.experiment_catalog import (
 )
 
 
+def _load_dataset_sources(config_path: Optional[str]) -> dict[str, Any]:
+    if not config_path:
+        return dict(DEFAULT_DATASET_SOURCES)
+    with open(config_path, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+    if isinstance(payload, dict) and "datasets" in payload:
+        payload = payload["datasets"]
+    if isinstance(payload, dict):
+        entries = list(payload.values())
+    elif isinstance(payload, list):
+        entries = list(payload)
+    else:
+        raise ValueError("dataset source config must be a list or dict")
+    loaded: dict[str, Any] = {}
+    for raw in entries:
+        if not isinstance(raw, dict):
+            continue
+        key = str(raw.get("key", "")).strip().lower()
+        dataset_id = str(raw.get("dataset_id", "")).strip()
+        split = str(raw.get("split", "")).strip()
+        extractor = str(raw.get("extractor", "")).strip().lower()
+        if not key or not dataset_id or not split or not extractor:
+            raise ValueError(f"invalid dataset source entry: {raw!r}")
+        loaded[key] = {
+            "key": key,
+            "dataset_id": dataset_id,
+            "split": split,
+            "extractor": extractor,
+            "streaming": bool(raw.get("streaming", False)),
+        }
+    if not loaded:
+        raise ValueError("dataset source config produced no usable entries")
+    return loaded
+
+
+def _source_field(source: Any, name: str, default: Any = None) -> Any:
+    if isinstance(source, dict):
+        return source.get(name, default)
+    return getattr(source, name, default)
+
+
 def _extract_longbench_prompt(example: dict[str, Any]) -> Optional[str]:
     pieces: list[str] = []
     for key in ("context", "input", "question", "instruction"):
@@ -230,43 +271,63 @@ def main() -> int:
         default=",".join(DEFAULT_LONG_BENCH_CONFIGS),
         help="Comma-separated LongBench config names.",
     )
+    parser.add_argument(
+        "--dataset-source-config",
+        default="",
+        help="Optional JSON file overriding dataset source definitions.",
+    )
     args = parser.parse_args()
 
     from datasets import load_dataset
     from transformers import AutoTokenizer
+
+    offline_mode = any(
+        str(os.environ.get(name, "")).strip().lower() in {"1", "true", "yes", "on"}
+        for name in ("HF_DATASETS_OFFLINE", "HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE")
+    )
 
     tok = AutoTokenizer.from_pretrained(
         args.model_path,
         trust_remote_code=args.trust_remote_code,
     )
 
+    dataset_sources = _load_dataset_sources(args.dataset_source_config or None)
     dataset_keys = [k.strip().lower() for k in args.datasets.split(",") if k.strip()]
-    selected_sources = [DEFAULT_DATASET_SOURCES[k] for k in dataset_keys if k in DEFAULT_DATASET_SOURCES]
+    selected_sources = [dataset_sources[k] for k in dataset_keys if k in dataset_sources]
     if len(selected_sources) != len(dataset_keys):
-        missing = sorted(set(dataset_keys) - set(DEFAULT_DATASET_SOURCES))
+        missing = sorted(set(dataset_keys) - set(dataset_sources))
         raise ValueError(f"unknown dataset source keys: {missing}")
 
     ultrachat_prompts: list[dict[str, Any]] = []
     if "ultrachat200k" in dataset_keys:
-        source = DEFAULT_DATASET_SOURCES["ultrachat200k"]
-        ds_uc = load_dataset(source.dataset_id, split=source.split, streaming=source.streaming)
+        source = dataset_sources["ultrachat200k"]
+        ds_uc = load_dataset(
+            _source_field(source, "dataset_id"),
+            split=_source_field(source, "split"),
+            streaming=(False if offline_mode else bool(_source_field(source, "streaming", False))),
+        )
         for ex in ds_uc:
             prompt = _extract_ultrachat_prompt(ex)
             if not prompt:
                 continue
             tokens = len(tok(prompt, add_special_tokens=True).input_ids)
             if 8 <= tokens <= args.max_prompt_tokens:
-                ultrachat_prompts.append({"prompt": prompt, "tokens": tokens, "source": source.key})
+                ultrachat_prompts.append({"prompt": prompt, "tokens": tokens, "source": _source_field(source, "key")})
             if len(ultrachat_prompts) >= args.sample_count:
                 break
 
     longbench_prompts: list[dict[str, Any]] = []
     if "longbench" in dataset_keys:
-        source = DEFAULT_DATASET_SOURCES["longbench"]
+        source = dataset_sources["longbench"]
         longbench_configs = [c.strip() for c in args.longbench_configs.split(",") if c.strip()]
         per_config = max(1, int(math.ceil(args.sample_count / float(len(longbench_configs)))))
         for cfg in longbench_configs:
-            ds_lb = load_dataset(source.dataset_id, cfg, split=source.split)
+            ds_lb = load_dataset(
+                _source_field(source, "dataset_id"),
+                cfg,
+                split=_source_field(source, "split"),
+                streaming=(False if offline_mode else bool(_source_field(source, "streaming", False))),
+            )
             taken = 0
             for ex in ds_lb:
                 prompt = _extract_longbench_prompt(ex)
@@ -274,7 +335,7 @@ def main() -> int:
                     continue
                 tokens = len(tok(prompt, add_special_tokens=True).input_ids)
                 if 8 <= tokens <= args.max_prompt_tokens:
-                    longbench_prompts.append({"prompt": prompt, "tokens": tokens, "config": cfg, "source": source.key})
+                    longbench_prompts.append({"prompt": prompt, "tokens": tokens, "config": cfg, "source": _source_field(source, "key")})
                     taken += 1
                 if taken >= per_config or len(longbench_prompts) >= args.sample_count:
                     break

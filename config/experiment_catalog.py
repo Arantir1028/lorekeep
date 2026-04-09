@@ -4,6 +4,10 @@ from dataclasses import dataclass
 from typing import Optional
 
 
+def _checkpoint_lut_name(model_id: str) -> str:
+    return model_id.replace("/", "--")
+
+
 @dataclass(frozen=True)
 class ExperimentModelSpec:
     key: str
@@ -34,14 +38,14 @@ class DatasetSourceSpec:
 
 
 DEFAULT_EXPERIMENT_MODELS: list[ExperimentModelSpec] = [
-    ExperimentModelSpec("mistral-7b-v0.1", "mistralai/Mistral-7B-v0.1", "Mistral-7B-v0.1", "mistral", raw_profile_name="Mistral-7B-v0.1"),
-    ExperimentModelSpec("mistral-7b-instruct-v0.2", "mistralai/Mistral-7B-Instruct-v0.2", "Mistral-7B-v0.1", "mistral", raw_profile_name="Mistral-7B-v0.1"),
-    ExperimentModelSpec("zephyr-7b-beta", "HuggingFaceH4/zephyr-7b-beta", "Mistral-7B-v0.1", "mistral", raw_profile_name="Mistral-7B-v0.1"),
-    ExperimentModelSpec("openchat-3.5-0106", "openchat/openchat-3.5-0106", "Mistral-7B-v0.1", "mistral", raw_profile_name="Mistral-7B-v0.1"),
-    ExperimentModelSpec("gemma-7b-it", "google/gemma-7b-it", "Gemma-7B", "gemma", raw_profile_name="Gemma-7B"),
-    ExperimentModelSpec("decilm-7b", "Deci/DeciLM-7B", "DeciLM-7B", "deci", raw_profile_name="DeciLM-7B", trust_remote_code=True),
-    ExperimentModelSpec("phi-2", "microsoft/phi-2", "Phi-2", "phi", raw_profile_name="Phi-2", max_model_len_override=2048),
-    ExperimentModelSpec("baichuan2-7b-chat", "baichuan-inc/Baichuan2-7B-Chat", "Baichuan2-7B-Chat", "baichuan", raw_profile_name="Baichuan2-7B-Chat", trust_remote_code=True),
+    ExperimentModelSpec("mistral-7b-v0.1", "mistralai/Mistral-7B-v0.1", _checkpoint_lut_name("mistralai/Mistral-7B-v0.1"), "mistral", raw_profile_name=_checkpoint_lut_name("mistralai/Mistral-7B-v0.1")),
+    ExperimentModelSpec("mistral-7b-instruct-v0.2", "mistralai/Mistral-7B-Instruct-v0.2", _checkpoint_lut_name("mistralai/Mistral-7B-Instruct-v0.2"), "mistral", raw_profile_name=_checkpoint_lut_name("mistralai/Mistral-7B-Instruct-v0.2")),
+    ExperimentModelSpec("zephyr-7b-beta", "HuggingFaceH4/zephyr-7b-beta", _checkpoint_lut_name("HuggingFaceH4/zephyr-7b-beta"), "mistral", raw_profile_name=_checkpoint_lut_name("HuggingFaceH4/zephyr-7b-beta")),
+    ExperimentModelSpec("openchat-3.5-0106", "openchat/openchat-3.5-0106", _checkpoint_lut_name("openchat/openchat-3.5-0106"), "mistral", raw_profile_name=_checkpoint_lut_name("openchat/openchat-3.5-0106")),
+    ExperimentModelSpec("gemma-7b-it", "google/gemma-7b-it", _checkpoint_lut_name("google/gemma-7b-it"), "gemma", raw_profile_name=_checkpoint_lut_name("google/gemma-7b-it")),
+    ExperimentModelSpec("decilm-7b", "Deci/DeciLM-7B", _checkpoint_lut_name("Deci/DeciLM-7B"), "deci", raw_profile_name=_checkpoint_lut_name("Deci/DeciLM-7B"), trust_remote_code=True),
+    ExperimentModelSpec("phi-2", "microsoft/phi-2", _checkpoint_lut_name("microsoft/phi-2"), "phi", raw_profile_name=_checkpoint_lut_name("microsoft/phi-2"), max_model_len_override=2048),
+    ExperimentModelSpec("baichuan2-7b-chat", "baichuan-inc/Baichuan2-7B-Chat", _checkpoint_lut_name("baichuan-inc/Baichuan2-7B-Chat"), "baichuan", raw_profile_name=_checkpoint_lut_name("baichuan-inc/Baichuan2-7B-Chat"), trust_remote_code=True),
 ]
 
 DEFAULT_SYNTHETIC_SUITE_KEYS = [spec.key for spec in DEFAULT_EXPERIMENT_MODELS]
@@ -51,7 +55,6 @@ DEFAULT_DATASET_SUITE_KEYS = [
     "zephyr-7b-beta",
     "openchat-3.5-0106",
     "gemma-7b-it",
-    "phi-2",
     "baichuan2-7b-chat",
 ]
 

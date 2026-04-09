@@ -1,0 +1,128 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class WaveSlicePolicy:
+    """Runtime knobs for Phase I/II behavior and metrics."""
+
+    # Phase I (scheduler)
+    enable_phase1_scheduler: bool = True
+    min_hetero_ratio: float = 3.0
+    min_long_seq: int = 384
+    short_escape_multiplier: int = 12
+    max_budget_cap: int = 8192
+    enable_sjf_reorder: bool = True
+    queue_reorder_mode: str = "sjf"  # sjf | hrrn | aging
+    queue_reorder_aging_quantum_us: float = 20_000.0
+    enable_tick_hide: bool = False
+    allow_phase1_with_lora: bool = False
+    allow_phase1_threshold_with_lora: bool = True
+    allow_phase1_budget_with_lora: bool = False
+    allow_phase1_tick_hide_with_lora: bool = False
+    enable_phase1_dynamic_threshold: bool = True
+    enable_phase1_budget_guidance: bool = True
+    enable_phase1_baseline_relative: bool = True
+    enable_phase1_explicit_plan: bool = True
+    enable_phase1_direct_explicit_override: bool = True
+    phase1_ingress_direct_authoritative: bool = True
+    scheduler_objective_mode: str = "fair_escape"  # fair_escape | pure_gain
+    phase1_force_extreme_ratio: float = 6.0
+    phase1_force_queue_len: int = 1
+    phase1_force_min_chunk: int = 128
+    phase1_ingress_exact_chunk: bool = True
+    phase1_ingress_target_chunk: int = 384
+    phase1_ingress_min_chunk: int = 256
+    phase1_ingress_max_chunk: int = 512
+    phase1_target_short_mul: float = 4.0
+    phase1_target_long_fraction: float = 0.33
+    phase1_budget_short_mass_factor: float = 1.75
+    phase1_budget_bonus_tokens: int = 256
+    phase1_budget_queue_bonus: int = 64
+    phase1_explicit_budget_cap_tokens: int = 512
+    phase1_enable_cohort_mode: bool = False
+    phase1_enable_sticky_chunk: bool = False
+    phase1_short_cohort_long_fraction: float = 0.4
+    phase1_cohort_min_count: int = 2
+    phase1_cohort_queue_bonus: int = 2
+    phase1_cohort_mass_queue_factor: float = 0.5
+    phase1_cohort_target_mass_factor: float = 1.0
+    phase1_sticky_ttl: int = 4
+    phase1_sticky_reuse_ratio: float = 0.85
+
+    # Phase II (ModelRunner)
+    enable_phase2_modelrunner: bool = False
+    phase2_enable_mixed_prefill_decode: bool = True
+    phase2_min_prefill_count: int = 1
+    phase2_min_hetero_ratio: float = 2.0
+    phase2_min_long_prefill: int = 256
+    phase2_host_sync_after_dispatch: bool = False
+    phase2_consistency_mode: str = "balanced"  # balanced | strict
+    phase2_dispatch_mode: str = "synchronized"  # synchronized | async_experimental
+    phase2_max_inflight_events: int = 2
+    phase2_enable_v1_true_unbind: bool = False
+    phase2_enable_scheduler_cashout: bool = False
+    phase2_lora_rank_aware: bool = True
+    phase2_min_lora_count: int = 2
+    phase2_min_rank_ratio: float = 1.5
+    phase2_min_rank_gap: int = 4
+    phase2_min_pressure_ratio: float = 2.0
+    phase2_selective_only: bool = True
+    phase2_extreme_hetero_ratio: float = 3.0
+    phase2_extreme_long_prefill: int = 512
+    phase2_extreme_pressure_ratio: float = 3.0
+    phase2_require_rank_hetero: bool = False
+    phase12_joint_coordination: bool = True
+    phase12_joint_min_chunk: int = 512
+    phase12_phase2_requires_recent_phase1: bool = True
+    phase12_phase2_recent_ttl: int = 4
+    phase12_phase2_gate_mode: str = "soft"  # hard | soft
+    phase12_phase2_soft_ratio_scale: float = 1.15
+    phase12_phase2_soft_pressure_scale: float = 1.10
+    phase12_phase2_soft_min_long_prefill: int = 512
+    phase12_phase2_soft_allow_mixed_decode: bool = True
+    phase12_phase2_soft_recent_strength_floor: float = 0.08
+    phase12_phase2_soft_require_cashout_signal: bool = True
+    phase12_phase2_soft_recent_chunk_match_scale: float = 1.5
+    phase12_phase2_soft_window_score_threshold: float = 0.95
+    phase12_phase2_soft_window_recent_weight: float = 0.40
+    phase12_phase2_soft_window_chunk_weight: float = 0.25
+    phase12_phase2_soft_window_pressure_weight: float = 0.20
+    phase12_phase2_soft_window_ratio_weight: float = 0.10
+    phase12_phase2_soft_window_decode_bonus: float = 0.10
+    phase12_phase2_beneficiary_weight: float = 0.35
+    phase12_phase2_beneficiary_prefill_scale: float = 1.5
+    phase12_phase2_min_beneficiary_prefills: int = 1
+    phase12_phase2_require_beneficiary_signal: bool = True
+    phase12_phase2_beneficiary_score_threshold: float = 0.55
+    phase12_phase2_beneficiary_wait_weight: float = 0.40
+    phase12_phase2_beneficiary_size_weight: float = 0.60
+    phase12_phase2_beneficiary_quality_floor: float = 0.60
+    phase12_phase2_beneficiary_strong_prefill_quality_floor: float = 0.72
+    phase12_phase2_beneficiary_max_selected: int = 2
+    phase12_phase2_sparse_cashout_cooldown: int = 2
+    phase12_phase2_sparse_cashout_exception_quality: float = 0.90
+    phase12_phase2_scheduler_cashout_soft_floor: float = 0.55
+    phase12_phase2_scheduler_cashout_quality_floor: float = 0.78
+    phase12_phase2_scheduler_cashout_min_strength: float = 0.0
+    phase12_phase2_scheduler_cashout_cooldown_ticks: int = 2
+    phase12_phase2_scheduler_cashout_min_removed_prefills: int = 1
+    phase12_phase2_scheduler_cashout_max_remove_cap: int = 1
+    phase12_phase2_scheduler_cashout_candidate_pool: int = 3
+    phase12_phase2_scheduler_cashout_candidate_size_ceiling: float = 0.20
+    phase12_phase2_scheduler_cashout_fragment_cap_tokens: int = 256
+    phase12_phase2_scheduler_cashout_fragment_recent_scale: float = 0.75
+    phase12_phase2_escape_lane_ttl: int = 2
+    phase2_enable_execution_escape: bool = False
+    phase2_execution_escape_lane_ttl: int = 1
+    phase2_execution_escape_defer_finished_nonactive: bool = True
+    phase2_execution_escape_mode: str = "bounded_spillover"  # broad_partition | beneficiary_only | bounded_spillover
+    phase2_execution_escape_spillover_cap: int = 3
+    phase2_execution_escape_max_active: int = 5
+    enable_vllm_lora_compat_patch: bool = True
+    enable_v1_runtime_lifecycle_patch: bool = True
+
+    # Metrics
+    enable_metrics_hook: bool = True
+    metrics_short_request_tokens: int = 256

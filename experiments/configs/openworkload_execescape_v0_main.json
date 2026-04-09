@@ -1,0 +1,131 @@
+{
+  "suite_name": "openworkload_execescape_tradeoff_v0_main",
+  "out_root": "results/openworkload_execescape_tradeoff_v0_main",
+  "real_world_scenario": {
+    "name": "Enterprise Copilot with Mixed Interactive and Long-Context Requests",
+    "description": "This workload models a production copilot where short conversational turns, follow-up clarifications, and rewrite requests arrive continuously while a smaller number of document-grounded long-context jobs are also admitted. Examples include support copilots, internal knowledge assistants, and document QA systems that mix chat turns with report summarization, meeting QA, and multi-hop retrieval.",
+    "why_real": [
+      "Short interactive turns are represented by open chat corpora such as UltraChat.",
+      "Long-context jobs are represented by LongBench tasks such as report summarization and question answering over long contexts.",
+      "Poisson arrivals approximate independent user arrivals under bursty but memoryless traffic.",
+      "Beneficiary-rich mixed ordering captures realistic periods where long jobs are already in flight when short turns arrive."
+    ]
+  },
+  "models": [
+    {
+      "key": "mistral-7b-v0.1",
+      "label": "Mistral-7B-v0.1",
+      "reason": "Base open-weight Mistral family anchor."
+    },
+    {
+      "key": "mistral-7b-instruct-v0.2",
+      "label": "Mistral-7B-Instruct-v0.2",
+      "reason": "Instruction-tuned sibling of the same family."
+    },
+    {
+      "key": "zephyr-7b-beta",
+      "label": "Zephyr-7B-Beta",
+      "reason": "Alignment-tuned Mistral derivative."
+    },
+    {
+      "key": "openchat-3.5-0106",
+      "label": "OpenChat-3.5-0106",
+      "reason": "Serving-oriented Mistral fine-tuning line."
+    },
+    {
+      "key": "gemma-7b-it",
+      "label": "Gemma-7B-IT",
+      "reason": "Non-Mistral architecture and strongest historical beneficiary-rich case."
+    },
+    {
+      "key": "baichuan2-7b-chat",
+      "label": "Baichuan2-7B-Chat",
+      "reason": "Non-Mistral, non-Gemma chat model kept for architecture diversity."
+    }
+  ],
+  "datasets": [
+    {
+      "key": "ultrachat200k",
+      "dataset_id": "HuggingFaceH4/ultrachat_200k",
+      "split": "train_sft",
+      "extractor": "ultrachat",
+      "streaming": true,
+      "label": "UltraChat200k",
+      "role": "Short interactive turns",
+      "reason": "Short and medium-length conversational turns resembling online assistant traffic."
+    },
+    {
+      "key": "longbench",
+      "dataset_id": "Xnhyacinth/LongBench",
+      "split": "test",
+      "extractor": "longbench",
+      "streaming": false,
+      "label": "LongBench",
+      "role": "Long-context document and retrieval tasks",
+      "reason": "Long prompts such as report summarization and long-context QA.",
+      "configs": ["qmsum", "gov_report", "multifieldqa_en", "hotpotqa"]
+    }
+  ],
+  "workload": {
+    "reuse_workload_pool_root": "results/dataset_workloads",
+    "arrival_mode": "poisson",
+    "phase1_arrival_layout": "beneficiary_rich",
+    "phase2_arrival_layout": "beneficiary_rich",
+    "phase1_early_short_frac": 0.25,
+    "phase2_early_short_frac": 0.20,
+    "phase1_post_long_short_bias": 0.70,
+    "phase2_post_long_short_bias": 0.60,
+    "sample_count": 256,
+    "densities": [
+      {
+        "name": "low",
+        "phase1_arrival_rate": 4.0,
+        "phase2_arrival_rate": 4.0,
+        "phase1_short_count": 24,
+        "phase1_long_count": 8,
+        "phase2_short_count": 24,
+        "phase2_long_count": 12,
+        "scenario": "Off-peak mixed traffic",
+        "reason": "Responsiveness-focused operating band without persistent saturation."
+      },
+      {
+        "name": "mid",
+        "phase1_arrival_rate": 6.0,
+        "phase2_arrival_rate": 6.0,
+        "phase1_short_count": 24,
+        "phase1_long_count": 8,
+        "phase2_short_count": 24,
+        "phase2_long_count": 12,
+        "scenario": "Steady daytime traffic",
+        "reason": "Main operating band where short interactive turns and long jobs overlap frequently."
+      },
+      {
+        "name": "high",
+        "phase1_arrival_rate": 8.0,
+        "phase2_arrival_rate": 8.0,
+        "phase1_short_count": 24,
+        "phase1_long_count": 8,
+        "phase2_short_count": 24,
+        "phase2_long_count": 12,
+        "scenario": "Peak mixed traffic",
+        "reason": "Higher-load band that stresses responsiveness under mixed long and short arrivals."
+      }
+    ]
+  },
+  "eval": {
+    "vllm_mode": "v0",
+    "warmup_iters": 2,
+    "repeats": 3,
+    "timeout_sec": 240,
+    "gpu_guard_timeout_sec": 1800,
+    "gpu_guard_poll_interval_s": 5.0,
+    "max_new_tokens": 64,
+    "max_model_len": 3072,
+    "max_num_batched_tokens": 1536,
+    "gpu_memory_utilization": 0.60,
+    "phase2_dispatch_mode": "synchronized",
+    "phase2_execution_escape_mode": "bounded_spillover",
+    "phase2_execution_escape_spillover_cap": 3,
+    "phase2_execution_escape_max_active": 5
+  }
+}

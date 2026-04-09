@@ -1,7 +1,6 @@
 """Wave-Slice decision engine backed by LUTs."""
 
-import json
-import os
+from scheduler.lut_io import load_model_luts
 from typing import Any, Optional
 
 from config import hw_config as cfg
@@ -27,75 +26,10 @@ class WaveScheduler:
         return model_name.strip().lower().replace("_", "-")
 
     def _resolve_model_name(self, model_name: str) -> str:
-        # Direct hit first.
-        if model_name in cfg.SUPPORTED_MODELS:
-            return model_name
-
-        normalized = self._normalize_model_key(model_name.split("/")[-1])
-        alias_map = {
-            "qwen2.5-7b-instruct": "Qwen2-7B",
-            "qwen2.5-7b": "Qwen2-7B",
-            "qwen2-7b-instruct": "Qwen2-7B",
-            "falcon-7b-instruct": "Falcon-7B",
-            "mistral-7b-instruct-v0.2": "Mistral-7B-v0.1",
-            "mistral-7b-v0.1": "Mistral-7B-v0.1",
-            "gemma-7b-it": "Gemma-7B",
-        }
-        if normalized in alias_map:
-            return alias_map[normalized]
-
-        # Soft contains match against supported keys.
-        for supported in cfg.SUPPORTED_MODELS.keys():
-            supported_norm = self._normalize_model_key(supported)
-            if supported_norm in normalized or normalized in supported_norm:
-                return supported
-
-        # Keep original if no mapping found; downstream loader will raise.
-        return model_name
+        return cfg.resolve_model_name(model_name)
 
     def _load_luts(self):
-        paths = cfg.get_lut_paths(self.model_name)
-        try:
-            with open(paths["raw"], "r") as f:
-                raw_data = json.load(f)
-                self.t_solo_dict = {int(k): float(v) for k, v in raw_data["T_solo"].items()}
-                
-            with open(paths["gain"], "r") as f:
-                self.lut_gain = {
-                    int(k): {int(kk): float(vv) for kk, vv in v.items()}
-                    for k, v in json.load(f).items()
-                }
-            with open(paths["penalty"], "r") as f:
-                self.lut_penalty = {
-                    int(k): {int(kk): float(vv) for kk, vv in v.items()}
-                    for k, v in json.load(f).items()
-                }
-        except FileNotFoundError:
-            # Backward-compatible fallback for single-model filenames.
-            legacy_paths = {
-                "raw": os.path.join(cfg.DATA_DIR, "raw_profile.json"),
-                "gain": os.path.join(cfg.DATA_DIR, "lut_gain.json"),
-                "penalty": os.path.join(cfg.DATA_DIR, "lut_penalty.json"),
-            }
-            try:
-                with open(legacy_paths["raw"], "r") as f:
-                    raw_data = json.load(f)
-                    self.t_solo_dict = {int(k): float(v) for k, v in raw_data["T_solo"].items()}
-                with open(legacy_paths["gain"], "r") as f:
-                    self.lut_gain = {
-                        int(k): {int(kk): float(vv) for kk, vv in v.items()}
-                        for k, v in json.load(f).items()
-                    }
-                with open(legacy_paths["penalty"], "r") as f:
-                    self.lut_penalty = {
-                        int(k): {int(kk): float(vv) for kk, vv in v.items()}
-                        for k, v in json.load(f).items()
-                    }
-            except FileNotFoundError as legacy_exc:
-                raise RuntimeError(
-                    f"Fatal Error: missing LUT/profile files for model={self.model_name}. "
-                    "Please run offline profiler first."
-                ) from legacy_exc
+        self.t_solo_dict, self.lut_gain, self.lut_penalty = load_model_luts(self.model_name)
 
     def _conservative_map_up(self, seq_len: int) -> int:
         for b in self.buckets:

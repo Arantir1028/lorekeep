@@ -45,14 +45,6 @@ def ensure_vllm_mode() -> None:
 def ensure_vllm_cuda_platform() -> bool:
     """Best-effort fix for environments where vLLM platform auto-detect is empty."""
     try:
-        import torch
-
-        if not torch.cuda.is_available():
-            return False
-    except Exception:
-        return False
-
-    try:
         import vllm.platforms as platforms
 
         if getattr(platforms.current_platform, "device_type", ""):
@@ -61,7 +53,7 @@ def ensure_vllm_cuda_platform() -> bool:
         from vllm.platforms.cuda import CudaPlatform
 
         platforms._current_platform = CudaPlatform()  # type: ignore[attr-defined]
-        return True
+        return bool(getattr(platforms.current_platform, "device_type", ""))
     except Exception:
         return False
 
@@ -70,5 +62,8 @@ def bootstrap_vllm_runtime() -> bool:
     """Apply environment/runtime tweaks needed by this project before vLLM import."""
     ensure_vllm_mode()
     ok = ensure_cuda_runtime_libs()
+    # vLLM v1 can also fail early with an empty device_type on some local
+    # entrypoints. Prefer a best-effort CUDA platform repair over letting
+    # engine construction die with torch.device("").
     ensure_vllm_cuda_platform()
     return ok

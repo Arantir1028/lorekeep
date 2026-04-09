@@ -106,16 +106,29 @@ def run_vllm_embedding_check(model_name: str) -> bool:
             p2_ok = p2_ok or bool(getattr(meth, "__wave_slice_phase2_hook__", False))
 
         m_ok = False
+        lifecycle_ok = False
         for mod_name in ["vllm.engine.llm_engine", "vllm.v1.engine.llm_engine"]:
             mod = _load(mod_name)
             cls = getattr(mod, "LLMEngine", None) if mod else None
             meth = getattr(cls, "step", None) if cls else None
             m_ok = m_ok or bool(getattr(meth, "__wave_slice_metrics_hook__", False))
+            lifecycle_ok = lifecycle_ok or bool(getattr(meth, "__wave_slice_lifecycle_lazy__", False))
+
+        if not lifecycle_ok:
+            mod = _load("vllm.v1.engine.output_processor")
+            cls = getattr(mod, "OutputProcessor", None) if mod else None
+            meth = getattr(cls, "process_outputs", None) if cls else None
+            lifecycle_ok = lifecycle_ok or bool(getattr(meth, "__wave_slice_lifecycle_hook__", False))
+            mod = _load("vllm.v1.core.sched.scheduler")
+            cls = getattr(mod, "Scheduler", None) if mod else None
+            meth = getattr(cls, "update_from_output", None) if cls else None
+            lifecycle_ok = lifecycle_ok or bool(getattr(meth, "__wave_slice_lifecycle_hook__", False))
 
         print(f"  phase1_hook_installed={p1_ok}")
         print(f"  phase2_hook_installed={p2_ok}")
         print(f"  metrics_hook_installed={m_ok}")
-        return p1_ok and p2_ok and m_ok
+        print(f"  lifecycle_hook_installed={lifecycle_ok}")
+        return p1_ok and m_ok and (p2_ok or lifecycle_ok)
     except Exception as exc:
         print(f"  FAIL: hook install failed: {exc}")
         return False

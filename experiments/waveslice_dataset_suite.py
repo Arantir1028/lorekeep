@@ -20,11 +20,11 @@ from pathlib import Path
 from typing import Any
 
 from config.experiment_catalog import DEFAULT_DATASET_SUITE_KEYS, get_model_specs
+from config.experiment_catalog import safe_key as _safe_key
+from experiments.model_assets import ensure_adapters as _ensure_adapters
+from experiments.model_assets import resolve_local_snapshot as _resolve_local_snapshot
 from experiments.waveslice_a100_suite import (
     ModelSpec,
-    _ensure_adapters,
-    _resolve_local_snapshot,
-    safe_key as _safe_key,
 )
 
 
