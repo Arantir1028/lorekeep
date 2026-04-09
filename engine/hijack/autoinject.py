@@ -25,7 +25,7 @@ AUTO_ENV_PREV_VLLM_PLUGINS = "WAVESLICE_AUTOINJECT_PREV_VLLM_PLUGINS"
 
 def publish_autoinject_env(model_name: str, gamma: float, policy: WaveSlicePolicy) -> None:
     try:
-        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         prev_pythonpath = os.environ.get("PYTHONPATH")
         prev_vllm_plugins = os.environ.get("VLLM_PLUGINS")
         metrics_file = ensure_cross_process_metrics_file()
