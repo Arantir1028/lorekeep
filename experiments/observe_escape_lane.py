@@ -65,7 +65,11 @@ def main() -> int:
     parser.add_argument("--phase1-objective-mode", default="fair_escape")
     parser.add_argument("--phase1-gamma", type=float, default=2.0)
     parser.add_argument("--phase1-ingress-target-chunk", type=int, default=384)
-    parser.add_argument("--phase1-ingress-direct-authoritative", action="store_true", default=False)
+    parser.add_argument(
+        "--phase1-ingress-direct-authoritative",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
     parser.add_argument("--phase1-ingress-exact-chunk", action="store_true", default=False)
     parser.add_argument("--phase12-phase2-gate-mode", default="soft")
     parser.add_argument("--phase12-phase2-soft-ratio-scale", type=float, default=1.15)

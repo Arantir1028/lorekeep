@@ -438,6 +438,7 @@ def run_phase1_pair(
                 "probe_queue_avg": p1_sched.get("probe_queue_avg"),
                 "probe_wait_us_avg": p1_sched.get("probe_wait_us_avg"),
                 "probe_reasons": p1_sched.get("probe_reasons"),
+                "phase1_request_traces": p1_sched.get("request_traces"),
                 "hook_report": p1.get("hook_report"),
                 "baseline_timed_out": base.get("timed_out"),
                 "wave_timed_out": p1.get("timed_out"),

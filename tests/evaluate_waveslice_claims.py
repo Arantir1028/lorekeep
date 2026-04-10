@@ -122,13 +122,20 @@ def _build_engine(
     phase12_phase2_scheduler_cashout_cooldown_ticks: int,
     phase12_phase2_require_beneficiary_signal: bool,
     phase12_phase2_beneficiary_score_threshold: float,
+    phase1_force_min_chunk: int = 128,
+    phase1_target_long_fraction: float = 0.33,
     phase2_enable_mixed_prefill_decode: bool = True,
     phase2_min_hetero_ratio: float = 2.0,
     phase2_min_long_prefill: int = 256,
     phase2_min_pressure_ratio: float = 2.0,
+    phase2_enable_scheduler_cashout: bool = True,
+    phase2_enable_execution_escape: bool = True,
+    phase2_enable_v1_true_unbind: bool = False,
     phase2_execution_escape_mode: str = "bounded_spillover",
     phase2_execution_escape_spillover_cap: int = 3,
     phase2_execution_escape_max_active: int = 5,
+    max_num_partial_prefills: int = 1,
+    max_long_partial_prefills: int = 1,
     enable_chunked_prefill: bool,
     adapter_a: Optional[str] = None,
     adapter_b: Optional[str] = None,
@@ -149,6 +156,8 @@ def _build_engine(
         phase1_ingress_target_chunk=phase1_ingress_target_chunk,
         phase1_ingress_direct_authoritative=phase1_ingress_direct_authoritative,
         phase1_ingress_exact_chunk=phase1_ingress_exact_chunk,
+        phase1_force_min_chunk=phase1_force_min_chunk,
+        phase1_target_long_fraction=phase1_target_long_fraction,
         phase12_phase2_gate_mode=phase12_phase2_gate_mode,
         phase12_phase2_soft_ratio_scale=phase12_phase2_soft_ratio_scale,
         phase12_phase2_soft_pressure_scale=phase12_phase2_soft_pressure_scale,
@@ -172,6 +181,9 @@ def _build_engine(
         phase2_min_hetero_ratio=phase2_min_hetero_ratio,
         phase2_min_long_prefill=phase2_min_long_prefill,
         phase2_min_pressure_ratio=phase2_min_pressure_ratio,
+        phase2_enable_scheduler_cashout=phase2_enable_scheduler_cashout,
+        phase2_enable_execution_escape=phase2_enable_execution_escape,
+        phase2_enable_v1_true_unbind=phase2_enable_v1_true_unbind,
         phase2_execution_escape_mode=phase2_execution_escape_mode,
         phase2_execution_escape_spillover_cap=phase2_execution_escape_spillover_cap,
         phase2_execution_escape_max_active=phase2_execution_escape_max_active,
@@ -193,6 +205,8 @@ def _build_engine(
         ),
         max_lora_rank=32,
         max_num_batched_tokens=effective_batched_tokens,
+        max_num_partial_prefills=max(1, int(max_num_partial_prefills)),
+        max_long_partial_prefills=max(1, int(max_long_partial_prefills)),
         enable_chunked_prefill=enable_chunked_prefill,
         disable_sliding_window=True,
         enforce_eager=True,
@@ -349,6 +363,8 @@ def _run_mode_series(
     phase1_ingress_target_chunk: int,
     phase1_ingress_direct_authoritative: bool,
     phase1_ingress_exact_chunk: bool,
+    phase1_force_min_chunk: int = 128,
+    phase1_target_long_fraction: float = 0.33,
     phase12_phase2_gate_mode: str,
     phase12_phase2_soft_ratio_scale: float,
     phase12_phase2_soft_pressure_scale: float,
@@ -372,9 +388,14 @@ def _run_mode_series(
     phase2_min_hetero_ratio: float = 2.0,
     phase2_min_long_prefill: int = 256,
     phase2_min_pressure_ratio: float = 2.0,
+    phase2_enable_scheduler_cashout: bool = True,
+    phase2_enable_execution_escape: bool = True,
+    phase2_enable_v1_true_unbind: bool = False,
     phase2_execution_escape_mode: str = "bounded_spillover",
     phase2_execution_escape_spillover_cap: int = 3,
     phase2_execution_escape_max_active: int = 5,
+    max_num_partial_prefills: int = 1,
+    max_long_partial_prefills: int = 1,
     enable_chunked_prefill: bool,
     adapter_a: Optional[str] = None,
     adapter_b: Optional[str] = None,
@@ -398,6 +419,8 @@ def _run_mode_series(
             phase1_ingress_target_chunk=phase1_ingress_target_chunk,
             phase1_ingress_direct_authoritative=phase1_ingress_direct_authoritative,
             phase1_ingress_exact_chunk=phase1_ingress_exact_chunk,
+            phase1_force_min_chunk=phase1_force_min_chunk,
+            phase1_target_long_fraction=phase1_target_long_fraction,
             phase12_phase2_gate_mode=phase12_phase2_gate_mode,
             phase12_phase2_soft_ratio_scale=phase12_phase2_soft_ratio_scale,
             phase12_phase2_soft_pressure_scale=phase12_phase2_soft_pressure_scale,
@@ -421,9 +444,14 @@ def _run_mode_series(
             phase2_min_hetero_ratio=phase2_min_hetero_ratio,
             phase2_min_long_prefill=phase2_min_long_prefill,
             phase2_min_pressure_ratio=phase2_min_pressure_ratio,
+            phase2_enable_scheduler_cashout=phase2_enable_scheduler_cashout,
+            phase2_enable_execution_escape=phase2_enable_execution_escape,
+            phase2_enable_v1_true_unbind=phase2_enable_v1_true_unbind,
             phase2_execution_escape_mode=phase2_execution_escape_mode,
             phase2_execution_escape_spillover_cap=phase2_execution_escape_spillover_cap,
             phase2_execution_escape_max_active=phase2_execution_escape_max_active,
+            max_num_partial_prefills=max_num_partial_prefills,
+            max_long_partial_prefills=max_long_partial_prefills,
             enable_chunked_prefill=enable_chunked_prefill,
             adapter_a=adapter_a,
             adapter_b=adapter_b,
@@ -490,6 +518,8 @@ def _common_series_kwargs(
         "phase1_ingress_target_chunk": args.phase1_ingress_target_chunk,
         "phase1_ingress_direct_authoritative": args.phase1_ingress_direct_authoritative,
         "phase1_ingress_exact_chunk": args.phase1_ingress_exact_chunk,
+        "phase1_force_min_chunk": args.phase1_force_min_chunk,
+        "phase1_target_long_fraction": args.phase1_target_long_fraction,
         "phase12_phase2_gate_mode": args.phase12_phase2_gate_mode,
         "phase12_phase2_soft_ratio_scale": args.phase12_phase2_soft_ratio_scale,
         "phase12_phase2_soft_pressure_scale": args.phase12_phase2_soft_pressure_scale,
@@ -508,9 +538,14 @@ def _common_series_kwargs(
         "phase2_min_hetero_ratio": args.phase2_min_hetero_ratio,
         "phase2_min_long_prefill": args.phase2_min_long_prefill,
         "phase2_min_pressure_ratio": args.phase2_min_pressure_ratio,
+        "phase2_enable_scheduler_cashout": args.phase2_enable_scheduler_cashout,
+        "phase2_enable_execution_escape": args.phase2_enable_execution_escape,
+        "phase2_enable_v1_true_unbind": args.phase2_enable_v1_true_unbind,
         "phase2_execution_escape_mode": args.phase2_execution_escape_mode,
         "phase2_execution_escape_spillover_cap": args.phase2_execution_escape_spillover_cap,
         "phase2_execution_escape_max_active": args.phase2_execution_escape_max_active,
+        "max_num_partial_prefills": args.max_num_partial_prefills,
+        "max_long_partial_prefills": args.max_long_partial_prefills,
         "enable_chunked_prefill": enable_chunked_prefill,
         "adapter_a": adapter_a,
         "adapter_b": adapter_b,
@@ -566,6 +601,8 @@ def main() -> int:
     parser.add_argument("--long-repeat", type=int, default=320)
     parser.add_argument("--max-model-len", type=int, default=3072)
     parser.add_argument("--max-num-batched-tokens", type=int, default=1536)
+    parser.add_argument("--max-num-partial-prefills", type=int, default=1)
+    parser.add_argument("--max-long-partial-prefills", type=int, default=1)
     parser.add_argument("--gpu-memory-utilization", type=float, default=0.60)
     parser.add_argument(
         "--queue-reorder-mode",
@@ -604,8 +641,8 @@ def main() -> int:
     )
     parser.add_argument(
         "--phase1-ingress-direct-authoritative",
-        action="store_true",
-        default=False,
+        action=argparse.BooleanOptionalAction,
+        default=True,
         help="Enable ingress direct authoritative chunk override for Phase-I.",
     )
     parser.add_argument(
@@ -613,6 +650,18 @@ def main() -> int:
         action="store_true",
         default=False,
         help="When authoritative ingress is enabled, use the exact target chunk instead of bucket-down mapping.",
+    )
+    parser.add_argument(
+        "--phase1-force-min-chunk",
+        type=int,
+        default=128,
+        help="Minimum aggressive Phase-I chunk used by the fairness/LoRA ingress heuristics.",
+    )
+    parser.add_argument(
+        "--phase1-target-long-fraction",
+        type=float,
+        default=0.33,
+        help="Fraction of a long prefill used by the LoRA-aware ingress cap heuristic.",
     )
     parser.add_argument(
         "--phase12-phase2-gate-mode",
@@ -728,6 +777,24 @@ def main() -> int:
         "--phase2-min-pressure-ratio",
         type=float,
         default=2.0,
+    )
+    parser.add_argument(
+        "--phase2-enable-scheduler-cashout",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Enable the scheduler cashout/prehide path that mirrors the v0 Phase-II behavior.",
+    )
+    parser.add_argument(
+        "--phase2-enable-execution-escape",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Enable the v1 execution-escape bookkeeping path.",
+    )
+    parser.add_argument(
+        "--phase2-enable-v1-true-unbind",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Enable the v1 split-and-replay true-unbind execution path.",
     )
     parser.add_argument(
         "--phase2-execution-escape-mode",

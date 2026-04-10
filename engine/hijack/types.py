@@ -17,6 +17,7 @@ class _PatchState:
     brain: WaveScheduler
     policy: WaveSlicePolicy
     model_name: str
+    original_scheduler_add_request: Optional[Callable[..., Any]] = None
     original_public_schedule: Optional[Callable[..., Any]] = None
     metrics: WaveSliceMetrics = field(default_factory=WaveSliceMetrics)
     slicer: WaveBaseSlicer = field(default_factory=WaveBaseSlicer)
@@ -24,16 +25,25 @@ class _PatchState:
     original_execute_model: Optional[Callable[..., Any]] = None
     llm_engine_cls: Optional[type] = None
     original_add_request: Optional[Callable[..., Any]] = None
+    original_add_processed_request: Optional[Callable[..., Any]] = None
     original_step: Optional[Callable[..., Any]] = None
+    v1_processor_cls: Optional[type] = None
+    original_v1_processor_process_inputs: Optional[Callable[..., Any]] = None
+    v1_engine_core_cls: Optional[type] = None
+    original_v1_engine_core_add_request: Optional[Callable[..., Any]] = None
     v1_output_processor_cls: Optional[type] = None
     original_output_processor_add_request: Optional[Callable[..., Any]] = None
     original_output_processor_process_outputs: Optional[Callable[..., Any]] = None
+    original_scheduler_update_after_schedule: Optional[Callable[..., Any]] = None
     original_scheduler_update_from_output: Optional[Callable[..., Any]] = None
     original_scheduler_finish_requests: Optional[Callable[..., Any]] = None
     logits_processor_lora_cls: Optional[type] = None
     original_lora_get_logits: Optional[Callable[..., Any]] = None
     sequence_data_cls: Optional[type] = None
     original_sequence_data_get_len: Optional[Callable[..., Any]] = None
+    v1_request_cls: Optional[type] = None
+    original_v1_request_num_tokens: Optional[Any] = None
+    original_v1_request_num_tokens_with_spec: Optional[Any] = None
     original_get_new_uncached_and_cached_tokens: Optional[Callable[..., Any]] = None
     phase1_sticky_req_id: Optional[str] = None
     phase1_sticky_chunk: Optional[int] = None

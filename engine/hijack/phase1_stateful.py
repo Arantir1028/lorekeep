@@ -9,6 +9,7 @@ from engine.hijack.phase1_math import (
     phase1_authoritative_chunk,
     phase1_authoritative_short_floor,
     phase1_cohort_target_len,
+    phase1_effective_ingress_min_chunk,
 )
 from engine.hijack.phase1_selection import (
     phase1_find_seq_group_by_request_id,
@@ -33,17 +34,49 @@ def phase1_maybe_seed_ingress_virtual(
     input_tokens: Optional[int],
 ) -> None:
     if input_tokens is None or int(input_tokens) <= 0:
+        state.metrics.record_phase1_step_trace(
+            request_id=str(request_id),
+            event="phase1_ingress_skip_no_input_tokens",
+            is_prefill=True,
+            num_computed_tokens=0,
+            uncached=(int(input_tokens) if input_tokens is not None else None),
+            cached=0,
+        )
         return
     state.phase1_active_prompt_tokens[str(request_id)] = int(input_tokens)
+    state.metrics.record_phase1_step_trace(
+        request_id=str(request_id),
+        event="phase1_ingress_candidate_seen",
+        is_prefill=True,
+        num_computed_tokens=0,
+        uncached=int(input_tokens),
+        cached=0,
+    )
     positive_items = [
         (rid, int(tok))
         for rid, tok in state.phase1_active_prompt_tokens.items()
         if int(tok) > 0
     ]
     if len(positive_items) < 2:
+        state.metrics.record_phase1_step_trace(
+            request_id=str(request_id),
+            event="phase1_ingress_skip_need_pair",
+            is_prefill=True,
+            num_computed_tokens=0,
+            uncached=int(input_tokens),
+            cached=0,
+        )
         return
     positive = sorted(tok for _, tok in positive_items)
     if not need_wave_slice(positive, state.policy):
+        state.metrics.record_phase1_step_trace(
+            request_id=str(request_id),
+            event="phase1_ingress_skip_no_need_wave_slice",
+            is_prefill=True,
+            num_computed_tokens=0,
+            uncached=int(max(positive)),
+            cached=int(min(positive)),
+        )
         return
     long_len = positive[-1]
     short_len = positive[0]
@@ -53,6 +86,14 @@ def phase1_maybe_seed_ingress_virtual(
             long_req_id = str(rid)
             break
     if long_req_id is None:
+        state.metrics.record_phase1_step_trace(
+            request_id=str(request_id),
+            event="phase1_ingress_skip_no_long_req",
+            is_prefill=True,
+            num_computed_tokens=0,
+            uncached=int(long_len),
+            cached=int(short_len),
+        )
         return
     state.phase1_ingress_virtuals[long_req_id] = _Phase1IngressVirtualSlice(
         long_req_id=long_req_id,
@@ -62,6 +103,14 @@ def phase1_maybe_seed_ingress_virtual(
         short_lengths=[int(v) for v in positive[:-1]] if len(positive) > 1 else [int(short_len)],
         original_long_len=int(long_len),
         active_count=len(positive_items),
+    )
+    state.metrics.record_phase1_step_trace(
+        request_id=str(long_req_id),
+        event="phase1_ingress_seed",
+        is_prefill=True,
+        num_computed_tokens=0,
+        uncached=int(long_len),
+        cached=int(short_len),
     )
     if bool(state.policy.phase1_ingress_direct_authoritative):
         seed_cohort = _Phase1CohortStats(
@@ -81,7 +130,27 @@ def phase1_maybe_seed_ingress_virtual(
             short_len=int(short_len),
             upper=max(1, int(long_len) - 1),
         )
+        direct_plans = phase1_build_direct_explicit_plans(
+            state=state,
+            cohort=seed_cohort,
+            total_len=int(long_len),
+            done_offset=0,
+            remaining_len=int(long_len),
+            baseline_chunk=None,
+        )
+        if direct_plans:
+            ingress_cap = min(int(ingress_cap), int(direct_plans[0].chunk_len))
         state.phase1_virtual_token_caps[long_req_id] = max(1, int(ingress_cap))
+        state.metrics.record_phase1_virtual_cap_probe(target_set=True)
+        state.metrics.record_phase1_step_trace(
+            request_id=str(long_req_id),
+            event="phase1_ingress_direct_cap_seeded",
+            is_prefill=True,
+            num_computed_tokens=0,
+            uncached=int(long_len),
+            cached=int(short_len),
+            target_chunk=int(max(1, int(ingress_cap))),
+        )
     logger.info(
         "[Wave-Slice][P1-ingress-seed] long_req=%s short=%d long=%d active=%d",
         long_req_id,
@@ -169,7 +238,10 @@ def phase1_build_direct_explicit_plans(
         upper = min(upper, int(baseline_chunk) - 1)
     if upper <= short_len:
         return []
-    ingress_min = max(1, int(state.policy.phase1_ingress_min_chunk))
+    ingress_min = phase1_effective_ingress_min_chunk(
+        state.policy,
+        target=int(direct_target),
+    )
     ingress_max = max(ingress_min, int(state.policy.phase1_ingress_max_chunk))
     if upper >= ingress_min:
         direct_target = max(int(direct_target), ingress_min)
@@ -291,7 +363,10 @@ def phase1_explicit_chunk_from_plan(
             first_plan = plans[0] if plans else None
             current_chunk = int(first_plan.chunk_len) if first_plan is not None else int(remaining_len)
             direct_chunk = int(first_direct.chunk_len)
-            ingress_min = max(1, int(state.policy.phase1_ingress_min_chunk))
+            ingress_min = phase1_effective_ingress_min_chunk(
+                state.policy,
+                target=int(direct_chunk),
+            )
             if direct_chunk < current_chunk or (current_chunk < ingress_min <= direct_chunk):
                 plans = direct_plans
                 plan_kind = "direct"

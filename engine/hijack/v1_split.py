@@ -9,7 +9,7 @@ ReqInfoCollector = Callable[[Any, Optional[Any], Optional[_PatchState], WaveSlic
 BeneficiarySignalBuilder = Callable[[_PatchState, WaveSlicePolicy, list[_ScheduledReqInfo]], _Phase12BeneficiarySignal]
 
 
-def v1_partition_req_ids(
+def v1_partition_req_ids_diagnostic(
     model_input: Any,
     policy: WaveSlicePolicy,
     *,
@@ -17,39 +17,72 @@ def v1_partition_req_ids(
     state: Optional[_PatchState] = None,
     req_info_collector: ReqInfoCollector,
     beneficiary_signal_builder: BeneficiarySignalBuilder,
-) -> Optional[tuple[list[str], list[str]]]:
+    include_non_prefill_in_long: bool = False,
+) -> tuple[Optional[tuple[list[str], list[str]]], str, dict[str, int]]:
+    debug: dict[str, int] = {}
     try:
         num_sched = dict(getattr(model_input, "num_scheduled_tokens", {}) or {})
     except Exception:
-        return None
+        return None, "num_sched_exception", debug
     if not num_sched:
-        return None
+        return None, "empty_num_sched", debug
+    ordered_req_ids = [str(rid) for rid in num_sched.keys()]
+    prefill_num_sched = {
+        str(rid): int(tok)
+        for rid, tok in num_sched.items()
+        if int(tok) > 1
+    }
+    non_prefill_ids = [
+        str(rid)
+        for rid, tok in num_sched.items()
+        if int(tok) <= 1
+    ]
+    debug["source_num_sched_len"] = len(ordered_req_ids)
+    debug["prefill_req_count"] = len(prefill_num_sched)
+    debug["decode_req_count"] = len(non_prefill_ids)
+    if not prefill_num_sched:
+        return None, "no_prefill_tokens", debug
 
     req_infos = req_info_collector(model_input, runner_self, state, policy)
+    debug["req_info_count"] = len(req_infos)
     if state is not None and bool(getattr(policy, "phase12_phase2_require_beneficiary_signal", True)):
         beneficiary_signal = beneficiary_signal_builder(state, policy, req_infos)
         min_beneficiaries = max(1, int(policy.phase12_phase2_min_beneficiary_prefills))
+        debug["beneficiary_long_anchor_present"] = int(
+            beneficiary_signal.long_anchor_id is not None
+        )
+        debug["beneficiary_selected_count"] = len(
+            beneficiary_signal.beneficiary_selected_ids or []
+        )
+        debug["beneficiary_min_required"] = min_beneficiaries
         if (
             beneficiary_signal.long_anchor_id is not None
             and len(beneficiary_signal.beneficiary_selected_ids) >= min_beneficiaries
         ):
             beneficiary_ids = set(beneficiary_signal.beneficiary_selected_ids)
-            short_ids = [
+            short_ids_set = {
                 str(rid)
-                for rid in num_sched.keys()
+                for rid in prefill_num_sched.keys()
                 if str(rid) in beneficiary_ids
-            ]
-            long_ids = [
+            }
+            long_ids_set = {
                 str(rid)
-                for rid in num_sched.keys()
+                for rid in prefill_num_sched.keys()
                 if str(rid) not in beneficiary_ids
-            ]
+            }
+            if include_non_prefill_in_long:
+                long_ids_set.update(non_prefill_ids)
+            short_ids = [rid for rid in ordered_req_ids if rid in short_ids_set]
+            long_ids = [rid for rid in ordered_req_ids if rid in long_ids_set]
+            debug["beneficiary_short_count"] = len(short_ids)
+            debug["beneficiary_long_count"] = len(long_ids)
             if short_ids and long_ids:
-                return short_ids, long_ids
+                return (short_ids, long_ids), "beneficiary_partition", debug
+            return None, "beneficiary_partition_empty", debug
 
     req_info_map = {info.request_id: info for info in req_infos}
     prefill_items: list[tuple[str, int]] = []
-    for rid_raw, tok_raw in num_sched.items():
+    for rid_raw, tok_raw in prefill_num_sched.items():
         rid = str(rid_raw)
         tok = int(tok_raw)
         info = req_info_map.get(rid)
@@ -58,35 +91,69 @@ def v1_partition_req_ids(
         score = max(tok, approx_rem) * (rank if policy.phase2_lora_rank_aware else 1)
         if score > 1:
             prefill_items.append((rid, score))
+    debug["prefill_items_count"] = len(prefill_items)
     if len(prefill_items) < 2:
-        return None
+        return None, "prefill_items_lt2", debug
 
     prefill_sorted = sorted(prefill_items, key=lambda x: x[1])
     min_tok = prefill_sorted[0][1]
     max_tok = prefill_sorted[-1][1]
+    debug["score_min"] = int(min_tok)
+    debug["score_max"] = int(max_tok)
     if min_tok <= 0:
-        return None
+        return None, "non_positive_min_tok", debug
     ratio = float(max_tok) / float(min_tok)
-    if ratio < max(2.0, float(policy.phase2_min_hetero_ratio)):
-        return None
+    threshold = max(2.0, float(policy.phase2_min_hetero_ratio))
+    debug["ratio_x1000"] = int(ratio * 1000.0)
+    debug["ratio_threshold_x1000"] = int(threshold * 1000.0)
+    if ratio < threshold:
+        return None, "ratio_below_threshold", debug
 
     pivot = max(min_tok * 2, int((min_tok * max_tok) ** 0.5))
+    debug["pivot_score"] = int(pivot)
     short_prefill = [rid for rid, tok in prefill_sorted if tok <= pivot]
     long_prefill = [rid for rid, tok in prefill_sorted if tok > pivot]
     if not short_prefill or not long_prefill:
         half = max(1, len(prefill_sorted) // 2)
         short_prefill = [rid for rid, _ in prefill_sorted[:half]]
         long_prefill = [rid for rid, _ in prefill_sorted[half:]]
+        debug["fallback_half_split"] = 1
         if not short_prefill or not long_prefill:
-            return None
+            return None, "half_split_empty", debug
 
     short_ids_set = set(short_prefill)
     long_ids_set = set(long_prefill)
-    short_ids = [str(rid) for rid in num_sched.keys() if str(rid) in short_ids_set]
-    long_ids = [str(rid) for rid in num_sched.keys() if str(rid) in long_ids_set]
+    if include_non_prefill_in_long:
+        long_ids_set.update(non_prefill_ids)
+    short_ids = [rid for rid in ordered_req_ids if rid in short_ids_set]
+    long_ids = [rid for rid in ordered_req_ids if rid in long_ids_set]
+    debug["final_short_count"] = len(short_ids)
+    debug["final_long_count"] = len(long_ids)
     if not short_ids or not long_ids:
-        return None
-    return short_ids, long_ids
+        return None, "final_partition_empty", debug
+    return (short_ids, long_ids), "heuristic_partition", debug
+
+
+def v1_partition_req_ids(
+    model_input: Any,
+    policy: WaveSlicePolicy,
+    *,
+    runner_self: Optional[Any] = None,
+    state: Optional[_PatchState] = None,
+    req_info_collector: ReqInfoCollector,
+    beneficiary_signal_builder: BeneficiarySignalBuilder,
+    include_non_prefill_in_long: bool = False,
+) -> Optional[tuple[list[str], list[str]]]:
+    split_ids, _reason, _debug = v1_partition_req_ids_diagnostic(
+        model_input,
+        policy,
+        runner_self=runner_self,
+        state=state,
+        req_info_collector=req_info_collector,
+        beneficiary_signal_builder=beneficiary_signal_builder,
+        include_non_prefill_in_long=include_non_prefill_in_long,
+    )
+    return split_ids
 
 
 def v1_execution_escape_req_ids(
@@ -98,6 +165,17 @@ def v1_execution_escape_req_ids(
     req_info_collector: ReqInfoCollector,
     beneficiary_signal_builder: BeneficiarySignalBuilder,
 ) -> Optional[tuple[list[str], list[str]]]:
+    def _fallback_partition() -> Optional[tuple[list[str], list[str]]]:
+        return v1_partition_req_ids(
+            model_input,
+            policy,
+            runner_self=runner_self,
+            state=state,
+            req_info_collector=req_info_collector,
+            beneficiary_signal_builder=beneficiary_signal_builder,
+            include_non_prefill_in_long=True,
+        )
+
     try:
         num_sched = dict(getattr(model_input, "num_scheduled_tokens", {}) or {})
     except Exception:
@@ -108,17 +186,10 @@ def v1_execution_escape_req_ids(
     beneficiary_signal = beneficiary_signal_builder(state, policy, req_infos)
     mode = str(getattr(policy, "phase2_execution_escape_mode", "bounded_spillover") or "bounded_spillover").strip().lower()
     if mode == "broad_partition":
-        return v1_partition_req_ids(
-            model_input,
-            policy,
-            runner_self=runner_self,
-            state=state,
-            req_info_collector=req_info_collector,
-            beneficiary_signal_builder=beneficiary_signal_builder,
-        )
+        return _fallback_partition()
     selected_ids = [str(rid) for rid in (beneficiary_signal.beneficiary_selected_ids or []) if str(rid)]
     if not selected_ids:
-        return None
+        return _fallback_partition()
     selected_set = set(selected_ids)
     req_info_map = {info.request_id: info for info in req_infos}
     active_ids = [str(rid) for rid in num_sched.keys() if str(rid) in selected_set]
@@ -126,7 +197,7 @@ def v1_execution_escape_req_ids(
     if mode == "beneficiary_only":
         deferred_ids = [str(rid) for rid in num_sched.keys() if str(rid) not in set(active_ids)]
         if not active_ids or not deferred_ids:
-            return None
+            return _fallback_partition()
         return active_ids, deferred_ids
 
     spillover_cap = max(
@@ -168,7 +239,7 @@ def v1_execution_escape_req_ids(
             active_ids = [str(rid) for rid in num_sched.keys() if str(rid) in (selected_set | set(spillover_ids))]
     deferred_ids = [str(rid) for rid in num_sched.keys() if str(rid) not in set(active_ids)]
     if not active_ids or not deferred_ids:
-        return None
+        return _fallback_partition()
     return active_ids, deferred_ids
 
 
@@ -176,12 +247,17 @@ def v1_filter_cached_reqs(cached: Any, selected_req_ids: set[str]) -> Any:
     req_ids = [str(r) for r in list(getattr(cached, "req_ids", []) or [])]
     indices = [i for i, rid in enumerate(req_ids) if rid in selected_req_ids]
     cls = type(cached)
+
+    def _pick_list_attr(attr: str, default: Any) -> list[Any]:
+        vals = list(getattr(cached, attr, []) or [])
+        return [vals[i] if i < len(vals) else default for i in indices]
+
     return cls(
         req_ids=[req_ids[i] for i in indices],
-        resumed_from_preemption=[getattr(cached, "resumed_from_preemption", [])[i] for i in indices],
-        new_token_ids=[getattr(cached, "new_token_ids", [])[i] for i in indices],
-        new_block_ids=[getattr(cached, "new_block_ids", [])[i] for i in indices],
-        num_computed_tokens=[getattr(cached, "num_computed_tokens", [])[i] for i in indices],
+        resumed_from_preemption=_pick_list_attr("resumed_from_preemption", False),
+        new_token_ids=_pick_list_attr("new_token_ids", []),
+        new_block_ids=_pick_list_attr("new_block_ids", ()),
+        num_computed_tokens=_pick_list_attr("num_computed_tokens", 0),
     )
 
 

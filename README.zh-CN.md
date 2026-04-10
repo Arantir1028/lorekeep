@@ -227,6 +227,23 @@ python tests/evaluate_waveslice_claims.py \
   --out-json results/mistral_phase12_dataset.json
 ```
 
+### 推荐的 V1 主回归
+
+如果要判断当前 V1 路径，优先使用冻结的真实 `openworkload mid`
+回归目标，而不是默认那个很小的 synthetic repeated case：
+
+```bash
+python experiments/run_frozen_eval_config.py \
+  --config experiments/configs/frozen_v1_gemma_mid_global_activity_repro.json
+```
+
+这条回归会固定使用：
+
+- 来自真实开源数据集构建的 request JSON
+- 长短混合请求
+- 泊松到达分布
+- 与 V0 回归对照相同的 `mid` workload 家族
+
 ## 4）构建 Dataset Workload
 
 数据集 workload 构建脚本：

@@ -90,6 +90,8 @@ def phase1_find_ingress_virtual_candidate(
 ) -> Optional[tuple[_Phase1IngressVirtualSlice, Any, int]]:
     if not ingress_virtuals:
         return None
+    best: Optional[tuple[_Phase1IngressVirtualSlice, Any, int]] = None
+    best_score: Optional[tuple[int, int, int]] = None
     for seq_group, remaining in snapshot:
         req_id = request_id_getter(seq_group)
         if not req_id:
@@ -100,8 +102,15 @@ def phase1_find_ingress_virtual_candidate(
         rem = int(remaining)
         if rem <= 0:
             continue
-        return candidate, seq_group, rem
-    return None
+        score = (
+            int(rem),
+            int(getattr(candidate, "original_long_len", rem) or rem),
+            int(getattr(candidate, "active_count", 0) or 0),
+        )
+        if best_score is None or score > best_score:
+            best = (candidate, seq_group, rem)
+            best_score = score
+    return best
 
 
 def phase1_find_seq_group_by_request_id(

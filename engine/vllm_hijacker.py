@@ -12,13 +12,16 @@ from __future__ import annotations
 
 import contextlib
 import functools
+import inspect
 import json
 import logging
 import math
 import os
+import re
 import sys
 import threading
 import time
+import textwrap
 from typing import Any, Callable, Iterable, Optional
 
 from scheduler.wave_scheduler import WaveScheduler
@@ -33,8 +36,11 @@ from engine.hijack.autoinject import (
     reset_cross_process_metrics_file as _reset_cross_process_metrics_file,
 )
 from engine.hijack.engine_hooks import (
+    build_add_processed_request_hook as _build_add_processed_request_hook_impl,
     build_add_request_hook as _build_add_request_hook_impl,
     build_step_hook as _build_step_hook_impl,
+    build_v1_engine_core_add_request_hook as _build_v1_engine_core_add_request_hook_impl,
+    build_v1_process_inputs_hook as _build_v1_process_inputs_hook_impl,
 )
 from engine.hijack.common import (
     collect_live_lengths as _collect_live_lengths,
@@ -74,6 +80,7 @@ from engine.hijack.phase1_math import (
     phase1_authoritative_short_floor as _phase1_authoritative_short_floor,
     phase1_baseline_chunk_proxy as _phase1_baseline_chunk_proxy,
     phase1_cohort_target_len as _phase1_cohort_target_len,
+    phase1_effective_ingress_min_chunk as _phase1_effective_ingress_min_chunk,
     phase1_effective_short_token_mass as _phase1_effective_short_token_mass,
 )
 from engine.hijack.phase1_stateful import (
@@ -117,9 +124,10 @@ from engine.hijack.hook_guards import (
 from engine.hijack.v1_split import (
     v1_build_subset_scheduler_output as _v1_build_subset_scheduler_output,
     v1_execution_escape_req_ids as _v1_execution_escape_req_ids,
-    v1_partition_req_ids as _v1_partition_req_ids,
+    v1_partition_req_ids_diagnostic as _v1_partition_req_ids_diagnostic,
 )
 from engine.hijack.v1_merge import (
+    freeze_v1_runner_output as _freeze_v1_runner_output,
     merge_v1_runner_outputs as _merge_v1_runner_outputs,
 )
 from engine.hijack.phase1_selection import (
@@ -138,11 +146,14 @@ from engine.hijack.phase2_gates import (
     phase2_selective_gate as _phase2_selective_gate,
 )
 from engine.hijack.runtime_loaders import (
+    load_v1_engine_core_cls as _load_v1_engine_core_cls,
     load_llm_engine_cls as _load_llm_engine_cls,
     load_logits_processor_lora_cls as _load_logits_processor_lora_cls,
     load_model_runner_cls as _load_model_runner_cls,
     load_scheduler_target as _load_scheduler_target,
+    load_v1_processor_cls as _load_v1_processor_cls,
     load_sequence_data_cls as _load_sequence_data_cls,
+    load_v1_request_cls as _load_v1_request_cls,
     load_v1_output_processor_cls as _load_v1_output_processor_cls,
 )
 from engine.hijack.runtime_state import WaveSliceMetrics, WaveSlicePolicy
@@ -325,6 +336,626 @@ def _build_get_num_new_uncached_and_cached_tokens_hook(
 
     _wave_get_num_new_uncached_and_cached_tokens.__wave_slice_virtual_cap_hook__ = True  # type: ignore[attr-defined]
     return _wave_get_num_new_uncached_and_cached_tokens
+
+
+def _cap_v1_request_total_tokens(
+    state: _PatchState,
+    request: Any,
+    original_total_tokens: Any,
+) -> Any:
+    try:
+        total_tokens = int(original_total_tokens)
+    except Exception:
+        return original_total_tokens
+
+    request_id = str(getattr(request, "request_id", "") or "")
+    if not request_id:
+        return total_tokens
+    if bool(getattr(request, "__wave_slice_skip_v1_cap__", False)):
+        return total_tokens
+    target_chunk = state.phase1_virtual_token_caps.get(request_id)
+    if target_chunk is None:
+        return total_tokens
+
+    try:
+        num_output_tokens = int(getattr(request, "num_output_tokens", 0) or 0)
+        num_prompt_tokens = int(getattr(request, "num_prompt_tokens", 0) or 0)
+        num_computed_tokens = int(getattr(request, "num_computed_tokens", 0) or 0)
+        effective_computed_tokens = int(
+            getattr(
+                request,
+                "__wave_slice_effective_computed_tokens__",
+                num_computed_tokens,
+            )
+            or 0
+        )
+    except Exception:
+        return total_tokens
+    effective_computed_tokens = max(num_computed_tokens, effective_computed_tokens)
+
+    is_prefill = num_output_tokens <= 0 and effective_computed_tokens < max(1, num_prompt_tokens)
+    if not is_prefill:
+        return total_tokens
+
+    state.metrics.record_phase1_virtual_cap_probe(helper_called=True)
+    state.metrics.record_phase1_virtual_cap_probe(prefill_call=True)
+    state.metrics.record_phase1_virtual_cap_probe(target_hit=True)
+    state.metrics.record_phase1_step_trace(
+        request_id=request_id,
+        event="v1_virtual_cap_property",
+        is_prefill=True,
+        num_computed_tokens=effective_computed_tokens,
+        uncached=max(0, total_tokens - effective_computed_tokens),
+        cached=0,
+        target_chunk=int(target_chunk),
+    )
+
+    capped_total_tokens = min(
+        total_tokens,
+        effective_computed_tokens + max(0, int(target_chunk)),
+    )
+    if capped_total_tokens >= total_tokens or capped_total_tokens <= effective_computed_tokens:
+        state.metrics.record_phase1_virtual_cap(
+            old_total_tokens=total_tokens,
+            new_total_tokens=total_tokens,
+            applied=False,
+        )
+        return total_tokens
+
+    state.metrics.record_phase1_virtual_cap(
+        old_total_tokens=total_tokens,
+        new_total_tokens=capped_total_tokens,
+        applied=True,
+    )
+    logger.info(
+        "[Wave-Slice][P1-v1-virtual-cap] req=%s old_total=%d computed=%d target=%d new_total=%d",
+        request_id,
+        total_tokens,
+        effective_computed_tokens,
+        int(target_chunk),
+        capped_total_tokens,
+    )
+    return capped_total_tokens
+
+
+def _install_v1_waiting_cap_runtime_hooks(state: _PatchState, scheduler_obj: Any) -> tuple[list[Any], list[tuple[Any, str, Any]]]:
+    cleanup_requests: list[Any] = []
+    restore_specs: list[tuple[Any, str, Any]] = []
+
+    kv_cache_manager = getattr(scheduler_obj, "kv_cache_manager", None)
+    original_get_computed_blocks = getattr(kv_cache_manager, "get_computed_blocks", None)
+    if callable(original_get_computed_blocks):
+        @functools.wraps(original_get_computed_blocks)
+        def _wave_get_computed_blocks(request: Any, *args: Any, **kwargs: Any) -> Any:
+            try:
+                setattr(request, "__wave_slice_skip_v1_cap__", True)
+                result = original_get_computed_blocks(request, *args, **kwargs)
+            finally:
+                try:
+                    setattr(request, "__wave_slice_skip_v1_cap__", False)
+                except Exception:
+                    pass
+            try:
+                _blocks, num_new_computed_tokens = result
+                setattr(
+                    request,
+                    "__wave_slice_effective_computed_tokens__",
+                    int(max(0, num_new_computed_tokens)),
+                )
+                cleanup_requests.append(request)
+            except Exception:
+                pass
+            return result
+
+        restore_specs.append((kv_cache_manager, "get_computed_blocks", original_get_computed_blocks))
+        setattr(kv_cache_manager, "get_computed_blocks", _wave_get_computed_blocks)
+
+    connector = getattr(scheduler_obj, "connector", None)
+    original_get_num_new_matched_tokens = getattr(connector, "get_num_new_matched_tokens", None)
+    if callable(original_get_num_new_matched_tokens):
+        @functools.wraps(original_get_num_new_matched_tokens)
+        def _wave_get_num_new_matched_tokens(
+            request: Any,
+            num_new_local_computed_tokens: int,
+            *args: Any,
+            **kwargs: Any,
+        ) -> Any:
+            result = original_get_num_new_matched_tokens(
+                request,
+                num_new_local_computed_tokens,
+                *args,
+                **kwargs,
+            )
+            try:
+                num_external_computed_tokens, _load_kv_async = result
+                local_tokens = int(
+                    getattr(
+                        request,
+                        "__wave_slice_effective_computed_tokens__",
+                        max(0, int(num_new_local_computed_tokens)),
+                    )
+                    or 0
+                )
+                setattr(
+                    request,
+                    "__wave_slice_effective_computed_tokens__",
+                    max(0, local_tokens) + max(0, int(num_external_computed_tokens)),
+                )
+                cleanup_requests.append(request)
+            except Exception:
+                pass
+            return result
+
+        restore_specs.append((connector, "get_num_new_matched_tokens", original_get_num_new_matched_tokens))
+        setattr(connector, "get_num_new_matched_tokens", _wave_get_num_new_matched_tokens)
+
+    return cleanup_requests, restore_specs
+
+
+def _restore_v1_waiting_cap_runtime_hooks(
+    cleanup_requests: list[Any],
+    restore_specs: list[tuple[Any, str, Any]],
+) -> None:
+    for owner, attr, original in reversed(restore_specs):
+        try:
+            setattr(owner, attr, original)
+        except Exception:
+            pass
+    for request in cleanup_requests:
+        try:
+            delattr(request, "__wave_slice_skip_v1_cap__")
+        except Exception:
+            pass
+        try:
+            delattr(request, "__wave_slice_effective_computed_tokens__")
+        except Exception:
+            pass
+
+
+def _lookup_engine_prompt_tokens(
+    engine_self: Any,
+    *,
+    request_id: str,
+) -> Optional[int]:
+    req_id = str(request_id or "")
+    if not req_id:
+        return None
+    schedulers = getattr(engine_self, "scheduler", None)
+    if schedulers is None:
+        return None
+    try:
+        scheduler_items = list(schedulers) if isinstance(schedulers, (list, tuple)) else [schedulers]
+    except Exception:
+        scheduler_items = [schedulers]
+
+    for scheduler_obj in scheduler_items:
+        for attr in ("waiting", "running", "swapped"):
+            queue_like = getattr(scheduler_obj, attr, None)
+            if queue_like is None:
+                continue
+            try:
+                seq_groups = list(queue_like)
+            except Exception:
+                continue
+            for seq_group in seq_groups:
+                if _safe_request_id(seq_group) != req_id:
+                    continue
+                total = _safe_total_tokens(seq_group)
+                if total is not None and int(total) > 0:
+                    return int(total)
+        requests = getattr(scheduler_obj, "requests", None)
+        if isinstance(requests, dict):
+            request_obj = requests.get(req_id)
+            if request_obj is None:
+                continue
+            try:
+                prompt_tokens = int(getattr(request_obj, "num_prompt_tokens", 0) or 0)
+            except Exception:
+                prompt_tokens = 0
+            if prompt_tokens > 0:
+                return prompt_tokens
+    return None
+
+
+def _build_v1_request_num_tokens_hook(state: _PatchState) -> property:
+    original_prop = state.original_v1_request_num_tokens
+    if not isinstance(original_prop, property) or original_prop.fget is None:
+        raise RuntimeError("v1 Request.num_tokens hook requested without original property")
+
+    @functools.wraps(original_prop.fget)
+    def _wave_v1_num_tokens(self: Any) -> Any:
+        original_total = original_prop.fget(self)
+        return _cap_v1_request_total_tokens(state, self, original_total)
+
+    return property(_wave_v1_num_tokens)
+
+
+def _build_v1_request_num_tokens_with_spec_hook(state: _PatchState) -> property:
+    original_prop = state.original_v1_request_num_tokens_with_spec
+    if not isinstance(original_prop, property) or original_prop.fget is None:
+        raise RuntimeError("v1 Request.num_tokens_with_spec hook requested without original property")
+
+    @functools.wraps(original_prop.fget)
+    def _wave_v1_num_tokens_with_spec(self: Any) -> Any:
+        original_total = original_prop.fget(self)
+        return _cap_v1_request_total_tokens(state, self, original_total)
+
+    return property(_wave_v1_num_tokens_with_spec)
+
+
+def _maybe_apply_v1_scheduler_provisional_cap(
+    state: _PatchState,
+    request: Any,
+) -> None:
+    if not bool(getattr(state.policy, "phase1_ingress_direct_authoritative", False)):
+        return
+
+    request_id = str(getattr(request, "request_id", "") or "")
+    if not request_id:
+        return
+
+    try:
+        num_prompt_tokens = int(getattr(request, "num_prompt_tokens", 0) or 0)
+        num_output_tokens = int(getattr(request, "num_output_tokens", 0) or 0)
+        num_computed_tokens = int(getattr(request, "num_computed_tokens", 0) or 0)
+    except Exception:
+        return
+    if num_prompt_tokens <= 0 or num_output_tokens > 0 or num_computed_tokens > 0:
+        return
+
+    long_floor = max(
+        int(max(1, state.policy.min_long_seq)),
+        int(max(1, state.policy.metrics_short_request_tokens)),
+    )
+    if num_prompt_tokens <= long_floor:
+        return
+
+    upper = max(1, int(num_prompt_tokens) - 1)
+    provisional_target = max(1, int(state.policy.phase1_ingress_target_chunk))
+    provisional_chunk = _phase1_authoritative_chunk(
+        state.policy,
+        state.slicer,
+        target=int(provisional_target),
+        short_len=int(min(max(1, state.policy.metrics_short_request_tokens), upper)),
+        upper=int(upper),
+    )
+    lora_request = getattr(request, "lora_request", None)
+    if lora_request is not None:
+        # LoRA mixed-adapter workloads need a much earlier cut than the global
+        # ingress floor, otherwise same-adapter short requests stay glued to a
+        # moderate long prefill until after the first large chunk.
+        lora_fraction_target = max(
+            int(max(1, state.policy.phase1_force_min_chunk)),
+            int(max(1.0, float(num_prompt_tokens) * float(state.policy.phase1_target_long_fraction))),
+        )
+        lora_fraction_target = max(1, min(int(lora_fraction_target), int(upper)))
+        provisional_chunk = min(int(provisional_chunk), int(lora_fraction_target))
+    provisional_chunk = max(1, min(int(provisional_chunk), int(upper)))
+    if provisional_chunk <= 0:
+        return
+
+    existing_cap = state.phase1_virtual_token_caps.get(request_id)
+    if existing_cap is None or int(existing_cap) > int(provisional_chunk):
+        state.phase1_virtual_token_caps[request_id] = int(provisional_chunk)
+        state.metrics.record_phase1_virtual_cap_probe(target_set=True)
+        state.metrics.record_phase1_step_trace(
+            request_id=request_id,
+            event="phase1_v1_scheduler_add_request_provisional_cap",
+            is_prefill=True,
+            num_computed_tokens=int(num_computed_tokens),
+            uncached=int(num_prompt_tokens),
+            cached=0,
+            target_chunk=int(provisional_chunk),
+        )
+
+
+def _build_v1_scheduler_add_request_hook(state: _PatchState) -> Callable[..., Any]:
+    original_add_request = state.original_scheduler_add_request
+    if original_add_request is None:
+        raise RuntimeError("v1 Scheduler.add_request hook requested without original method")
+
+    @functools.wraps(original_add_request)
+    def _wave_v1_scheduler_add_request(self: Any, request: Any, *args: Any, **kwargs: Any) -> Any:
+        try:
+            _maybe_apply_v1_scheduler_provisional_cap(state, request)
+        except Exception:
+            logger.exception("[Wave-Slice] failed to apply provisional v1 scheduler add_request cap.")
+        return original_add_request(self, request, *args, **kwargs)
+
+    _wave_v1_scheduler_add_request.__wave_slice_phase1_add_request_hook__ = True  # type: ignore[attr-defined]
+    return _wave_v1_scheduler_add_request
+
+
+def _clamp_v1_scheduler_output_before_state_advance(
+    state: _PatchState,
+    scheduler_obj: Any,
+    scheduler_output: Any,
+) -> None:
+    if scheduler_output is None or not bool(getattr(state.policy, "phase1_ingress_direct_authoritative", False)):
+        return
+
+    num_scheduled_tokens = getattr(scheduler_output, "num_scheduled_tokens", None)
+    if not isinstance(num_scheduled_tokens, dict) or not num_scheduled_tokens:
+        return
+
+    request_map = getattr(scheduler_obj, "requests", None)
+    request_map = request_map if isinstance(request_map, dict) else {}
+
+    total_delta = 0
+    clamped_any = False
+    for request_id, scheduled_tokens in list(num_scheduled_tokens.items()):
+        req_id = str(request_id or "")
+        if not req_id:
+            continue
+        target_chunk = state.phase1_virtual_token_caps.get(req_id)
+        if target_chunk is None:
+            continue
+
+        request = request_map.get(req_id)
+        try:
+            num_output_tokens = int(getattr(request, "num_output_tokens", 0) or 0)
+            num_prompt_tokens = int(getattr(request, "num_prompt_tokens", 0) or 0)
+            num_computed_tokens = int(getattr(request, "num_computed_tokens", 0) or 0)
+        except Exception:
+            num_output_tokens = 0
+            num_prompt_tokens = 0
+            num_computed_tokens = 0
+
+        is_prefill = num_output_tokens <= 0 and num_computed_tokens < max(1, num_prompt_tokens)
+        if not is_prefill:
+            continue
+
+        old_scheduled_tokens = int(max(0, scheduled_tokens))
+        new_scheduled_tokens = max(1, min(int(target_chunk), old_scheduled_tokens))
+        if new_scheduled_tokens >= old_scheduled_tokens:
+            continue
+
+        num_scheduled_tokens[req_id] = int(new_scheduled_tokens)
+        total_delta += int(old_scheduled_tokens - new_scheduled_tokens)
+        clamped_any = True
+        state.metrics.record_phase1_step_trace(
+            request_id=req_id,
+            event="phase1_v1_update_after_schedule_clamp",
+            is_prefill=True,
+            num_computed_tokens=int(num_computed_tokens),
+            uncached=int(old_scheduled_tokens),
+            cached=0,
+            target_chunk=int(new_scheduled_tokens),
+        )
+
+    if not clamped_any:
+        return
+
+    try:
+        total_num_scheduled_tokens = int(getattr(scheduler_output, "total_num_scheduled_tokens", 0) or 0)
+        scheduler_output.total_num_scheduled_tokens = max(0, total_num_scheduled_tokens - total_delta)
+    except Exception:
+        pass
+
+
+def _build_v1_scheduler_update_after_schedule_hook(state: _PatchState) -> Callable[..., Any]:
+    original_update_after_schedule = state.original_scheduler_update_after_schedule
+    if original_update_after_schedule is None:
+        raise RuntimeError("v1 Scheduler._update_after_schedule hook requested without original method")
+
+    @functools.wraps(original_update_after_schedule)
+    def _wave_v1_scheduler_update_after_schedule(self: Any, scheduler_output: Any, *args: Any, **kwargs: Any) -> Any:
+        try:
+            _clamp_v1_scheduler_output_before_state_advance(
+                state=state,
+                scheduler_obj=self,
+                scheduler_output=scheduler_output,
+            )
+        except Exception:
+            logger.exception("[Wave-Slice] failed to clamp v1 scheduler output before state advance.")
+        return original_update_after_schedule(self, scheduler_output, *args, **kwargs)
+
+    _wave_v1_scheduler_update_after_schedule.__wave_slice_phase1_update_after_schedule_hook__ = True  # type: ignore[attr-defined]
+    return _wave_v1_scheduler_update_after_schedule
+
+
+def _compute_v1_waiting_num_new_tokens(
+    state: _PatchState,
+    scheduler_obj: Any,
+    request: Any,
+    num_computed_tokens: Any,
+    token_budget: Any,
+) -> int:
+    del scheduler_obj, token_budget
+    try:
+        num_computed = max(0, int(num_computed_tokens or 0))
+    except Exception:
+        num_computed = 0
+
+    try:
+        base_num_new_tokens = int(getattr(request, "num_tokens", 0) or 0) - num_computed
+    except Exception:
+        return 0
+    if base_num_new_tokens <= 0:
+        return base_num_new_tokens
+
+    request_id = str(getattr(request, "request_id", "") or "")
+    if not request_id:
+        return base_num_new_tokens
+
+    target_chunk = state.phase1_virtual_token_caps.get(request_id)
+    if target_chunk is None:
+        return base_num_new_tokens
+
+    try:
+        num_prompt_tokens = int(getattr(request, "num_prompt_tokens", 0) or 0)
+        num_output_tokens = int(getattr(request, "num_output_tokens", 0) or 0)
+    except Exception:
+        return base_num_new_tokens
+
+    if num_prompt_tokens <= 0 or num_output_tokens > 0 or num_computed >= num_prompt_tokens:
+        return base_num_new_tokens
+
+    state.metrics.record_phase1_step_trace(
+        request_id=request_id,
+        event="phase1_v1_schedule_waiting_num_new_tokens_seen",
+        is_prefill=True,
+        num_computed_tokens=int(num_computed),
+        uncached=int(base_num_new_tokens),
+        cached=0,
+        target_chunk=int(target_chunk),
+    )
+
+    clamped_num_new_tokens = max(1, min(int(target_chunk), int(base_num_new_tokens)))
+    if clamped_num_new_tokens >= int(base_num_new_tokens):
+        return base_num_new_tokens
+
+    state.metrics.record_phase1_step_trace(
+        request_id=request_id,
+        event="phase1_v1_schedule_waiting_num_new_tokens_clamp",
+        is_prefill=True,
+        num_computed_tokens=int(num_computed),
+        uncached=int(base_num_new_tokens),
+        cached=0,
+        target_chunk=int(clamped_num_new_tokens),
+    )
+    return clamped_num_new_tokens
+
+
+def _compute_v1_running_num_new_tokens(
+    state: _PatchState,
+    scheduler_obj: Any,
+    request: Any,
+) -> int:
+    del scheduler_obj
+    try:
+        num_computed = max(0, int(getattr(request, "num_computed_tokens", 0) or 0))
+        total_with_spec = int(getattr(request, "num_tokens_with_spec", 0) or 0)
+        num_output_placeholders = int(getattr(request, "num_output_placeholders", 0) or 0)
+    except Exception:
+        return 0
+
+    base_num_new_tokens = total_with_spec + num_output_placeholders - num_computed
+    if base_num_new_tokens <= 0:
+        return base_num_new_tokens
+
+    request_id = str(getattr(request, "request_id", "") or "")
+    if not request_id:
+        return base_num_new_tokens
+
+    target_chunk = state.phase1_virtual_token_caps.get(request_id)
+    if target_chunk is None:
+        return base_num_new_tokens
+
+    try:
+        num_prompt_tokens = int(getattr(request, "num_prompt_tokens", 0) or 0)
+        num_output_tokens = int(getattr(request, "num_output_tokens", 0) or 0)
+    except Exception:
+        return base_num_new_tokens
+
+    if num_prompt_tokens <= 0 or num_output_tokens > 0 or num_computed >= num_prompt_tokens:
+        return base_num_new_tokens
+
+    state.metrics.record_phase1_step_trace(
+        request_id=request_id,
+        event="phase1_v1_schedule_running_num_new_tokens_seen",
+        is_prefill=True,
+        num_computed_tokens=int(num_computed),
+        uncached=int(base_num_new_tokens),
+        cached=0,
+        target_chunk=int(target_chunk),
+    )
+
+    clamped_num_new_tokens = max(1, min(int(target_chunk), int(base_num_new_tokens)))
+    if clamped_num_new_tokens >= int(base_num_new_tokens):
+        return base_num_new_tokens
+
+    state.metrics.record_phase1_step_trace(
+        request_id=request_id,
+        event="phase1_v1_schedule_running_num_new_tokens_clamp",
+        is_prefill=True,
+        num_computed_tokens=int(num_computed),
+        uncached=int(base_num_new_tokens),
+        cached=0,
+        target_chunk=int(clamped_num_new_tokens),
+    )
+    return clamped_num_new_tokens
+
+
+def _build_v1_schedule_waiting_patch(
+    state: _PatchState,
+    original_schedule: Callable[..., Any],
+) -> Callable[..., Any]:
+    try:
+        source = textwrap.dedent(inspect.getsource(original_schedule))
+    except Exception:
+        logger.exception("[Wave-Slice] failed to read v1 Scheduler.schedule source for waiting patch.")
+        return original_schedule
+
+    waiting_needle = "num_new_tokens = request.num_tokens - num_computed_tokens"
+    waiting_replacement = (
+        "num_new_tokens = __wave_slice_compute_v1_waiting_num_new_tokens(\n"
+        "    self,\n"
+        "    request,\n"
+        "    num_computed_tokens,\n"
+        "    token_budget,\n"
+        ")"
+    )
+    running_pattern = re.compile(
+        r"num_new_tokens = \(request\.num_tokens_with_spec \+\n\s+request\.num_output_placeholders -\n\s+request\.num_computed_tokens\)"
+    )
+    running_replacement = (
+        "num_new_tokens = __wave_slice_compute_v1_running_num_new_tokens(\n"
+        "    self,\n"
+        "    request,\n"
+        ")"
+    )
+    patched_source, running_count = running_pattern.subn(running_replacement, source, count=1)
+    waiting_count = patched_source.count(waiting_needle)
+    if waiting_count > 0:
+        patched_source = patched_source.replace(waiting_needle, waiting_replacement, 1)
+    if running_count <= 0 and waiting_count <= 0:
+        logger.warning("[Wave-Slice] v1 Scheduler.schedule patch needles not found; fallback to original schedule.")
+        return original_schedule
+
+    patched_globals = dict(getattr(original_schedule, "__globals__", {}))
+    patched_globals["__wave_slice_compute_v1_waiting_num_new_tokens"] = functools.partial(
+        _compute_v1_waiting_num_new_tokens,
+        state,
+    )
+    patched_globals["__wave_slice_compute_v1_running_num_new_tokens"] = functools.partial(
+        _compute_v1_running_num_new_tokens,
+        state,
+    )
+    namespace: dict[str, Any] = {}
+    try:
+        exec(patched_source, patched_globals, namespace)
+        patched_schedule = namespace.get(getattr(original_schedule, "__name__", "schedule"))
+    except Exception:
+        logger.exception("[Wave-Slice] failed to compile patched v1 Scheduler.schedule.")
+        return original_schedule
+
+    if not callable(patched_schedule):
+        logger.warning("[Wave-Slice] compiled v1 Scheduler.schedule patch missing callable; fallback to original schedule.")
+        return original_schedule
+
+    patched_schedule = functools.wraps(original_schedule)(patched_schedule)
+    patched_schedule.__wave_slice_v1_waiting_patch__ = True  # type: ignore[attr-defined]
+    return patched_schedule
+
+
+def _phase1_prune_ingress_virtual_caps(state: _PatchState) -> dict[str, int]:
+    active_request_ids = {
+        str(req_id)
+        for req_id, prompt_tokens in getattr(state, "phase1_active_prompt_tokens", {}).items()
+        if str(req_id) and int(prompt_tokens or 0) > 0
+    }
+    ingress_request_ids = {
+        str(req_id)
+        for req_id in getattr(state, "phase1_ingress_virtuals", {}).keys()
+        if str(req_id)
+    }
+    keep_ids = active_request_ids | ingress_request_ids
+    return {
+        str(req_id): int(chunk)
+        for req_id, chunk in state.phase1_virtual_token_caps.items()
+        if str(req_id) in keep_ids and int(chunk) > 0
+    }
 
 
 def _phase1_rewrite_scheduler_outputs(
@@ -570,6 +1201,393 @@ def _phase1_force_public_schedule_rewrite(
     return scheduler_outputs, rewritten
 
 
+def _phase1_tick_hide_keep_ceiling(
+    *,
+    best_chunk: int,
+    cohort: _Phase1CohortStats,
+) -> int:
+    short_candidates = [
+        int(v)
+        for v in list(getattr(cohort, "short_lengths", []) or [])
+        if int(v) > 0
+    ]
+    short_candidates.append(max(1, int(getattr(cohort, "representative_short_len", 1) or 1)))
+    return max(max(1, int(best_chunk)), max(short_candidates))
+
+
+def _phase12_should_force_lora_tick_hide(
+    *,
+    state: _PatchState,
+    lora_mode_enabled: bool,
+    waiting_short_count: int,
+) -> bool:
+    if waiting_short_count <= 0:
+        return False
+    if not lora_mode_enabled:
+        return False
+    if not bool(getattr(state.policy, "phase12_joint_coordination", False)):
+        return False
+    if not bool(getattr(state.policy, "enable_phase2_modelrunner", False)):
+        return False
+    return True
+
+
+def _phase1_lora_cohort_key(seq_group: Any) -> Optional[str]:
+    lora_request = getattr(seq_group, "lora_request", None)
+    if lora_request is None:
+        seq = _safe_first_seq(seq_group)
+        lora_request = getattr(seq, "lora_request", None) if seq is not None else None
+    path = _safe_lora_path(lora_request)
+    if path:
+        return f"path:{path}"
+    rank = int(_infer_lora_rank(lora_request) or 0)
+    if rank > 0:
+        return f"rank:{rank}"
+    return None
+
+
+def _phase1_filter_snapshot_for_lora_cohort(
+    snapshot: list[tuple[Any, int]],
+    *,
+    preferred_request_id: Optional[str] = None,
+) -> list[tuple[Any, int]]:
+    if len(snapshot) < 2:
+        return snapshot
+
+    long_pair: Optional[tuple[Any, int]] = None
+    if preferred_request_id:
+        for seq_group, rem in snapshot:
+            if _safe_request_id(seq_group) == preferred_request_id:
+                long_pair = (seq_group, int(rem))
+                break
+    if long_pair is None:
+        try:
+            long_pair = max(snapshot, key=lambda item: int(item[1]))
+        except Exception:
+            return snapshot
+    if long_pair is None:
+        return snapshot
+
+    long_key = _phase1_lora_cohort_key(long_pair[0])
+    if not long_key:
+        return snapshot
+
+    filtered = [
+        (seq_group, int(rem))
+        for seq_group, rem in snapshot
+        if _phase1_lora_cohort_key(seq_group) == long_key
+    ]
+    if len(filtered) < 2:
+        return snapshot
+    return filtered
+
+
+def _phase1_build_ingress_fallback_cohort(
+    state: _PatchState,
+    snapshot: list[tuple[Any, int]],
+) -> Optional[_Phase1CohortStats]:
+    if not snapshot or not getattr(state, "phase1_ingress_virtuals", None):
+        return None
+    try:
+        long_seq_group, remaining = max(snapshot, key=lambda item: int(item[1]))
+    except Exception:
+        return None
+    request_id = _safe_request_id(long_seq_group)
+    if not request_id:
+        return None
+    ingress_virtual = getattr(state, "phase1_ingress_virtuals", {}).get(str(request_id))
+    if ingress_virtual is None:
+        return None
+    short_lengths = [
+        max(1, int(v))
+        for v in list(getattr(ingress_virtual, "short_lengths", []) or [])
+        if int(v) > 0
+    ]
+    representative_short_len = max(
+        1,
+        int(getattr(ingress_virtual, "representative_short_len", 1) or 1),
+    )
+    if not short_lengths:
+        short_lengths = [representative_short_len]
+    original_long_len = max(
+        1,
+        int(getattr(ingress_virtual, "original_long_len", remaining) or remaining),
+    )
+    if not _need_wave_slice(short_lengths + [original_long_len], state.policy):
+        return None
+    return _Phase1CohortStats(
+        representative_short_len=representative_short_len,
+        short_count=max(1, int(getattr(ingress_virtual, "short_count", len(short_lengths)) or len(short_lengths))),
+        short_token_mass=max(
+            representative_short_len,
+            int(getattr(ingress_virtual, "short_token_mass", sum(short_lengths)) or sum(short_lengths)),
+        ),
+        short_lengths=short_lengths,
+        long_len=max(1, int(remaining)),
+        long_req_id=str(request_id),
+        total_count=max(
+            2,
+            len(snapshot),
+            int(getattr(ingress_virtual, "active_count", len(short_lengths) + 1) or (len(short_lengths) + 1)),
+        ),
+    )
+
+
+def _phase1_build_global_activity_cohort(
+    state: _PatchState,
+    snapshot: list[tuple[Any, int]],
+) -> Optional[_Phase1CohortStats]:
+    if not snapshot:
+        return None
+
+    live_remaining: dict[str, int] = {}
+    for seq_group, rem in snapshot:
+        req_id = _safe_request_id(seq_group)
+        if not req_id:
+            continue
+        rem_i = int(rem)
+        if rem_i <= 0:
+            continue
+        existing = live_remaining.get(str(req_id))
+        if existing is None or rem_i > existing:
+            live_remaining[str(req_id)] = rem_i
+    if not live_remaining:
+        return None
+
+    active_prompt_tokens = {
+        str(req_id): int(prompt_tokens)
+        for req_id, prompt_tokens in getattr(state, "phase1_active_prompt_tokens", {}).items()
+        if str(req_id) and int(prompt_tokens or 0) > 0
+    }
+    ingress_virtuals = dict(getattr(state, "phase1_ingress_virtuals", {}) or {})
+    if not active_prompt_tokens and not ingress_virtuals:
+        return None
+
+    best: Optional[_Phase1CohortStats] = None
+    best_score: Optional[tuple[int, int, int]] = None
+    for request_id, remaining in live_remaining.items():
+        ingress_virtual = ingress_virtuals.get(str(request_id))
+        original_long_len = max(
+            int(remaining),
+            int(
+                getattr(ingress_virtual, "original_long_len", active_prompt_tokens.get(str(request_id), remaining))
+                or active_prompt_tokens.get(str(request_id), remaining)
+                or remaining
+            ),
+        )
+        short_lengths = [
+            max(1, int(v))
+            for v in list(getattr(ingress_virtual, "short_lengths", []) or [])
+            if int(v) > 0
+        ]
+        if not short_lengths:
+            short_lengths = sorted(
+                max(1, int(tok))
+                for rid, tok in active_prompt_tokens.items()
+                if str(rid) != str(request_id) and int(tok) > 0
+            )
+        if not short_lengths:
+            continue
+        if not _need_wave_slice(short_lengths + [original_long_len], state.policy):
+            continue
+
+        if bool(getattr(state.policy, "phase1_enable_cohort_mode", False)):
+            cohort_cap = max(
+                1,
+                int(original_long_len * float(getattr(state.policy, "phase1_short_cohort_long_fraction", 0.35))),
+            )
+            cohort_short_lengths = [int(v) for v in short_lengths if int(v) <= cohort_cap]
+            if len(cohort_short_lengths) < int(getattr(state.policy, "phase1_cohort_min_count", 2) or 2):
+                cohort_short_lengths = list(short_lengths)
+            if not cohort_short_lengths:
+                cohort_short_lengths = [int(min(short_lengths))]
+            representative_short_len = max(
+                1,
+                int(round(sum(cohort_short_lengths) / max(1, len(cohort_short_lengths)))),
+            )
+        else:
+            cohort_short_lengths = [int(min(short_lengths))]
+            representative_short_len = int(cohort_short_lengths[0])
+
+        candidate = _Phase1CohortStats(
+            representative_short_len=representative_short_len,
+            short_count=max(
+                1,
+                int(getattr(ingress_virtual, "short_count", len(cohort_short_lengths)) or len(cohort_short_lengths)),
+            ),
+            short_token_mass=max(
+                representative_short_len,
+                int(getattr(ingress_virtual, "short_token_mass", sum(cohort_short_lengths)) or sum(cohort_short_lengths)),
+            ),
+            short_lengths=[int(v) for v in cohort_short_lengths],
+            long_len=max(1, int(remaining)),
+            long_req_id=str(request_id),
+            total_count=max(
+                len(active_prompt_tokens),
+                len(cohort_short_lengths) + 1,
+                int(
+                    getattr(
+                        ingress_virtual,
+                        "active_count",
+                        len(active_prompt_tokens) or (len(cohort_short_lengths) + 1),
+                    )
+                    or (len(cohort_short_lengths) + 1)
+                ),
+            ),
+        )
+        score = (
+            int(candidate.long_len),
+            int(original_long_len),
+            int(candidate.total_count),
+        )
+        if best_score is None or score > best_score:
+            best = candidate
+            best_score = score
+    return best
+
+
+def _phase1_group_snapshot_by_lora_cohort(
+    snapshot: list[tuple[Any, int]],
+) -> dict[str, list[tuple[Any, int]]]:
+    grouped: dict[str, list[tuple[Any, int]]] = {}
+    for seq_group, rem in snapshot:
+        key = _phase1_lora_cohort_key(seq_group)
+        if not key:
+            continue
+        grouped.setdefault(key, []).append((seq_group, int(rem)))
+    return grouped
+
+
+def _phase1_candidate_chunk_for_snapshot(
+    *,
+    state: _PatchState,
+    snapshot: list[tuple[Any, int]],
+    max_wait_us: float,
+    queue_len: int,
+    scheduler_cfg: Any,
+    original_budget: Any,
+    original_threshold: Any,
+) -> Optional[tuple[_Phase1CohortStats, int]]:
+    lengths = [int(rem) for _, rem in snapshot]
+    if not _need_wave_slice(lengths, state.policy):
+        return None
+
+    cohort = _phase1_live_cohort_from_snapshot(
+        snapshot,
+        state.policy,
+        request_id_getter=_safe_request_id,
+    )
+    if cohort is None or not cohort.long_req_id:
+        return None
+
+    long_seq_group = _phase1_find_seq_group_by_request_id(
+        snapshot,
+        cohort.long_req_id,
+        request_id_getter=_safe_request_id,
+    )
+    if long_seq_group is None:
+        return None
+
+    short_len = int(cohort.representative_short_len)
+    long_len = int(cohort.long_len)
+    if long_len <= max(1, short_len):
+        return None
+
+    adjusted_queue_len = _phase1_adjusted_queue_len(cohort, queue_len, state.policy)
+    baseline_chunk = _phase1_baseline_chunk_proxy(
+        long_len=long_len,
+        original_budget=original_budget,
+        original_threshold=original_threshold,
+        scheduler_cfg=scheduler_cfg,
+        policy=state.policy,
+    )
+    best_chunk = state.slicer.choose_dynamic_chunk(
+        short_len=short_len,
+        long_len=long_len,
+        scheduler=state.brain,
+        t_wait_us=max_wait_us,
+        queue_length=adjusted_queue_len,
+        baseline_chunk=baseline_chunk,
+    )
+    explicit_chunk = _phase1_explicit_chunk_from_plan(
+        state=state,
+        cohort=cohort,
+        snapshot=snapshot,
+        t_wait_us=max_wait_us,
+        queue_length=adjusted_queue_len,
+        baseline_chunk=baseline_chunk,
+        total_tokens_getter=_safe_total_tokens,
+        request_id_getter=_safe_request_id,
+    )
+    if explicit_chunk is not None:
+        best_chunk = int(explicit_chunk[0])
+
+    if bool(state.policy.phase1_ingress_direct_authoritative):
+        total_len = max(1, int(_safe_total_tokens(long_seq_group) or long_len))
+        done_offset = max(0, int(total_len) - int(long_len))
+        direct_cap_chunk = _phase1_direct_chunk_candidate(
+            state=state,
+            cohort=cohort,
+            total_len=int(total_len),
+            done_offset=int(done_offset),
+            remaining_len=int(long_len),
+            baseline_chunk=baseline_chunk,
+        )
+        if direct_cap_chunk is not None:
+            best_chunk = min(int(best_chunk), int(direct_cap_chunk))
+
+    if _phase1_lora_cohort_key(long_seq_group):
+        # Under LoRA, the global ingress floor can be too coarse for the
+        # per-adapter short/long pair. Clamp against the cohort target itself
+        # so the short request can actually detach from its paired long prefill.
+        lora_cohort_target = max(
+            int(short_len),
+            min(int(long_len) - 1, int(_phase1_cohort_target_len(cohort, state.policy))),
+        )
+        best_chunk = min(int(best_chunk), int(lora_cohort_target))
+
+    best_chunk = max(int(short_len), min(int(best_chunk), int(long_len) - 1))
+    if best_chunk >= int(long_len):
+        return None
+    return cohort, int(best_chunk)
+
+
+def _phase1_collect_secondary_lora_caps(
+    *,
+    state: _PatchState,
+    snapshot: list[tuple[Any, int]],
+    primary_request_id: Optional[str],
+    max_wait_us: float,
+    queue_len: int,
+    scheduler_cfg: Any,
+    original_budget: Any,
+    original_threshold: Any,
+) -> dict[str, int]:
+    if not snapshot:
+        return {}
+
+    caps: dict[str, int] = {}
+    grouped = _phase1_group_snapshot_by_lora_cohort(snapshot)
+    for cohort_snapshot in grouped.values():
+        candidate = _phase1_candidate_chunk_for_snapshot(
+            state=state,
+            snapshot=cohort_snapshot,
+            max_wait_us=max_wait_us,
+            queue_len=queue_len,
+            scheduler_cfg=scheduler_cfg,
+            original_budget=original_budget,
+            original_threshold=original_threshold,
+        )
+        if candidate is None:
+            continue
+        cohort, best_chunk = candidate
+        req_id = str(cohort.long_req_id or "")
+        if not req_id or req_id == str(primary_request_id or ""):
+            continue
+        caps[req_id] = min(int(best_chunk), int(caps.get(req_id, best_chunk)))
+    return caps
+
+
 def _phase1_apply_sequence_len_shadow(
     *,
     state: _PatchState,
@@ -707,6 +1725,12 @@ def _phase12_joint_phase1_floor(
     if not (policy.enable_phase1_scheduler and policy.enable_phase2_modelrunner):
         return None
     if not bool(policy.phase12_joint_coordination):
+        return None
+    if not (
+        bool(policy.phase2_enable_execution_escape)
+        or bool(policy.phase2_enable_scheduler_cashout)
+        or bool(policy.phase2_enable_v1_true_unbind)
+    ):
         return None
     if hasattr(snapshot, "running") and hasattr(snapshot, "waiting"):
         seq_groups = list(snapshot.running) + list(snapshot.waiting)
@@ -1109,7 +2133,7 @@ def _phase12_scheduler_cashout_rewrite(
         state=state,
         policy=policy,
         request_id_getter=_safe_request_id,
-        expected_chunk_getter=_phase12_expected_chunk_tokens,
+        expected_chunk_getter=_phase12_expected_chunk_tokens_adapter,
         rank_infer=_infer_lora_rank,
     )
     phase12_ready, phase12_reason = _phase12_joint_phase2_ready(
@@ -1278,7 +2302,7 @@ def _phase12_apply_scheduler_cashout_to_queues(
         state=state,
         policy=policy,
         request_id_getter=_safe_request_id,
-        expected_chunk_getter=_phase12_expected_chunk_tokens,
+        expected_chunk_getter=_phase12_expected_chunk_tokens_adapter,
         rank_infer=_infer_lora_rank,
     )
     prefill_lens, lora_ranks = _phase12_collect_prefill_lora_state(
@@ -1653,6 +2677,91 @@ def _is_v1_scheduler_output(model_input: Any) -> bool:
     )
 
 
+def _record_phase2_v1_output_probe(
+    state: _PatchState,
+    *,
+    context: str,
+    model_input: Any,
+) -> bool:
+    is_v1 = _is_v1_scheduler_output(model_input)
+    state.metrics.record_phase2_debug_counter(
+        f"{str(context)}_v1_output_{'hits' if is_v1 else 'misses'}"
+    )
+    return is_v1
+
+
+def _record_true_unbind_subset_snapshot(
+    state: _PatchState,
+    *,
+    label: str,
+    model_input: Any,
+    selected_ids: list[str],
+) -> None:
+    tag = str(label or "subset").strip() or "subset"
+    selected_set = {str(rid) for rid in selected_ids if str(rid)}
+    cached = getattr(model_input, "scheduled_cached_reqs", None)
+    cached_req_ids = [str(rid) for rid in list(getattr(cached, "req_ids", []) or [])]
+    cached_req_ids_set = set(cached_req_ids)
+    new_reqs = list(getattr(model_input, "scheduled_new_reqs", []) or [])
+    selected_new_hits = sum(
+        1 for req in new_reqs if str(getattr(req, "req_id", "")) in selected_set
+    )
+    selected_cached_hits = sum(1 for rid in cached_req_ids if rid in selected_set)
+
+    snapshot_counts = {
+        f"true_unbind_{tag}_selected_req_ids_len": len(selected_set),
+        f"true_unbind_{tag}_selected_cached_hits": selected_cached_hits,
+        f"true_unbind_{tag}_selected_new_hits": selected_new_hits,
+        f"true_unbind_{tag}_source_cached_req_ids_len": len(cached_req_ids),
+        f"true_unbind_{tag}_source_cached_resumed_len": len(list(getattr(cached, "resumed_from_preemption", []) or [])),
+        f"true_unbind_{tag}_source_cached_new_token_ids_len": len(list(getattr(cached, "new_token_ids", []) or [])),
+        f"true_unbind_{tag}_source_cached_new_block_ids_len": len(list(getattr(cached, "new_block_ids", []) or [])),
+        f"true_unbind_{tag}_source_cached_num_computed_len": len(list(getattr(cached, "num_computed_tokens", []) or [])),
+        f"true_unbind_{tag}_source_new_reqs_len": len(new_reqs),
+        f"true_unbind_{tag}_source_num_sched_len": len(dict(getattr(model_input, "num_scheduled_tokens", {}) or {})),
+        f"true_unbind_{tag}_selected_not_in_cached_or_new": max(
+            0,
+            len(selected_set)
+            - selected_cached_hits
+            - selected_new_hits,
+        ),
+        f"true_unbind_{tag}_selected_overlap_cached_and_new": sum(
+            1
+            for req in new_reqs
+            if str(getattr(req, "req_id", "")) in selected_set
+            and str(getattr(req, "req_id", "")) in cached_req_ids_set
+        ),
+    }
+    for counter_name, amount in snapshot_counts.items():
+        state.metrics.record_phase2_debug_counter(counter_name, amount=int(amount))
+
+
+def _record_phase2_debug_duration_us(
+    state: _PatchState,
+    *,
+    name: str,
+    started_at: float,
+) -> int:
+    elapsed_us = max(0, int((time.perf_counter() - started_at) * 1_000_000.0))
+    metric_name = str(name or "").strip()
+    if metric_name:
+        state.metrics.record_phase2_debug_counter(f"{metric_name}_us_sum", amount=elapsed_us)
+        state.metrics.record_phase2_debug_counter(f"{metric_name}_count", amount=1)
+    return elapsed_us
+
+
+def _phase12_expected_chunk_tokens_adapter(
+    seq_group: Any,
+    state: Optional[_PatchState],
+    remaining: int,
+) -> int:
+    return _phase12_expected_chunk_tokens(
+        seq_group,
+        state=state,
+        remaining=remaining,
+    )
+
+
 def _safe_v1_pipeline_size(model_runner: Any) -> int:
     try:
         pc = getattr(model_runner, "parallel_config", None)
@@ -1693,30 +2802,39 @@ def _try_v1_true_unbind_execute(
     torch_mod: Any,
     stream_state: _RunnerStreamState,
 ) -> Optional[Any]:
+    total_started_at = time.perf_counter()
+    state.metrics.record_phase2_debug_counter("true_unbind_invocations")
     if not state.policy.phase2_enable_v1_true_unbind:
+        state.metrics.record_phase2_true_unbind_gate("disabled")
         return None
-    if not _is_v1_scheduler_output(model_input):
+    if not _record_phase2_v1_output_probe(
+        state,
+        context="true_unbind",
+        model_input=model_input,
+    ):
+        state.metrics.record_phase2_true_unbind_gate("non_v1_scheduler_output")
         return None
     if _safe_v1_pipeline_size(runner_self) > 1:
+        state.metrics.record_phase2_true_unbind_gate("pipeline_parallel_gt1")
         return None
     if getattr(model_input, "grammar_bitmask", None) is not None:
+        state.metrics.record_phase2_true_unbind_gate("grammar_bitmask_present")
         return None
     if dict(getattr(model_input, "structured_output_request_ids", {}) or {}):
+        state.metrics.record_phase2_true_unbind_gate("structured_output_present")
         return None
     if dict(getattr(model_input, "scheduled_spec_decode_tokens", {}) or {}):
+        state.metrics.record_phase2_true_unbind_gate("spec_decode_present")
         return None
     if getattr(model_input, "kv_connector_metadata", None) is not None:
+        state.metrics.record_phase2_true_unbind_gate("kv_connector_metadata_present")
         return None
     if getattr(getattr(runner_self, "input_batch", None), "pooling_params", None):
-        return None
-    # Keep the v1 replay path focused on heterogeneous prefills only.
-    try:
-        if any(int(tok) <= 1 for tok in dict(getattr(model_input, "num_scheduled_tokens", {}) or {}).values()):
-            return None
-    except Exception:
+        state.metrics.record_phase2_true_unbind_gate("pooling_params_present")
         return None
 
-    split_ids = _v1_partition_req_ids(
+    partition_started_at = time.perf_counter()
+    split_ids, partition_reason, partition_debug = _v1_partition_req_ids_diagnostic(
         model_input,
         state.policy,
         runner_self=runner_self,
@@ -1733,54 +2851,185 @@ def _try_v1_true_unbind_execute(
             policy=policy,
             req_infos=req_infos,
         ),
+        include_non_prefill_in_long=True,
     )
+    _record_phase2_debug_duration_us(
+        state,
+        name="true_unbind_partition",
+        started_at=partition_started_at,
+    )
+    state.metrics.record_phase2_debug_counter(
+        f"true_unbind_partition_reason_{partition_reason}"
+    )
+    for debug_name, amount in partition_debug.items():
+        state.metrics.record_phase2_debug_counter(
+            f"true_unbind_partition_{debug_name}",
+            amount=int(amount),
+        )
     if split_ids is None:
+        state.metrics.record_phase2_true_unbind_gate(f"no_partition_{partition_reason}")
+        state.metrics.record_phase2_true_unbind_gate("no_partition")
         return None
+    state.metrics.record_phase2_debug_counter("true_unbind_partition_ready")
     short_ids, long_ids = split_ids
     if not short_ids or not long_ids:
+        state.metrics.record_phase2_true_unbind_gate("empty_partition")
         return None
 
-    short_sched = _v1_build_subset_scheduler_output(
-        model_input,
-        short_ids,
-        carry_finished=True,
-        carry_kv_metadata=False,
+    _record_true_unbind_subset_snapshot(
+        state,
+        label="short",
+        model_input=model_input,
+        selected_ids=short_ids,
     )
-    long_sched = _v1_build_subset_scheduler_output(
-        model_input,
-        long_ids,
-        carry_finished=False,
-        carry_kv_metadata=False,
+    _record_true_unbind_subset_snapshot(
+        state,
+        label="long",
+        model_input=model_input,
+        selected_ids=long_ids,
     )
+    subset_build_started_at = time.perf_counter()
+    try:
+        short_sched = _v1_build_subset_scheduler_output(
+            model_input,
+            short_ids,
+            carry_finished=True,
+            carry_kv_metadata=False,
+        )
+        long_sched = _v1_build_subset_scheduler_output(
+            model_input,
+            long_ids,
+            carry_finished=False,
+            carry_kv_metadata=False,
+        )
+    except Exception as exc:
+        state.metrics.record_phase2_debug_counter(
+            f"true_unbind_subset_build_exception_{type(exc).__name__}"
+        )
+        state.metrics.record_phase2_true_unbind_gate(
+            f"subset_build_exception_{type(exc).__name__}"
+        )
+        logger.exception("[Wave-Slice][P2-v1-unbind] subset scheduler-output build failed.")
+        raise
+    finally:
+        _record_phase2_debug_duration_us(
+            state,
+            name="true_unbind_subset_build",
+            started_at=subset_build_started_at,
+        )
     if getattr(short_sched, "total_num_scheduled_tokens", 0) <= 0 or getattr(long_sched, "total_num_scheduled_tokens", 0) <= 0:
+        state.metrics.record_phase2_true_unbind_gate("empty_subset_schedule")
         return None
+    state.metrics.record_phase2_debug_counter("true_unbind_subset_ready")
+    state.metrics.record_phase2_debug_counter(
+        "true_unbind_short_total_sched_tokens",
+        amount=int(getattr(short_sched, "total_num_scheduled_tokens", 0) or 0),
+    )
+    state.metrics.record_phase2_debug_counter(
+        "true_unbind_long_total_sched_tokens",
+        amount=int(getattr(long_sched, "total_num_scheduled_tokens", 0) or 0),
+    )
 
     strict_mode = _is_phase2_strict(state.policy)
     if strict_mode:
+        pre_sync_started_at = time.perf_counter()
         torch_mod.cuda.synchronize(device=stream_state.device)
+        _record_phase2_debug_duration_us(
+            state,
+            name="true_unbind_pre_sync",
+            started_at=pre_sync_started_at,
+        )
 
     main_stream = torch_mod.cuda.current_stream(device=stream_state.device)
     stream_state.fast_stream.wait_stream(main_stream)
     with torch_mod.cuda.stream(stream_state.fast_stream):
-        out_short = _call_original_execute_with_model_input(
-            original_execute, runner_self, short_sched, args, kwargs
-        )
+        short_execute_started_at = time.perf_counter()
+        try:
+            out_short = _call_original_execute_with_model_input(
+                original_execute, runner_self, short_sched, args, kwargs
+            )
+            out_short = _freeze_v1_runner_output(out_short)
+        except Exception as exc:
+            state.metrics.record_phase2_debug_counter(
+                f"true_unbind_short_execute_exception_{type(exc).__name__}"
+            )
+            state.metrics.record_phase2_true_unbind_gate(
+                f"short_execute_exception_{type(exc).__name__}"
+            )
+            logger.exception("[Wave-Slice][P2-v1-unbind] short subset execute failed.")
+            raise
+        finally:
+            _record_phase2_debug_duration_us(
+                state,
+                name="true_unbind_short_execute",
+                started_at=short_execute_started_at,
+            )
+        state.metrics.record_phase2_debug_counter("true_unbind_short_execute_ok")
         evt_short = torch_mod.cuda.Event(enable_timing=False)
         evt_short.record(stream_state.fast_stream)
+    wait_event_started_at = time.perf_counter()
     main_stream.wait_event(evt_short)
-
-    out_long = _call_original_execute_with_model_input(
-        original_execute, runner_self, long_sched, args, kwargs
+    _record_phase2_debug_duration_us(
+        state,
+        name="true_unbind_wait_event",
+        started_at=wait_event_started_at,
     )
 
-    merged = _merge_v1_runner_outputs(
-        original_order=[str(rid) for rid in dict(getattr(model_input, "num_scheduled_tokens", {}) or {}).keys()],
-        out_a=out_short,
-        out_b=out_long,
-    )
+    long_execute_started_at = time.perf_counter()
+    try:
+        out_long = _call_original_execute_with_model_input(
+            original_execute, runner_self, long_sched, args, kwargs
+        )
+        out_long = _freeze_v1_runner_output(out_long)
+    except Exception as exc:
+        state.metrics.record_phase2_debug_counter(
+            f"true_unbind_long_execute_exception_{type(exc).__name__}"
+        )
+        state.metrics.record_phase2_true_unbind_gate(
+            f"long_execute_exception_{type(exc).__name__}"
+        )
+        logger.exception("[Wave-Slice][P2-v1-unbind] long subset execute failed.")
+        raise
+    finally:
+        _record_phase2_debug_duration_us(
+            state,
+            name="true_unbind_long_execute",
+            started_at=long_execute_started_at,
+        )
+    state.metrics.record_phase2_debug_counter("true_unbind_long_execute_ok")
+
+    merge_started_at = time.perf_counter()
+    try:
+        merged = _merge_v1_runner_outputs(
+            original_order=[str(rid) for rid in dict(getattr(model_input, "num_scheduled_tokens", {}) or {}).keys()],
+            out_a=out_short,
+            out_b=out_long,
+        )
+    except Exception as exc:
+        state.metrics.record_phase2_debug_counter(
+            f"true_unbind_merge_exception_{type(exc).__name__}"
+        )
+        state.metrics.record_phase2_true_unbind_gate(
+            f"merge_exception_{type(exc).__name__}"
+        )
+        logger.exception("[Wave-Slice][P2-v1-unbind] merge failed.")
+        raise
+    finally:
+        _record_phase2_debug_duration_us(
+            state,
+            name="true_unbind_merge",
+            started_at=merge_started_at,
+        )
+    state.metrics.record_phase2_debug_counter("true_unbind_merge_ok")
 
     if strict_mode:
+        post_sync_started_at = time.perf_counter()
         torch_mod.cuda.synchronize(device=stream_state.device)
+        _record_phase2_debug_duration_us(
+            state,
+            name="true_unbind_post_sync",
+            started_at=post_sync_started_at,
+        )
 
     logger.info(
         "[Wave-Slice][P2-v1-unbind] short=%d long=%d short_tokens=%d long_tokens=%d",
@@ -1793,11 +3042,22 @@ def _try_v1_true_unbind_execute(
         0,
         int(getattr(state.policy, "phase12_phase2_sparse_cashout_cooldown", 2) or 0),
     )
+    _record_phase2_debug_duration_us(
+        state,
+        name="true_unbind_total",
+        started_at=total_started_at,
+    )
+    state.metrics.record_phase2_debug_counter("true_unbind_return_ready")
     return merged
 
 
 def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
     original_schedule = state.original_schedule
+    schedule_impl = (
+        _build_v1_schedule_waiting_patch(state, original_schedule)
+        if state.scheduler_method_name == "schedule"
+        else original_schedule
+    )
 
     @functools.wraps(original_schedule)
     def _wave_schedule_hook(self: Any, *args: Any, **kwargs: Any) -> Any:
@@ -1823,6 +3083,35 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                     logger.exception("[Wave-Slice] inline scheduler cashout rewrite failed.")
             return outputs
 
+        def _run_schedule_with_optional_phase2_cashout() -> Any:
+            restore_phase2_running = None
+            restore_phase2_waiting = None
+            live_running = getattr(self, "running", None)
+            live_waiting = getattr(self, "waiting", None)
+            if (
+                _phase2_scheduler_cashout_enabled(state.policy)
+                and _has_running_waiting_queues(self)
+                and live_running is not None
+                and live_waiting is not None
+            ):
+                try:
+                    restore_phase2_running, restore_phase2_waiting = _capture_queue_pair(self)
+                    self.running, self.waiting, _, _, _ = _phase12_apply_scheduler_cashout_to_queues(
+                        state=state,
+                        running=self.running,
+                        waiting=self.waiting,
+                    )
+                except Exception:
+                    logger.exception("[Wave-Slice] pre-schedule cashout wrapper failed.")
+            try:
+                outputs = schedule_impl(self, *args, **kwargs)
+            finally:
+                try:
+                    _restore_queue_pair(self, restore_phase2_running, restore_phase2_waiting)
+                except Exception:
+                    pass
+            return _maybe_apply_phase2_schedule_cashout(outputs)
+
         def _is_lora_mode_enabled(scheduler_obj: Any) -> bool:
             # Conservative detection across vLLM variants.
             direct = getattr(scheduler_obj, "lora_config", None)
@@ -1840,18 +3129,18 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
 
         if not _has_running_waiting_queues(self):
             _emit_schedule_hook_early("missing_running_waiting")
-            return _maybe_apply_phase2_schedule_cashout(original_schedule(self, *args, **kwargs))
+            return _run_schedule_with_optional_phase2_cashout()
 
         running = self.running
         waiting = self.waiting
         if running is None or waiting is None:
             _emit_schedule_hook_early("null_running_waiting")
-            return _maybe_apply_phase2_schedule_cashout(original_schedule(self, *args, **kwargs))
+            return _run_schedule_with_optional_phase2_cashout()
 
         if not state.policy.enable_phase1_scheduler:
             state.metrics.record_scheduler_decision(False)
             _emit_schedule_hook_early("phase1_disabled")
-            return _maybe_apply_phase2_schedule_cashout(original_schedule(self, *args, **kwargs))
+            return _run_schedule_with_optional_phase2_cashout()
 
         lora_mode_enabled = _is_lora_mode_enabled(self)
         can_phase1_threshold = state.policy.enable_phase1_dynamic_threshold and (
@@ -1875,7 +3164,7 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
         if lora_mode_enabled and not (can_phase1_threshold or can_phase1_budget or can_phase1_tick_hide):
             state.metrics.record_scheduler_decision(False)
             _emit_schedule_hook_early("lora_guard")
-            return _maybe_apply_phase2_schedule_cashout(original_schedule(self, *args, **kwargs))
+            return _run_schedule_with_optional_phase2_cashout()
 
         # Metrics-side request observation from scheduler internals.
         for sg in list(waiting) + list(running):
@@ -1918,11 +3207,7 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                 running = self.running
                 waiting = self.waiting
             if bool(state.policy.phase1_ingress_direct_authoritative):
-                state.phase1_virtual_token_caps = {
-                    str(req_id): int(chunk)
-                    for req_id, chunk in state.phase1_virtual_token_caps.items()
-                    if str(req_id) in state.phase1_ingress_virtuals and int(chunk) > 0
-                }
+                state.phase1_virtual_token_caps = _phase1_prune_ingress_virtual_caps(state)
             else:
                 state.phase1_virtual_token_caps.clear()
             ingress_eager_chunk: Optional[int] = None
@@ -1931,17 +3216,33 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
             cohort_target_raw: Optional[int] = None
 
             snapshot, max_wait_us = _collect_live_snapshot(waiting, running)
+            snapshot_lengths = [int(rem) for _, rem in snapshot]
+            selection_snapshot = snapshot
+            global_activity_cohort = (
+                _phase1_build_global_activity_cohort(state, snapshot)
+                if not lora_mode_enabled
+                else None
+            )
             ingress_candidate = _phase1_find_ingress_virtual_candidate(
                 state.phase1_ingress_virtuals,
                 snapshot=snapshot,
                 request_id_getter=_safe_request_id,
             )
-            lengths = [int(rem) for _, rem in snapshot]
+            if lora_mode_enabled:
+                selection_snapshot = _phase1_filter_snapshot_for_lora_cohort(
+                    snapshot,
+                    preferred_request_id=(
+                        str(ingress_candidate[0].long_req_id)
+                        if ingress_candidate is not None and getattr(ingress_candidate[0], "long_req_id", None)
+                        else None
+                    ),
+                )
+            selection_lengths = [int(rem) for _, rem in selection_snapshot]
             cohort = None
             if ingress_candidate is not None:
                 ingress_virtual, _ingress_seq_group, ingress_remaining = ingress_candidate
                 live_cohort = _phase1_live_cohort_from_snapshot(
-                    snapshot,
+                    selection_snapshot,
                     state.policy,
                     request_id_getter=_safe_request_id,
                 )
@@ -1969,61 +3270,96 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                     reason="ingress_virtual_override",
                     short_len=int(cohort.representative_short_len),
                     long_len=int(cohort.long_len),
-                    queue_len=len(lengths),
+                    queue_len=len(selection_lengths),
                     wait_us=max_wait_us,
                     slice_eligible=False,
                 )
             else:
-                if not _need_wave_slice(lengths, state.policy):
-                    state.metrics.record_phase1_probe(
-                        reason="no_need_wave_slice",
-                        short_len=min(lengths) if lengths else None,
-                        long_len=max(lengths) if lengths else None,
-                        queue_len=len(lengths),
-                        wait_us=max_wait_us,
-                        slice_eligible=False,
+                if not _need_wave_slice(snapshot_lengths, state.policy):
+                    fallback_cohort = global_activity_cohort
+                    if fallback_cohort is None and not lora_mode_enabled:
+                        fallback_cohort = _phase1_build_ingress_fallback_cohort(
+                            state,
+                            snapshot,
+                        )
+                    if fallback_cohort is not None:
+                        cohort = fallback_cohort
+                        state.metrics.record_phase1_probe(
+                            reason="ingress_virtual_override",
+                            short_len=int(cohort.representative_short_len),
+                            long_len=int(cohort.long_len),
+                            queue_len=len(snapshot_lengths),
+                            wait_us=max_wait_us,
+                            slice_eligible=False,
+                        )
+                    else:
+                        state.metrics.record_phase1_probe(
+                            reason="no_need_wave_slice",
+                            short_len=min(snapshot_lengths) if snapshot_lengths else None,
+                            long_len=max(snapshot_lengths) if snapshot_lengths else None,
+                            queue_len=len(snapshot_lengths),
+                            wait_us=max_wait_us,
+                            slice_eligible=False,
+                        )
+                        state.metrics.record_scheduler_decision(False)
+                        state.phase1_sticky_req_id = None
+                        state.phase1_sticky_chunk = None
+                        state.phase1_sticky_ttl_left = 0
+                        if not waiting and not running:
+                            state.phase1_explicit_plans.clear()
+                        _emit_schedule_hook_early(
+                            "no_need_wave_slice",
+                            snapshot_count=len(snapshot_lengths),
+                            min_len=(min(snapshot_lengths) if snapshot_lengths else 0),
+                            max_len=(max(snapshot_lengths) if snapshot_lengths else 0),
+                            hetero_ratio=(
+                                (float(max(snapshot_lengths)) / float(max(1, min(snapshot_lengths))))
+                                if snapshot_lengths else 0.0
+                            ),
+                        )
+                        return _run_schedule_with_optional_phase2_cashout()
+                if cohort is None:
+                    cohort = _phase1_live_cohort_from_snapshot(
+                        selection_snapshot,
+                        state.policy,
+                        request_id_getter=_safe_request_id,
                     )
-                    state.metrics.record_scheduler_decision(False)
-                    state.phase1_sticky_req_id = None
-                    state.phase1_sticky_chunk = None
-                    state.phase1_sticky_ttl_left = 0
-                    if not waiting and not running:
-                        state.phase1_explicit_plans.clear()
-                    _emit_schedule_hook_early(
-                        "no_need_wave_slice",
-                        snapshot_count=len(lengths),
-                        min_len=(min(lengths) if lengths else 0),
-                        max_len=(max(lengths) if lengths else 0),
-                        hetero_ratio=(
-                            (float(max(lengths)) / float(max(1, min(lengths))))
-                            if lengths else 0.0
-                        ),
+                if cohort is None and global_activity_cohort is not None:
+                    cohort = global_activity_cohort
+                if (
+                    cohort is None
+                    and lora_mode_enabled
+                    and selection_snapshot is not snapshot
+                ):
+                    cohort = _phase1_live_cohort_from_snapshot(
+                        snapshot,
+                        state.policy,
+                        request_id_getter=_safe_request_id,
                     )
-                    return _maybe_apply_phase2_schedule_cashout(original_schedule(self, *args, **kwargs))
-
-                cohort = _phase1_live_cohort_from_snapshot(
-                    snapshot,
-                    state.policy,
-                    request_id_getter=_safe_request_id,
-                )
                 if cohort is None:
                     state.metrics.record_phase1_probe(
                         reason="no_cohort",
-                        short_len=min(lengths) if lengths else None,
-                        long_len=max(lengths) if lengths else None,
-                        queue_len=len(lengths),
+                        short_len=min(snapshot_lengths) if snapshot_lengths else None,
+                        long_len=max(snapshot_lengths) if snapshot_lengths else None,
+                        queue_len=len(snapshot_lengths),
                         wait_us=max_wait_us,
                         slice_eligible=False,
                     )
                     state.metrics.record_scheduler_decision(False)
                     _emit_schedule_hook_early("no_cohort")
-                    return _maybe_apply_phase2_schedule_cashout(original_schedule(self, *args, **kwargs))
+                    return _run_schedule_with_optional_phase2_cashout()
 
             long_seq_group = _phase1_find_seq_group_by_request_id(
-                snapshot,
+                selection_snapshot,
                 cohort.long_req_id,
                 request_id_getter=_safe_request_id,
             )
+            if long_seq_group is None and selection_snapshot is not snapshot:
+                long_seq_group = _phase1_find_seq_group_by_request_id(
+                    snapshot,
+                    cohort.long_req_id,
+                    request_id_getter=_safe_request_id,
+                )
 
             short_len = int(cohort.representative_short_len)
             long_len = int(cohort.long_len)
@@ -2043,8 +3379,11 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                 and cohort.long_req_id
             ):
                 upper = max(short_len + 1, long_len - 1)
-                ingress_min = max(1, int(state.policy.phase1_ingress_min_chunk))
                 cohort_target_raw = int(_phase1_cohort_target_len(cohort, state.policy))
+                ingress_min = _phase1_effective_ingress_min_chunk(
+                    state.policy,
+                    target=int(cohort_target_raw),
+                )
                 eager_target = min(upper, int(cohort_target_raw))
                 if upper >= ingress_min:
                     eager_target = max(eager_target, ingress_min)
@@ -2091,7 +3430,7 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
             explicit_chunk = _phase1_explicit_chunk_from_plan(
                 state=state,
                 cohort=cohort,
-                snapshot=snapshot,
+                snapshot=selection_snapshot,
                 t_wait_us=max_wait_us,
                 queue_length=adjusted_queue_len,
                 baseline_chunk=baseline_chunk,
@@ -2136,7 +3475,10 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
             if explicit_plan_kind in {"direct_authoritative", "ingress_authoritative_eager"}:
                 best_chunk = max(
                     int(best_chunk),
-                    max(1, int(state.policy.phase1_ingress_min_chunk)),
+                    _phase1_effective_ingress_min_chunk(
+                        state.policy,
+                        target=int(best_chunk),
+                    ),
                 )
             else:
                 best_chunk, forced_chunk = _maybe_force_phase1_chunk(
@@ -2175,7 +3517,7 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                     applied=False,
                 )
                 _emit_schedule_hook_early("best_chunk_ge_long")
-                return _maybe_apply_phase2_schedule_cashout(original_schedule(self, *args, **kwargs))
+                return _run_schedule_with_optional_phase2_cashout()
         except Exception as exc:
             logger.exception("Wave-Slice Phase I pre-check failed; fallback to original scheduler.")
             state.metrics.record_phase1_probe(
@@ -2189,9 +3531,10 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                 min_len=(min(lengths) if "lengths" in locals() and lengths else 0),
                 max_len=(max(lengths) if "lengths" in locals() and lengths else 0),
             )
-            return _maybe_apply_phase2_schedule_cashout(original_schedule(self, *args, **kwargs))
+            return _run_schedule_with_optional_phase2_cashout()
 
         hidden_long_tasks: list[Any] = []
+        hidden_long_waiting_tasks: list[Any] = []
         hidden_phase2_running: list[Any] = []
         hidden_phase2_waiting: list[Any] = []
         state.metrics.record_scheduler_decision(True)
@@ -2201,10 +3544,14 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
             best_chunk=best_chunk,
             policy=state.policy,
         )
+        phase1_tick_hide_keep_ceiling = _phase1_tick_hide_keep_ceiling(
+            best_chunk=best_chunk,
+            cohort=cohort,
+        )
         waiting_short_count = sum(
             1
             for sg in waiting
-            if 0 < (_safe_prefill_uncomputed_tokens(sg) or 0) <= max(best_chunk, short_len)
+            if 0 < (_safe_prefill_uncomputed_tokens(sg) or 0) <= phase1_tick_hide_keep_ceiling
         )
         state.metrics.record_phase1_probe(
             reason="apply",
@@ -2238,17 +3585,84 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
         )
 
         try:
+            waiting_cap_cleanup_requests: list[Any] = []
+            waiting_cap_restore_specs: list[tuple[Any, str, Any]] = []
+            if bool(state.policy.phase1_ingress_direct_authoritative):
+                try:
+                    (
+                        waiting_cap_cleanup_requests,
+                        waiting_cap_restore_specs,
+                    ) = _install_v1_waiting_cap_runtime_hooks(state, self)
+                except Exception:
+                    logger.exception("[Wave-Slice] failed to install v1 waiting-cap runtime hooks.")
             state.phase1_shadow_seq_lens.clear()
+            secondary_lora_caps: dict[str, int] = {}
+            if bool(state.policy.phase1_ingress_direct_authoritative) and lora_mode_enabled:
+                try:
+                    secondary_lora_caps = _phase1_collect_secondary_lora_caps(
+                        state=state,
+                        snapshot=snapshot,
+                        primary_request_id=cohort.long_req_id,
+                        max_wait_us=max_wait_us,
+                        queue_len=queue_len,
+                        scheduler_cfg=scheduler_cfg,
+                        original_budget=original_budget,
+                        original_threshold=original_threshold,
+                    )
+                except Exception:
+                    logger.exception("[Wave-Slice] failed to collect secondary LoRA Phase-I caps.")
             if cohort.long_req_id and best_chunk < long_len:
+                total_tokens_for_target = max(1, int(_safe_total_tokens(long_seq_group) or long_len))
+                done_tokens_for_target = max(0, int(total_tokens_for_target - long_len))
                 state.phase1_virtual_token_caps[str(cohort.long_req_id)] = int(best_chunk)
                 state.phase1_public_skip_rewrite_requests.add(str(cohort.long_req_id))
                 state.metrics.record_phase1_virtual_cap_probe(target_set=True)
+                state.metrics.record_phase1_step_trace(
+                    request_id=str(cohort.long_req_id),
+                    event="phase1_target_set",
+                    is_prefill=True,
+                    num_computed_tokens=done_tokens_for_target,
+                    uncached=int(long_len),
+                    cached=0,
+                    target_chunk=int(best_chunk),
+                )
                 logger.info(
                     "[Wave-Slice][P1-virtual-target] req=%s target_chunk=%d long_len=%d baseline_chunk=%s",
                     str(cohort.long_req_id),
                     int(best_chunk),
                     int(long_len),
                     str(baseline_chunk) if baseline_chunk is not None else "none",
+                )
+            for secondary_req_id, secondary_chunk in secondary_lora_caps.items():
+                if int(secondary_chunk) <= 0:
+                    continue
+                existing_cap = state.phase1_virtual_token_caps.get(str(secondary_req_id))
+                if existing_cap is not None and int(existing_cap) <= int(secondary_chunk):
+                    continue
+                secondary_seq_group = _phase1_find_seq_group_by_request_id(
+                    snapshot,
+                    str(secondary_req_id),
+                    request_id_getter=_safe_request_id,
+                )
+                secondary_total = int(_safe_total_tokens(secondary_seq_group) or 0) if secondary_seq_group is not None else 0
+                secondary_remaining = int(_safe_remaining_tokens(secondary_seq_group) or secondary_total)
+                secondary_done = max(0, int(secondary_total) - int(secondary_remaining))
+                state.phase1_virtual_token_caps[str(secondary_req_id)] = int(secondary_chunk)
+                state.phase1_public_skip_rewrite_requests.add(str(secondary_req_id))
+                state.metrics.record_phase1_virtual_cap_probe(target_set=True)
+                state.metrics.record_phase1_step_trace(
+                    request_id=str(secondary_req_id),
+                    event="phase1_secondary_target_set",
+                    is_prefill=True,
+                    num_computed_tokens=int(secondary_done),
+                    uncached=max(1, int(secondary_remaining)),
+                    cached=0,
+                    target_chunk=int(secondary_chunk),
+                )
+                logger.info(
+                    "[Wave-Slice][P1-secondary-target] req=%s target_chunk=%d",
+                    str(secondary_req_id),
+                    int(secondary_chunk),
                 )
             use_seq_len_shadow = not bool(state.policy.phase1_ingress_direct_authoritative)
             if use_seq_len_shadow and long_seq_group is not None and best_chunk < long_len:
@@ -2259,12 +3673,39 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                 )
 
             if can_phase1_tick_hide and waiting_short_count > 0:
+                force_joint_lora_tick_hide = _phase12_should_force_lora_tick_hide(
+                    state=state,
+                    lora_mode_enabled=lora_mode_enabled,
+                    waiting_short_count=waiting_short_count,
+                )
                 first_wait_len = _safe_remaining_tokens(waiting[0]) or 0
-                if first_wait_len > 0 and first_wait_len <= max(best_chunk, short_len):
+                if force_joint_lora_tick_hide or (
+                    first_wait_len > 0 and first_wait_len <= phase1_tick_hide_keep_ceiling
+                ):
+                    if force_joint_lora_tick_hide:
+                        state.metrics.record_phase1_step_trace(
+                            request_id=str(cohort.long_req_id or ""),
+                            event="phase12_joint_lora_tick_hide_force",
+                            is_prefill=True,
+                            num_computed_tokens=0,
+                            uncached=int(long_len),
+                            cached=0,
+                            target_chunk=int(phase1_tick_hide_keep_ceiling),
+                        )
+                    new_waiting_items: list[Any] = []
+                    for seq_group in waiting:
+                        remaining = _safe_remaining_tokens(seq_group) or 0
+                        if remaining > phase1_tick_hide_keep_ceiling:
+                            hidden_long_waiting_tasks.append(seq_group)
+                        else:
+                            new_waiting_items.append(seq_group)
+                    if hidden_long_waiting_tasks:
+                        self.waiting = _rebuild_queue_like(waiting, new_waiting_items)
+                        waiting = self.waiting
                     new_running_items: list[Any] = []
                     for seq_group in running:
                         remaining = _safe_remaining_tokens(seq_group) or 0
-                        if remaining > best_chunk:
+                        if remaining > phase1_tick_hide_keep_ceiling:
                             hidden_long_tasks.append(seq_group)
                         else:
                             new_running_items.append(seq_group)
@@ -2316,7 +3757,7 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                 str(explicit_plan_kind) if explicit_plan_kind is not None else "off",
                 queue_len,
                 short_token_mass,
-                len(hidden_long_tasks),
+                len(hidden_long_tasks) + len(hidden_long_waiting_tasks),
                 str(new_threshold) if new_threshold is not None else "unchanged",
                 str(new_budget) if new_budget is not None else "unchanged",
             )
@@ -2325,7 +3766,7 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                 running=self.running,
                 waiting=self.waiting,
             )
-            outputs = original_schedule(self, *args, **kwargs)
+            outputs = schedule_impl(self, *args, **kwargs)
             outputs = _maybe_apply_phase2_schedule_cashout(outputs)
             outputs, rewritten, rewritten_groups, old_chunk_sum, new_chunk_sum, token_delta_sum = _phase1_rewrite_scheduler_outputs(
                 outputs=outputs,
@@ -2347,6 +3788,13 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                 )
             return outputs
         finally:
+            try:
+                _restore_v1_waiting_cap_runtime_hooks(
+                    waiting_cap_cleanup_requests if "waiting_cap_cleanup_requests" in locals() else [],
+                    waiting_cap_restore_specs if "waiting_cap_restore_specs" in locals() else [],
+                )
+            except Exception:
+                pass
             state.phase1_shadow_seq_lens.clear()
             state.phase1_virtual_token_caps.clear()
             if scheduler_cfg is not None and isinstance(original_budget, int) and original_budget > 0:
@@ -2362,6 +3810,15 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
             if hidden_long_tasks and hasattr(self, "running"):
                 try:
                     self.running.extend(hidden_long_tasks)
+                except Exception:
+                    pass
+            if hidden_long_waiting_tasks and hasattr(self, "waiting"):
+                try:
+                    self.waiting = _restore_hidden_queue_items(
+                        self.waiting,
+                        hidden_long_waiting_tasks,
+                        queue_rebuilder=_rebuild_queue_like,
+                    )
                 except Exception:
                     pass
             if hidden_phase2_running and hasattr(self, "running"):
@@ -2554,7 +4011,12 @@ def _build_model_runner_hook(state: _PatchState) -> Callable[..., Any]:
         if bool(getattr(state.policy, "phase2_enable_execution_escape", False)):
             try:
                 split_ids = None
-                if _is_v1_scheduler_output(model_input):
+                model_input_is_v1 = _record_phase2_v1_output_probe(
+                    state,
+                    context="execution_escape",
+                    model_input=model_input,
+                )
+                if model_input_is_v1:
                     split_ids = _v1_execution_escape_req_ids(
                         model_input,
                         state.policy,
@@ -2590,6 +4052,7 @@ def _build_model_runner_hook(state: _PatchState) -> Callable[..., Any]:
                     # needed by the execution-escape lane. Fall back to the legacy
                     # Phase-II decision path below instead of short-circuiting the
                     # whole Phase-II block as a permanent no-candidate.
+                    state.metrics.record_phase2_debug_counter("execution_escape_fallback_steps")
                     state.metrics.record_phase2_decision(False, "execution_escape_v0_fallback")
             except Exception:
                 logger.exception("Wave-Slice execution escape activation failed; falling back to original execute.")
@@ -2601,7 +4064,8 @@ def _build_model_runner_hook(state: _PatchState) -> Callable[..., Any]:
                     exception_message=str(exc)[:240] if exc is not None else "",
                 )
                 return original_execute(self, *args, **kwargs)
-            if _is_v1_scheduler_output(model_input):
+            if model_input_is_v1:
+                state.metrics.record_phase2_debug_counter("execution_escape_original_execute_returns")
                 return original_execute(self, *args, **kwargs)
 
         if _phase2_scheduler_cashout_enabled(state.policy) and not bool(
@@ -2623,6 +4087,7 @@ def _build_model_runner_hook(state: _PatchState) -> Callable[..., Any]:
             return original_execute(self, *args, **kwargs)
 
         try:
+            state.metrics.record_phase2_debug_counter("true_unbind_outer_attempts")
             v1_unbind_output = _try_v1_true_unbind_execute(
                 runner_self=self,
                 state=state,
@@ -2634,8 +4099,10 @@ def _build_model_runner_hook(state: _PatchState) -> Callable[..., Any]:
                 stream_state=stream_state,
             )
             if v1_unbind_output is not None:
+                state.metrics.record_phase2_debug_counter("true_unbind_outer_returned_output")
                 state.metrics.record_phase2_v1_unbind()
                 return v1_unbind_output
+            state.metrics.record_phase2_debug_counter("true_unbind_outer_returned_none")
 
             if strict_mode:
                 # Enforce a conservative boundary to reduce numerical drift.
@@ -2678,7 +4145,14 @@ def _build_model_runner_hook(state: _PatchState) -> Callable[..., Any]:
                 decision.lora_ranks,
             )
             return output
-        except Exception:
+        except Exception as exc:
+            state.metrics.record_phase2_debug_counter(
+                f"true_unbind_outer_exception_{type(exc).__name__}"
+            )
+            state.metrics.record_phase2_true_unbind_gate(
+                f"outer_exception_{type(exc).__name__}"
+            )
+            state.metrics.record_phase2_debug_counter("true_unbind_outer_exception")
             logger.exception("Wave-Slice Phase II stream dispatch failed; fallback to original execute_model.")
             return original_execute(self, *args, **kwargs)
 
@@ -2690,6 +4164,31 @@ def _build_add_request_hook(state: _PatchState) -> Callable[..., Any]:
     return _build_add_request_hook_impl(
         state,
         estimate_prompt_tokens=_estimate_prompt_tokens,
+        estimate_solo_us=_estimate_solo_us,
+        lookup_engine_prompt_tokens=_lookup_engine_prompt_tokens,
+        phase1_maybe_seed_ingress_virtual=_phase1_maybe_seed_ingress_virtual,
+    )
+
+
+def _build_add_processed_request_hook(state: _PatchState) -> Callable[..., Any]:
+    return _build_add_processed_request_hook_impl(
+        state,
+        estimate_solo_us=_estimate_solo_us,
+        phase1_maybe_seed_ingress_virtual=_phase1_maybe_seed_ingress_virtual,
+    )
+
+
+def _build_v1_process_inputs_hook(state: _PatchState) -> Callable[..., Any]:
+    return _build_v1_process_inputs_hook_impl(
+        state,
+        estimate_solo_us=_estimate_solo_us,
+        phase1_maybe_seed_ingress_virtual=_phase1_maybe_seed_ingress_virtual,
+    )
+
+
+def _build_v1_engine_core_add_request_hook(state: _PatchState) -> Callable[..., Any]:
+    return _build_v1_engine_core_add_request_hook_impl(
+        state,
         estimate_solo_us=_estimate_solo_us,
         phase1_maybe_seed_ingress_virtual=_phase1_maybe_seed_ingress_virtual,
     )
@@ -2917,7 +4416,32 @@ def inject_wave_slice(
         except Exception:
             logger.exception("[Wave-Slice] failed to install SequenceData.get_len hook.")
 
+        try:
+            v1_request_cls = _load_v1_request_cls()
+            num_tokens_prop = getattr(v1_request_cls, "num_tokens", None)
+            num_tokens_with_spec_prop = getattr(v1_request_cls, "num_tokens_with_spec", None)
+            if isinstance(num_tokens_prop, property) and isinstance(num_tokens_with_spec_prop, property):
+                state.v1_request_cls = v1_request_cls
+                state.original_v1_request_num_tokens = num_tokens_prop
+                state.original_v1_request_num_tokens_with_spec = num_tokens_with_spec_prop
+                v1_request_cls.num_tokens = _build_v1_request_num_tokens_hook(state)
+                v1_request_cls.num_tokens_with_spec = _build_v1_request_num_tokens_with_spec_hook(state)
+        except Exception:
+            logger.exception("[Wave-Slice] failed to install v1 Request token-cap hooks.")
+
         setattr(scheduler_cls, scheduler_method_name, _build_scheduler_hook(state))
+        scheduler_add_request = getattr(scheduler_cls, "add_request", None)
+        if scheduler_method_name == "schedule" and callable(scheduler_add_request):
+            state.original_scheduler_add_request = scheduler_add_request
+            setattr(scheduler_cls, "add_request", _build_v1_scheduler_add_request_hook(state))
+            scheduler_update_after_schedule = getattr(scheduler_cls, "_update_after_schedule", None)
+            if callable(scheduler_update_after_schedule):
+                state.original_scheduler_update_after_schedule = scheduler_update_after_schedule
+                setattr(
+                    scheduler_cls,
+                    "_update_after_schedule",
+                    _build_v1_scheduler_update_after_schedule_hook(state),
+                )
         if scheduler_method_name != "schedule":
             public_schedule = getattr(scheduler_cls, "schedule", None)
             if callable(public_schedule):
@@ -2951,10 +4475,14 @@ def inject_wave_slice(
             try:
                 llm_engine_cls = _load_llm_engine_cls()
                 original_add_request = getattr(llm_engine_cls, "add_request", None)
+                original_add_processed_request = getattr(llm_engine_cls, "_add_processed_request", None)
                 original_step = getattr(llm_engine_cls, "step", None)
                 if callable(original_add_request) and callable(original_step):
                     state.llm_engine_cls = llm_engine_cls
                     state.original_add_request = original_add_request
+                    if callable(original_add_processed_request):
+                        state.original_add_processed_request = original_add_processed_request
+                        llm_engine_cls._add_processed_request = _build_add_processed_request_hook(state)
                     state.original_step = original_step
                     llm_engine_cls.add_request = _build_add_request_hook(state)
                     llm_engine_cls.step = _build_step_hook(state)
@@ -2962,6 +4490,24 @@ def inject_wave_slice(
                     logger.warning("[Wave-Slice] skip metrics hooks: add_request/step missing.")
             except Exception:
                 logger.exception("[Wave-Slice] metrics hook injection failed; continue without metrics hooks.")
+            try:
+                v1_processor_cls = _load_v1_processor_cls()
+                original_process_inputs = getattr(v1_processor_cls, "process_inputs", None)
+                if callable(original_process_inputs):
+                    state.v1_processor_cls = v1_processor_cls
+                    state.original_v1_processor_process_inputs = original_process_inputs
+                    v1_processor_cls.process_inputs = _build_v1_process_inputs_hook(state)
+            except Exception:
+                logger.exception("[Wave-Slice] failed to install v1 Processor.process_inputs hook.")
+            try:
+                v1_engine_core_cls = _load_v1_engine_core_cls()
+                original_engine_core_add_request = getattr(v1_engine_core_cls, "add_request", None)
+                if callable(original_engine_core_add_request):
+                    state.v1_engine_core_cls = v1_engine_core_cls
+                    state.original_v1_engine_core_add_request = original_engine_core_add_request
+                    v1_engine_core_cls.add_request = _build_v1_engine_core_add_request_hook(state)
+            except Exception:
+                logger.exception("[Wave-Slice] failed to install v1 EngineCore.add_request hook.")
 
         # v1 lifecycle hooks are installed lazily from the first engine.step call.
         # Eagerly importing/patching v1 engine/output modules before the runtime is
@@ -3011,6 +4557,16 @@ def uninject_wave_slice() -> None:
                 "[Wave-Slice] failed to restore Scheduler.%s",
                 state.scheduler_method_name,
             )
+        if state.original_scheduler_add_request is not None:
+            try:
+                setattr(state.scheduler_cls, "add_request", state.original_scheduler_add_request)
+            except Exception:
+                logger.exception("[Wave-Slice] failed to restore Scheduler.add_request")
+        if state.original_scheduler_update_after_schedule is not None:
+            try:
+                setattr(state.scheduler_cls, "_update_after_schedule", state.original_scheduler_update_after_schedule)
+            except Exception:
+                logger.exception("[Wave-Slice] failed to restore Scheduler._update_after_schedule")
         if state.original_public_schedule is not None:
             try:
                 setattr(state.scheduler_cls, "schedule", state.original_public_schedule)
@@ -3040,17 +4596,46 @@ def uninject_wave_slice() -> None:
             except Exception:
                 logger.exception("[Wave-Slice] failed to restore SequenceData.get_len")
 
+        if state.v1_request_cls is not None:
+            if state.original_v1_request_num_tokens is not None:
+                try:
+                    state.v1_request_cls.num_tokens = state.original_v1_request_num_tokens
+                except Exception:
+                    logger.exception("[Wave-Slice] failed to restore Request.num_tokens")
+            if state.original_v1_request_num_tokens_with_spec is not None:
+                try:
+                    state.v1_request_cls.num_tokens_with_spec = state.original_v1_request_num_tokens_with_spec
+                except Exception:
+                    logger.exception("[Wave-Slice] failed to restore Request.num_tokens_with_spec")
+
         if state.llm_engine_cls is not None:
             if state.original_add_request is not None:
                 try:
                     state.llm_engine_cls.add_request = state.original_add_request
                 except Exception:
                     logger.exception("[Wave-Slice] failed to restore LLMEngine.add_request")
+            if state.original_add_processed_request is not None:
+                try:
+                    state.llm_engine_cls._add_processed_request = state.original_add_processed_request
+                except Exception:
+                    logger.exception("[Wave-Slice] failed to restore LLMEngine._add_processed_request")
             if state.original_step is not None:
                 try:
                     state.llm_engine_cls.step = state.original_step
                 except Exception:
                     logger.exception("[Wave-Slice] failed to restore LLMEngine.step")
+
+        if state.v1_processor_cls is not None and state.original_v1_processor_process_inputs is not None:
+            try:
+                state.v1_processor_cls.process_inputs = state.original_v1_processor_process_inputs
+            except Exception:
+                logger.exception("[Wave-Slice] failed to restore v1 Processor.process_inputs")
+
+        if state.v1_engine_core_cls is not None and state.original_v1_engine_core_add_request is not None:
+            try:
+                state.v1_engine_core_cls.add_request = state.original_v1_engine_core_add_request
+            except Exception:
+                logger.exception("[Wave-Slice] failed to restore v1 EngineCore.add_request")
 
         if state.v1_output_processor_cls is not None:
             if state.original_output_processor_add_request is not None:

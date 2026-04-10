@@ -229,6 +229,23 @@ python tests/evaluate_waveslice_claims.py \
   --out-json results/mistral_phase12_dataset.json
 ```
 
+### Preferred V1 Main Regression
+
+When judging the current V1 path, prefer the frozen real `openworkload mid`
+regression target instead of the tiny synthetic repeated default case:
+
+```bash
+python experiments/run_frozen_eval_config.py \
+  --config experiments/configs/frozen_v1_gemma_mid_global_activity_repro.json
+```
+
+This uses:
+
+- real open-source dataset-derived request JSON files
+- mixed short and long requests
+- Poisson arrivals
+- the same `mid` workload family used for the V0 regression comparison
+
 ## 4) Build Dataset Workloads
 
 Dataset workload builder:

@@ -35,12 +35,17 @@ def configure_mode(
     phase12_phase2_scheduler_cashout_soft_floor: float,
     phase12_phase2_scheduler_cashout_quality_floor: float,
     phase12_phase2_scheduler_cashout_cooldown_ticks: int,
+    phase1_force_min_chunk: int = 128,
+    phase1_target_long_fraction: float = 0.33,
     phase12_phase2_require_beneficiary_signal: bool = True,
     phase12_phase2_beneficiary_score_threshold: float = 0.55,
     phase2_enable_mixed_prefill_decode: bool = True,
     phase2_min_hetero_ratio: float = 2.0,
     phase2_min_long_prefill: int = 256,
     phase2_min_pressure_ratio: float = 2.0,
+    phase2_enable_scheduler_cashout: bool = True,
+    phase2_enable_execution_escape: bool = True,
+    phase2_enable_v1_true_unbind: bool = False,
     phase2_execution_escape_mode: str = "bounded_spillover",
     phase2_execution_escape_spillover_cap: int = 3,
     phase2_execution_escape_max_active: int = 5,
@@ -57,11 +62,13 @@ def configure_mode(
         phase1_ingress_target_chunk=int(phase1_ingress_target_chunk),
         phase1_ingress_direct_authoritative=bool(phase1_ingress_direct_authoritative),
         phase1_ingress_exact_chunk=bool(phase1_ingress_exact_chunk),
+        phase1_force_min_chunk=int(phase1_force_min_chunk),
+        phase1_target_long_fraction=float(phase1_target_long_fraction),
     )
     phase2_kwargs = dict(
-        phase2_enable_v1_true_unbind=False,
-        phase2_enable_scheduler_cashout=False,
-        phase2_enable_execution_escape=True,
+        phase2_enable_v1_true_unbind=bool(phase2_enable_v1_true_unbind),
+        phase2_enable_scheduler_cashout=bool(phase2_enable_scheduler_cashout),
+        phase2_enable_execution_escape=bool(phase2_enable_execution_escape),
         phase2_enable_mixed_prefill_decode=bool(phase2_enable_mixed_prefill_decode),
         phase2_min_hetero_ratio=float(phase2_min_hetero_ratio),
         phase2_min_long_prefill=int(phase2_min_long_prefill),
@@ -120,6 +127,14 @@ def configure_mode(
         return
 
     if mode == "phase12_lora":
+        phase2_paths_enabled = bool(
+            phase2_kwargs.get("phase2_enable_execution_escape")
+            or phase2_kwargs.get("phase2_enable_scheduler_cashout")
+            or phase2_kwargs.get("phase2_enable_v1_true_unbind")
+        )
+        phase12_phase1_kwargs = dict(phase1_kwargs)
+        phase12_phase1_kwargs["enable_tick_hide"] = not phase2_paths_enabled
+        phase12_phase1_kwargs["allow_phase1_tick_hide_with_lora"] = True
         policy = WaveSlicePolicy(
             enable_phase1_scheduler=True,
             enable_phase2_modelrunner=True,
@@ -127,7 +142,7 @@ def configure_mode(
             queue_reorder_mode=str(queue_reorder_mode),
             queue_reorder_aging_quantum_us=float(queue_reorder_aging_quantum_us),
             phase2_consistency_mode="balanced",
-            **phase1_kwargs,
+            **phase12_phase1_kwargs,
             **phase2_kwargs,
             **phase12_kwargs,
         )
@@ -149,6 +164,14 @@ def configure_mode(
         return
 
     if mode == "phase12_lora_strict":
+        phase2_paths_enabled = bool(
+            phase2_kwargs.get("phase2_enable_execution_escape")
+            or phase2_kwargs.get("phase2_enable_scheduler_cashout")
+            or phase2_kwargs.get("phase2_enable_v1_true_unbind")
+        )
+        phase12_phase1_kwargs = dict(phase1_kwargs)
+        phase12_phase1_kwargs["enable_tick_hide"] = not phase2_paths_enabled
+        phase12_phase1_kwargs["allow_phase1_tick_hide_with_lora"] = True
         policy = WaveSlicePolicy(
             enable_phase1_scheduler=True,
             enable_phase2_modelrunner=True,
@@ -156,7 +179,7 @@ def configure_mode(
             queue_reorder_mode=str(queue_reorder_mode),
             queue_reorder_aging_quantum_us=float(queue_reorder_aging_quantum_us),
             phase2_consistency_mode="strict",
-            **phase1_kwargs,
+            **phase12_phase1_kwargs,
             **phase2_kwargs,
             **phase12_kwargs,
         )
@@ -192,6 +215,8 @@ def build_summary_config(args: Namespace, *, short_a_repeat: int, short_b_repeat
         "long_repeat": args.long_repeat,
         "max_model_len": args.max_model_len,
         "max_num_batched_tokens": args.max_num_batched_tokens,
+        "max_num_partial_prefills": getattr(args, "max_num_partial_prefills", 1),
+        "max_long_partial_prefills": getattr(args, "max_long_partial_prefills", 1),
         "gpu_memory_utilization": args.gpu_memory_utilization,
         "trust_remote_code": args.trust_remote_code,
         "requests_json": args.requests_json,
@@ -206,6 +231,8 @@ def build_summary_config(args: Namespace, *, short_a_repeat: int, short_b_repeat
         "phase1_gamma": args.phase1_gamma,
         "phase1_ingress_direct_authoritative": args.phase1_ingress_direct_authoritative,
         "phase1_ingress_exact_chunk": args.phase1_ingress_exact_chunk,
+        "phase1_force_min_chunk": getattr(args, "phase1_force_min_chunk", 128),
+        "phase1_target_long_fraction": getattr(args, "phase1_target_long_fraction", 0.33),
         "phase12_phase2_gate_mode": args.phase12_phase2_gate_mode,
         "phase12_phase2_soft_ratio_scale": args.phase12_phase2_soft_ratio_scale,
         "phase12_phase2_soft_pressure_scale": args.phase12_phase2_soft_pressure_scale,
@@ -240,6 +267,9 @@ def build_summary_config(args: Namespace, *, short_a_repeat: int, short_b_repeat
         "phase2_min_hetero_ratio": args.phase2_min_hetero_ratio,
         "phase2_min_long_prefill": args.phase2_min_long_prefill,
         "phase2_min_pressure_ratio": args.phase2_min_pressure_ratio,
+        "phase2_enable_scheduler_cashout": args.phase2_enable_scheduler_cashout,
+        "phase2_enable_execution_escape": args.phase2_enable_execution_escape,
+        "phase2_enable_v1_true_unbind": args.phase2_enable_v1_true_unbind,
         "phase2_execution_escape_mode": args.phase2_execution_escape_mode,
         "phase2_execution_escape_spillover_cap": args.phase2_execution_escape_spillover_cap,
         "phase2_execution_escape_max_active": args.phase2_execution_escape_max_active,

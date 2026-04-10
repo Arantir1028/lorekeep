@@ -3,6 +3,50 @@ from __future__ import annotations
 from typing import Any, Optional
 
 
+def freeze_v1_runner_output(output: Any) -> Any:
+    if not hasattr(output, "req_ids") or not hasattr(output, "req_id_to_index"):
+        raise TypeError("v1 split freeze requires ModelRunnerOutput-like output.")
+
+    out_cls = type(output)
+    logprobs = getattr(output, "logprobs", None)
+    frozen_logprobs = None
+    if logprobs is not None:
+        frozen_logprobs = type(logprobs)(
+            [list(row) for row in list(logprobs.logprob_token_ids)],
+            [list(row) for row in list(logprobs.logprobs)],
+            [int(rank) for rank in list(logprobs.sampled_token_ranks)],
+        )
+
+    prompt_logprobs_dict = dict(getattr(output, "prompt_logprobs_dict", {}) or {})
+    num_nans_in_logits = dict(getattr(output, "num_nans_in_logits", {}) or {})
+    spec_token_ids = getattr(output, "spec_token_ids", None)
+    if spec_token_ids is not None:
+        spec_token_ids = [list(tokens) for tokens in list(spec_token_ids)]
+
+    pooler_output = getattr(output, "pooler_output", None)
+    if pooler_output is None:
+        frozen_pooler_output = None
+    else:
+        frozen_pooler_output = list(pooler_output)
+
+    return out_cls(
+        req_ids=[str(rid) for rid in list(getattr(output, "req_ids", []) or [])],
+        req_id_to_index={
+            str(rid): int(idx)
+            for rid, idx in dict(getattr(output, "req_id_to_index", {}) or {}).items()
+        },
+        sampled_token_ids=[
+            list(tokens) for tokens in list(getattr(output, "sampled_token_ids", []) or [])
+        ],
+        spec_token_ids=spec_token_ids,
+        logprobs=frozen_logprobs,
+        prompt_logprobs_dict=prompt_logprobs_dict,
+        pooler_output=frozen_pooler_output,
+        kv_connector_output=getattr(output, "kv_connector_output", None),
+        num_nans_in_logits=num_nans_in_logits or None,
+    )
+
+
 def merge_kv_connector_outputs(a: Any, b: Any) -> Any:
     if a is None:
         return b
@@ -43,7 +87,10 @@ def merge_v1_runner_outputs(original_order: list[str], out_a: Any, out_b: Any) -
             return default
 
     sampled_token_ids: list[list[int]] = []
-    pooler_output: list[Optional[Any]] = []
+    pooler_output_needed = bool(getattr(out_a, "pooler_output", None)) or bool(
+        getattr(out_b, "pooler_output", None)
+    )
+    pooler_output: list[Optional[Any]] = [] if pooler_output_needed else []
     spec_token_ids_needed = (getattr(out_a, "spec_token_ids", None) is not None) or (
         getattr(out_b, "spec_token_ids", None) is not None
     )
@@ -69,7 +116,8 @@ def merge_v1_runner_outputs(original_order: list[str], out_a: Any, out_b: Any) -
                 else []
             )
         sampled_token_ids.append(sampled)
-        pooler_output.append(pool_val)
+        if pooler_output_needed:
+            pooler_output.append(pool_val)
         if spec_token_ids is not None:
             spec_token_ids.append(spec_val)
 

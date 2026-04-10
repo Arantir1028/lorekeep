@@ -84,12 +84,39 @@ def load_v1_output_processor_cls() -> type:
     return cls
 
 
+def load_v1_processor_cls() -> type:
+    bootstrap_vllm_runtime()
+    mod = importlib.import_module("vllm.v1.engine.processor")
+    cls = getattr(mod, "Processor", None)
+    if cls is None:
+        raise RuntimeError("vLLM v1 Processor class not found.")
+    return cls
+
+
+def load_v1_engine_core_cls() -> type:
+    bootstrap_vllm_runtime()
+    mod = importlib.import_module("vllm.v1.engine.core")
+    cls = getattr(mod, "EngineCore", None)
+    if cls is None:
+        raise RuntimeError("vLLM v1 EngineCore class not found.")
+    return cls
+
+
 def load_sequence_data_cls() -> type:
     bootstrap_vllm_runtime()
     mod = importlib.import_module("vllm.sequence")
     cls = getattr(mod, "SequenceData", None)
     if cls is None:
         raise RuntimeError("vLLM SequenceData class not found.")
+    return cls
+
+
+def load_v1_request_cls() -> type:
+    bootstrap_vllm_runtime()
+    mod = importlib.import_module("vllm.v1.request")
+    cls = getattr(mod, "Request", None)
+    if cls is None:
+        raise RuntimeError("vLLM v1 Request class not found.")
     return cls
 
 

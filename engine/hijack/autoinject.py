@@ -114,8 +114,92 @@ def merge_cross_process_metrics(report: dict[str, Any]) -> dict[str, Any]:
 
     sched_total = int(scheduler.get("attempts") or 0)
     sched_applied = int(scheduler.get("applied") or 0)
+    phase1_baseline_chunk_sum = 0.0
+    phase1_baseline_chunk_count = 0
+    phase1_chosen_chunk_sum = 0.0
+    phase1_chosen_chunk_count = 0
+    phase1_slice_ratio_sum = 0.0
+    phase1_slice_ratio_count = 0
+    phase1_explicit_total = 0
+    phase1_rewrite_applied = int(scheduler.get("rewrite_applied") or 0)
+    phase1_rewrite_group_count = int(scheduler.get("rewrite_group_count") or 0)
+    phase1_rewrite_old_chunk_sum = (
+        float(scheduler.get("rewrite_old_chunk_avg") or 0.0) * float(phase1_rewrite_group_count)
+    )
+    phase1_rewrite_new_chunk_sum = (
+        float(scheduler.get("rewrite_new_chunk_avg") or 0.0) * float(phase1_rewrite_group_count)
+    )
+    phase1_rewrite_token_delta_sum = (
+        float(scheduler.get("rewrite_token_delta_avg") or 0.0) * float(phase1_rewrite_group_count)
+    )
+    phase1_virtual_cap_total = 0
+    phase1_virtual_cap_applied = 0
+    phase1_virtual_cap_old_sum = 0.0
+    phase1_virtual_cap_new_sum = 0.0
+    phase1_virtual_cap_target_set = int(scheduler.get("virtual_cap_target_set") or 0)
+    phase1_virtual_cap_helper_calls = int(scheduler.get("virtual_cap_helper_calls") or 0)
+    phase1_virtual_cap_prefill_calls = int(scheduler.get("virtual_cap_prefill_calls") or 0)
+    phase1_virtual_cap_target_hits = int(scheduler.get("virtual_cap_target_hits") or 0)
+    phase1_request_traces = {
+        str(rid): list(rows)
+        for rid, rows in dict(scheduler.get("request_traces") or {}).items()
+    }
+    phase1_probe_total = int(float(scheduler.get("probe_total") or 0.0))
+    phase1_probe_slice_eligible = int(round(float(scheduler.get("probe_slice_eligible_ratio") or 0.0) * float(phase1_probe_total)))
+    phase1_probe_best_lt_long = int(round(float(scheduler.get("probe_best_lt_long_ratio") or 0.0) * float(phase1_probe_total)))
+    phase1_probe_short_sum = float((scheduler.get("probe_short_avg") or 0.0)) * float(phase1_probe_total)
+    phase1_probe_long_sum = float((scheduler.get("probe_long_avg") or 0.0)) * float(phase1_probe_total)
+    phase1_probe_baseline_sum = 0.0
+    phase1_probe_baseline_count = 0
+    phase1_probe_best_sum = 0.0
+    phase1_probe_best_count = 0
+    phase1_probe_queue_sum = float((scheduler.get("probe_queue_avg") or 0.0)) * float(phase1_probe_total)
+    phase1_probe_wait_us_sum = float((scheduler.get("probe_wait_us_avg") or 0.0)) * float(phase1_probe_total)
+    phase1_probe_reason_counter = dict(scheduler.get("probe_reasons") or {})
+    phase1_scheduler_prop_sum = 0.0
+    phase1_scheduler_prop_count = 0
+    phase1_direct_prop_sum = 0.0
+    phase1_direct_prop_count = 0
+    phase1_cohort_target_sum = 0.0
+    phase1_cohort_target_count = 0
+    phase1_direct_wins = int(round(float(scheduler.get("proposal_direct_win_ratio") or 0.0) * float(sched_total)))
+
+    baseline_chunk_avg = scheduler.get("baseline_chunk_avg")
+    chosen_chunk_avg = scheduler.get("chosen_chunk_avg")
+    chosen_vs_baseline_ratio_avg = scheduler.get("chosen_vs_baseline_ratio_avg")
+    probe_baseline_avg = scheduler.get("probe_baseline_avg")
+    probe_best_avg = scheduler.get("probe_best_avg")
+    proposal_scheduler_avg = scheduler.get("proposal_scheduler_avg")
+    proposal_direct_avg = scheduler.get("proposal_direct_avg")
+    proposal_cohort_target_avg = scheduler.get("proposal_cohort_target_avg")
+    if baseline_chunk_avg is not None:
+        phase1_baseline_chunk_sum = float(baseline_chunk_avg) * float(sched_total)
+        phase1_baseline_chunk_count = int(sched_total)
+    if chosen_chunk_avg is not None:
+        phase1_chosen_chunk_sum = float(chosen_chunk_avg) * float(sched_total)
+        phase1_chosen_chunk_count = int(sched_total)
+    if chosen_vs_baseline_ratio_avg is not None:
+        phase1_slice_ratio_sum = float(chosen_vs_baseline_ratio_avg) * float(sched_total)
+        phase1_slice_ratio_count = int(sched_total)
+    if probe_baseline_avg is not None:
+        phase1_probe_baseline_sum = float(probe_baseline_avg) * float(phase1_probe_total)
+        phase1_probe_baseline_count = int(phase1_probe_total)
+    if probe_best_avg is not None:
+        phase1_probe_best_sum = float(probe_best_avg) * float(phase1_probe_total)
+        phase1_probe_best_count = int(phase1_probe_total)
+    if proposal_scheduler_avg is not None:
+        phase1_scheduler_prop_sum = float(proposal_scheduler_avg) * float(sched_total)
+        phase1_scheduler_prop_count = int(sched_total)
+    if proposal_direct_avg is not None:
+        phase1_direct_prop_sum = float(proposal_direct_avg) * float(sched_total)
+        phase1_direct_prop_count = int(sched_total)
+    if proposal_cohort_target_avg is not None:
+        phase1_cohort_target_sum = float(proposal_cohort_target_avg) * float(sched_total)
+        phase1_cohort_target_count = int(sched_total)
+    phase1_explicit_total = int(round(float(scheduler.get("explicit_plan_ratio") or 0.0) * float(sched_total)))
     phase2_total = int(phase2.get("attempts") or 0)
     phase2_applied = int(phase2.get("applied") or 0)
+    phase2_v1_unbind_applied = int(phase2.get("v1_true_unbind_applied") or 0)
     lane_activations = int(escape_lane.get("activations") or 0)
     lane_active_sum = 0.0
     lane_active_count = 0
@@ -171,6 +255,8 @@ def merge_cross_process_metrics(report: dict[str, Any]) -> dict[str, Any]:
     apply_stats_count = 1 if "scheduler_cashout_apply_summary" in debug else 0
     execution_escape_exception_types = dict(debug.get("execution_escape_exception_types") or {})
     execution_escape_exception_messages = dict(debug.get("execution_escape_exception_messages") or {})
+    phase2_debug_counters = dict(debug.get("counters") or {})
+    true_unbind_gate_reasons = dict(debug.get("true_unbind_gate_reasons") or {})
 
     for line in lines:
         try:
@@ -183,6 +269,121 @@ def merge_cross_process_metrics(report: dict[str, Any]) -> dict[str, Any]:
             sched_total += 1
             if bool(payload.get("applied")):
                 sched_applied += 1
+        elif kind == "phase1_choice":
+            baseline_chunk = payload.get("baseline_chunk")
+            chosen_chunk = payload.get("chosen_chunk")
+            explicit_plan = bool(payload.get("explicit_plan"))
+            if baseline_chunk is not None and int(baseline_chunk) > 0:
+                phase1_baseline_chunk_sum += float(baseline_chunk)
+                phase1_baseline_chunk_count += 1
+            if chosen_chunk is not None and int(chosen_chunk) > 0:
+                phase1_chosen_chunk_sum += float(chosen_chunk)
+                phase1_chosen_chunk_count += 1
+            if (
+                chosen_chunk is not None
+                and baseline_chunk is not None
+                and int(chosen_chunk) > 0
+                and int(baseline_chunk) > 0
+            ):
+                phase1_slice_ratio_sum += float(chosen_chunk) / float(baseline_chunk)
+                phase1_slice_ratio_count += 1
+            if explicit_plan:
+                phase1_explicit_total += 1
+        elif kind == "phase1_rewrite":
+            rewritten_groups = int(payload.get("rewritten_groups") or 0)
+            if rewritten_groups > 0:
+                phase1_rewrite_applied += 1
+                phase1_rewrite_group_count += rewritten_groups
+                phase1_rewrite_old_chunk_sum += float(payload.get("old_chunk_sum") or 0.0)
+                phase1_rewrite_new_chunk_sum += float(payload.get("new_chunk_sum") or 0.0)
+                phase1_rewrite_token_delta_sum += float(payload.get("token_delta_sum") or 0.0)
+        elif kind == "phase1_virtual_cap":
+            phase1_virtual_cap_total += 1
+            if bool(payload.get("applied")):
+                phase1_virtual_cap_applied += 1
+                phase1_virtual_cap_old_sum += float(payload.get("old_total_tokens") or 0.0)
+                phase1_virtual_cap_new_sum += float(payload.get("new_total_tokens") or 0.0)
+        elif kind == "phase1_virtual_cap_probe":
+            if bool(payload.get("target_set")):
+                phase1_virtual_cap_target_set += 1
+            if bool(payload.get("helper_called")):
+                phase1_virtual_cap_helper_calls += 1
+            if bool(payload.get("prefill_call")):
+                phase1_virtual_cap_prefill_calls += 1
+            if bool(payload.get("target_hit")):
+                phase1_virtual_cap_target_hits += 1
+        elif kind == "phase1_step_trace":
+            request_id = str(payload.get("request_id") or "")
+            event = str(payload.get("event") or "")
+            if request_id and event:
+                rec = {"event": event}
+                for key in (
+                    "is_prefill",
+                    "token_chunk_size",
+                    "num_computed_tokens",
+                    "uncached",
+                    "cached",
+                    "target_chunk",
+                ):
+                    value = payload.get(key)
+                    if value is not None:
+                        rec[key] = value
+                traces = phase1_request_traces.setdefault(request_id, [])
+                traces.append(rec)
+                if len(traces) > 512:
+                    del traces[: len(traces) - 512]
+        elif kind == "phase1_probe":
+            phase1_probe_total += 1
+            if bool(payload.get("slice_eligible")):
+                phase1_probe_slice_eligible += 1
+            short_len = payload.get("short_len")
+            long_len = payload.get("long_len")
+            baseline_chunk = payload.get("baseline_chunk")
+            best_chunk = payload.get("best_chunk")
+            queue_len = payload.get("queue_len")
+            wait_us = payload.get("wait_us")
+            reason = str(payload.get("reason") or "")
+            if (
+                best_chunk is not None
+                and long_len is not None
+                and int(best_chunk) > 0
+                and int(long_len) > 0
+                and int(best_chunk) < int(long_len)
+            ):
+                phase1_probe_best_lt_long += 1
+            if short_len is not None and int(short_len) > 0:
+                phase1_probe_short_sum += float(short_len)
+            if long_len is not None and int(long_len) > 0:
+                phase1_probe_long_sum += float(long_len)
+            if baseline_chunk is not None and int(baseline_chunk) > 0:
+                phase1_probe_baseline_sum += float(baseline_chunk)
+                phase1_probe_baseline_count += 1
+            if best_chunk is not None and int(best_chunk) > 0:
+                phase1_probe_best_sum += float(best_chunk)
+                phase1_probe_best_count += 1
+            if queue_len is not None and int(queue_len) >= 0:
+                phase1_probe_queue_sum += float(queue_len)
+            if wait_us is not None and float(wait_us) >= 0.0:
+                phase1_probe_wait_us_sum += float(wait_us)
+            if reason:
+                phase1_probe_reason_counter[reason] = int(
+                    phase1_probe_reason_counter.get(reason, 0)
+                ) + 1
+        elif kind == "phase1_proposal":
+            scheduler_chunk = payload.get("scheduler_chunk")
+            direct_chunk = payload.get("direct_chunk")
+            cohort_target = payload.get("cohort_target")
+            if scheduler_chunk is not None and int(scheduler_chunk) > 0:
+                phase1_scheduler_prop_sum += float(scheduler_chunk)
+                phase1_scheduler_prop_count += 1
+            if direct_chunk is not None and int(direct_chunk) > 0:
+                phase1_direct_prop_sum += float(direct_chunk)
+                phase1_direct_prop_count += 1
+            if cohort_target is not None and int(cohort_target) > 0:
+                phase1_cohort_target_sum += float(cohort_target)
+                phase1_cohort_target_count += 1
+            if bool(payload.get("direct_won")):
+                phase1_direct_wins += 1
         elif kind == "phase2_decision":
             phase2_total += 1
             if bool(payload.get("applied")):
@@ -228,6 +429,8 @@ def merge_cross_process_metrics(report: dict[str, Any]) -> dict[str, Any]:
                 apply_small_bonus_sum += float(payload.get("small_candidate_bonus") or 0.0)
                 apply_medium_penalty_sum += float(payload.get("medium_candidate_penalty") or 0.0)
                 apply_stats_count += 1
+        elif kind == "phase2_v1_unbind":
+            phase2_v1_unbind_applied += 1
         elif kind == "escape_lane_activation":
             lane_activations += 1
             lane_active_sum += float(payload.get("active_count") or 0.0)
@@ -261,6 +464,15 @@ def merge_cross_process_metrics(report: dict[str, Any]) -> dict[str, Any]:
             phase2_sched_post_enter += 1
         elif kind == "phase1_public_rewrite_applied":
             phase1_public_rewrite_applied += 1
+        elif kind == "phase2_debug_counter":
+            name = str(payload.get("name") or "")
+            amount = int(payload.get("amount") or 0)
+            if name and amount:
+                phase2_debug_counters[name] = int(phase2_debug_counters.get(name, 0)) + amount
+        elif kind == "phase2_true_unbind_gate":
+            reason = str(payload.get("reason") or "")
+            if reason:
+                true_unbind_gate_reasons[reason] = int(true_unbind_gate_reasons.get(reason, 0)) + 1
         elif kind == "schedule_hook_early_return":
             reason = str(payload.get("reason") or "")
             if reason:
@@ -275,6 +487,130 @@ def merge_cross_process_metrics(report: dict[str, Any]) -> dict[str, Any]:
     scheduler["attempts"] = sched_total
     scheduler["applied"] = sched_applied
     scheduler["apply_ratio"] = (float(sched_applied) / float(sched_total)) if sched_total else 0.0
+    scheduler["baseline_chunk_avg"] = (
+        phase1_baseline_chunk_sum / float(phase1_baseline_chunk_count)
+        if phase1_baseline_chunk_count
+        else None
+    )
+    scheduler["chosen_chunk_avg"] = (
+        phase1_chosen_chunk_sum / float(phase1_chosen_chunk_count)
+        if phase1_chosen_chunk_count
+        else None
+    )
+    scheduler["chosen_vs_baseline_ratio_avg"] = (
+        phase1_slice_ratio_sum / float(phase1_slice_ratio_count)
+        if phase1_slice_ratio_count
+        else None
+    )
+    scheduler["explicit_plan_ratio"] = (
+        float(phase1_explicit_total) / float(sched_total)
+        if sched_total
+        else 0.0
+    )
+    scheduler["rewrite_applied"] = phase1_rewrite_applied
+    scheduler["rewrite_apply_ratio"] = (
+        float(phase1_rewrite_applied) / float(sched_total)
+        if sched_total
+        else 0.0
+    )
+    scheduler["rewrite_group_count"] = phase1_rewrite_group_count
+    scheduler["rewrite_old_chunk_avg"] = (
+        phase1_rewrite_old_chunk_sum / float(phase1_rewrite_group_count)
+        if phase1_rewrite_group_count
+        else None
+    )
+    scheduler["rewrite_new_chunk_avg"] = (
+        phase1_rewrite_new_chunk_sum / float(phase1_rewrite_group_count)
+        if phase1_rewrite_group_count
+        else None
+    )
+    scheduler["rewrite_token_delta_avg"] = (
+        phase1_rewrite_token_delta_sum / float(phase1_rewrite_group_count)
+        if phase1_rewrite_group_count
+        else None
+    )
+    scheduler["virtual_cap_apply_ratio"] = (
+        float(phase1_virtual_cap_applied) / float(phase1_virtual_cap_total)
+        if phase1_virtual_cap_total
+        else 0.0
+    )
+    scheduler["virtual_cap_old_avg"] = (
+        phase1_virtual_cap_old_sum / float(phase1_virtual_cap_applied)
+        if phase1_virtual_cap_applied
+        else None
+    )
+    scheduler["virtual_cap_new_avg"] = (
+        phase1_virtual_cap_new_sum / float(phase1_virtual_cap_applied)
+        if phase1_virtual_cap_applied
+        else None
+    )
+    scheduler["virtual_cap_target_set"] = float(phase1_virtual_cap_target_set)
+    scheduler["virtual_cap_helper_calls"] = float(phase1_virtual_cap_helper_calls)
+    scheduler["virtual_cap_prefill_calls"] = float(phase1_virtual_cap_prefill_calls)
+    scheduler["virtual_cap_target_hits"] = float(phase1_virtual_cap_target_hits)
+    scheduler["request_traces"] = phase1_request_traces
+    scheduler["probe_total"] = float(phase1_probe_total)
+    scheduler["probe_slice_eligible_ratio"] = (
+        float(phase1_probe_slice_eligible) / float(phase1_probe_total)
+        if phase1_probe_total
+        else 0.0
+    )
+    scheduler["probe_best_lt_long_ratio"] = (
+        float(phase1_probe_best_lt_long) / float(phase1_probe_total)
+        if phase1_probe_total
+        else 0.0
+    )
+    scheduler["probe_short_avg"] = (
+        phase1_probe_short_sum / float(phase1_probe_total)
+        if phase1_probe_total
+        else None
+    )
+    scheduler["probe_long_avg"] = (
+        phase1_probe_long_sum / float(phase1_probe_total)
+        if phase1_probe_total
+        else None
+    )
+    scheduler["probe_baseline_avg"] = (
+        phase1_probe_baseline_sum / float(phase1_probe_baseline_count)
+        if phase1_probe_baseline_count
+        else None
+    )
+    scheduler["probe_best_avg"] = (
+        phase1_probe_best_sum / float(phase1_probe_best_count)
+        if phase1_probe_best_count
+        else None
+    )
+    scheduler["probe_queue_avg"] = (
+        phase1_probe_queue_sum / float(phase1_probe_total)
+        if phase1_probe_total
+        else None
+    )
+    scheduler["probe_wait_us_avg"] = (
+        phase1_probe_wait_us_sum / float(phase1_probe_total)
+        if phase1_probe_total
+        else None
+    )
+    scheduler["proposal_scheduler_avg"] = (
+        phase1_scheduler_prop_sum / float(phase1_scheduler_prop_count)
+        if phase1_scheduler_prop_count
+        else None
+    )
+    scheduler["proposal_direct_avg"] = (
+        phase1_direct_prop_sum / float(phase1_direct_prop_count)
+        if phase1_direct_prop_count
+        else None
+    )
+    scheduler["proposal_cohort_target_avg"] = (
+        phase1_cohort_target_sum / float(phase1_cohort_target_count)
+        if phase1_cohort_target_count
+        else None
+    )
+    scheduler["proposal_direct_win_ratio"] = (
+        float(phase1_direct_wins) / float(sched_total)
+        if sched_total
+        else 0.0
+    )
+    scheduler["probe_reasons"] = phase1_probe_reason_counter
 
     phase2["attempts"] = phase2_total
     phase2["applied"] = phase2_applied
@@ -294,6 +630,12 @@ def merge_cross_process_metrics(report: dict[str, Any]) -> dict[str, Any]:
     escape_lane["last_active_ids"] = lane_last_active_ids
     escape_lane["last_deferred_ids"] = lane_last_deferred_ids
     phase2["escape_lane"] = escape_lane
+    phase2["v1_true_unbind_applied"] = phase2_v1_unbind_applied
+    phase2["v1_true_unbind_ratio"] = (
+        float(phase2_v1_unbind_applied) / float(phase2_total)
+        if phase2_total
+        else 0.0
+    )
     phase2["debug"] = {
         "schedule_hook_enter": schedule_hook_enter,
         "phase2_sched_pre_enter": phase2_sched_pre_enter,
@@ -351,6 +693,8 @@ def merge_cross_process_metrics(report: dict[str, Any]) -> dict[str, Any]:
         ),
         "execution_escape_exception_types": execution_escape_exception_types,
         "execution_escape_exception_messages": execution_escape_exception_messages,
+        "counters": phase2_debug_counters,
+        "true_unbind_gate_reasons": true_unbind_gate_reasons,
     }
 
     report["scheduler"] = scheduler

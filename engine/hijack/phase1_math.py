@@ -96,6 +96,31 @@ def phase1_authoritative_short_floor(
     return base_floor
 
 
+def phase1_effective_ingress_min_chunk(
+    policy: WaveSlicePolicy,
+    *,
+    target: Optional[int] = None,
+) -> int:
+    ingress_min = max(1, int(policy.phase1_ingress_min_chunk))
+    if bool(policy.phase1_ingress_exact_chunk) and target is not None and int(target) > 0:
+        ingress_min = min(ingress_min, max(1, int(target)))
+    return ingress_min
+
+
+def phase1_effective_ingress_target_chunk(
+    policy: WaveSlicePolicy,
+    *,
+    target: int,
+) -> int:
+    effective_target = max(1, int(target))
+    if bool(policy.phase1_ingress_exact_chunk):
+        effective_target = min(
+            effective_target,
+            max(1, int(policy.phase1_ingress_target_chunk)),
+        )
+    return effective_target
+
+
 def phase1_authoritative_chunk(
     policy: WaveSlicePolicy,
     slicer: WaveBaseSlicer,
@@ -104,7 +129,8 @@ def phase1_authoritative_chunk(
     short_len: int = 0,
     upper: Optional[int] = None,
 ) -> int:
-    ingress_min = max(1, int(policy.phase1_ingress_min_chunk))
+    target = phase1_effective_ingress_target_chunk(policy, target=int(target))
+    ingress_min = phase1_effective_ingress_min_chunk(policy, target=int(target))
     ingress_max = max(ingress_min, int(policy.phase1_ingress_max_chunk))
     target = max(ingress_min, min(int(target), ingress_max))
     floor = phase1_authoritative_short_floor(policy, short_len=int(short_len), target=int(target))

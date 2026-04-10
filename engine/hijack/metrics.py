@@ -34,6 +34,8 @@ class WaveSliceMetrics:
         self._phase2_applied = 0
         self._phase2_v1_unbind_applied = 0
         self._phase2_reason_counter: dict[str, int] = {}
+        self._phase2_debug_counter: dict[str, int] = {}
+        self._phase2_true_unbind_gate_reasons: dict[str, int] = {}
         self._sched_total = 0
         self._sched_applied = 0
         self._phase1_baseline_chunk_sum = 0.0
@@ -129,6 +131,8 @@ class WaveSliceMetrics:
             self._phase2_applied = 0
             self._phase2_v1_unbind_applied = 0
             self._phase2_reason_counter.clear()
+            self._phase2_debug_counter.clear()
+            self._phase2_true_unbind_gate_reasons.clear()
             self._sched_total = 0
             self._sched_applied = 0
             self._phase1_baseline_chunk_sum = 0.0
@@ -283,6 +287,14 @@ class WaveSliceMetrics:
                 self._phase1_slice_ratio_count += 1
             if explicit_plan:
                 self._phase1_explicit_total += 1
+        self._emit_cross_process_event(
+            "phase1_choice",
+            {
+                "chosen_chunk": int(chosen_chunk) if chosen_chunk is not None else None,
+                "baseline_chunk": int(baseline_chunk) if baseline_chunk is not None else None,
+                "explicit_plan": bool(explicit_plan),
+            },
+        )
 
     def record_phase1_rewrite(
         self,
@@ -300,6 +312,15 @@ class WaveSliceMetrics:
             self._phase1_rewrite_old_chunk_sum += float(max(0, old_chunk_sum))
             self._phase1_rewrite_new_chunk_sum += float(max(0, new_chunk_sum))
             self._phase1_rewrite_token_delta_sum += float(max(0, token_delta_sum))
+        self._emit_cross_process_event(
+            "phase1_rewrite",
+            {
+                "rewritten_groups": int(rewritten_groups),
+                "old_chunk_sum": int(max(0, old_chunk_sum)),
+                "new_chunk_sum": int(max(0, new_chunk_sum)),
+                "token_delta_sum": int(max(0, token_delta_sum)),
+            },
+        )
 
     def record_phase1_virtual_cap(
         self,
@@ -311,10 +332,19 @@ class WaveSliceMetrics:
         with self._lock:
             self._phase1_virtual_cap_total += 1
             if not applied:
-                return
-            self._phase1_virtual_cap_applied += 1
-            self._phase1_virtual_cap_old_sum += float(max(0, old_total_tokens))
-            self._phase1_virtual_cap_new_sum += float(max(0, new_total_tokens))
+                pass
+            else:
+                self._phase1_virtual_cap_applied += 1
+                self._phase1_virtual_cap_old_sum += float(max(0, old_total_tokens))
+                self._phase1_virtual_cap_new_sum += float(max(0, new_total_tokens))
+        self._emit_cross_process_event(
+            "phase1_virtual_cap",
+            {
+                "old_total_tokens": int(max(0, old_total_tokens)),
+                "new_total_tokens": int(max(0, new_total_tokens)),
+                "applied": bool(applied),
+            },
+        )
 
     def record_phase1_virtual_cap_probe(
         self,
@@ -333,6 +363,15 @@ class WaveSliceMetrics:
                 self._phase1_virtual_cap_prefill_calls += 1
             if target_hit:
                 self._phase1_virtual_cap_target_hits += 1
+        self._emit_cross_process_event(
+            "phase1_virtual_cap_probe",
+            {
+                "target_set": bool(target_set),
+                "helper_called": bool(helper_called),
+                "prefill_call": bool(prefill_call),
+                "target_hit": bool(target_hit),
+            },
+        )
 
     @staticmethod
     def _trace_request_key(request_id: str) -> bool:
@@ -353,7 +392,7 @@ class WaveSliceMetrics:
         cached: Optional[int] = None,
         target_chunk: Optional[int] = None,
     ) -> None:
-        if not self._trace_request_key(request_id):
+        if not self._trace_request_key(request_id) and target_chunk is None:
             return
         with self._lock:
             traces = self._phase1_request_traces.setdefault(str(request_id), [])
@@ -378,6 +417,21 @@ class WaveSliceMetrics:
             traces.append(rec)
             if len(traces) > 2048:
                 del traces[: len(traces) - 2048]
+        self._emit_cross_process_event(
+            "phase1_step_trace",
+            {
+                "request_id": str(request_id),
+                "event": str(event),
+                "is_prefill": (bool(is_prefill) if is_prefill is not None else None),
+                "token_chunk_size": (int(token_chunk_size) if token_chunk_size is not None else None),
+                "num_computed_tokens": (
+                    int(num_computed_tokens) if num_computed_tokens is not None else None
+                ),
+                "uncached": (int(uncached) if uncached is not None else None),
+                "cached": (int(cached) if cached is not None else None),
+                "target_chunk": (int(target_chunk) if target_chunk is not None else None),
+            },
+        )
 
     def record_phase1_probe(
         self,
@@ -418,6 +472,19 @@ class WaveSliceMetrics:
             if wait_us is not None and float(wait_us) >= 0.0:
                 self._phase1_probe_wait_us_sum += float(wait_us)
             self._phase1_probe_reason_counter[reason] = self._phase1_probe_reason_counter.get(reason, 0) + 1
+        self._emit_cross_process_event(
+            "phase1_probe",
+            {
+                "reason": str(reason),
+                "short_len": (int(short_len) if short_len is not None else None),
+                "long_len": (int(long_len) if long_len is not None else None),
+                "baseline_chunk": (int(baseline_chunk) if baseline_chunk is not None else None),
+                "best_chunk": (int(best_chunk) if best_chunk is not None else None),
+                "queue_len": (int(queue_len) if queue_len is not None else None),
+                "wait_us": (float(wait_us) if wait_us is not None else None),
+                "slice_eligible": bool(slice_eligible),
+            },
+        )
 
     def record_phase1_proposal(
         self,
@@ -439,6 +506,21 @@ class WaveSliceMetrics:
                 self._phase1_cohort_target_count += 1
             if direct_won:
                 self._phase1_direct_wins += 1
+        self._emit_cross_process_event(
+            "phase1_proposal",
+            {
+                "scheduler_chunk": (
+                    int(scheduler_chunk) if scheduler_chunk is not None else None
+                ),
+                "direct_chunk": (
+                    int(direct_chunk) if direct_chunk is not None else None
+                ),
+                "cohort_target": (
+                    int(cohort_target) if cohort_target is not None else None
+                ),
+                "direct_won": bool(direct_won),
+            },
+        )
 
     def record_phase2_decision(
         self,
@@ -463,6 +545,34 @@ class WaveSliceMetrics:
     def record_phase2_v1_unbind(self) -> None:
         with self._lock:
             self._phase2_v1_unbind_applied += 1
+        self._emit_cross_process_event("phase2_v1_unbind", {})
+
+    def record_phase2_debug_counter(self, name: str, amount: int = 1) -> None:
+        counter_name = str(name or "").strip()
+        delta = int(amount)
+        if not counter_name or delta == 0:
+            return
+        with self._lock:
+            self._phase2_debug_counter[counter_name] = (
+                self._phase2_debug_counter.get(counter_name, 0) + delta
+            )
+        self._emit_cross_process_event(
+            "phase2_debug_counter",
+            {"name": counter_name, "amount": delta},
+        )
+
+    def record_phase2_true_unbind_gate(self, reason: str) -> None:
+        gate_reason = str(reason or "").strip()
+        if not gate_reason:
+            return
+        with self._lock:
+            self._phase2_true_unbind_gate_reasons[gate_reason] = (
+                self._phase2_true_unbind_gate_reasons.get(gate_reason, 0) + 1
+            )
+        self._emit_cross_process_event(
+            "phase2_true_unbind_gate",
+            {"reason": gate_reason},
+        )
 
     def record_escape_lane_activation(
         self,
@@ -585,6 +695,8 @@ class WaveSliceMetrics:
             phase2_applied = self._phase2_applied
             phase2_v1_unbind_applied = self._phase2_v1_unbind_applied
             phase2_reasons = dict(self._phase2_reason_counter)
+            phase2_debug_counter = dict(self._phase2_debug_counter)
+            phase2_true_unbind_gate_reasons = dict(self._phase2_true_unbind_gate_reasons)
             sched_total = self._sched_total
             sched_applied = self._sched_applied
             phase1_baseline_chunk_sum = self._phase1_baseline_chunk_sum
@@ -772,6 +884,10 @@ class WaveSliceMetrics:
                     ),
                     "last_active_ids": escape_lane_last_active_ids,
                     "last_deferred_ids": escape_lane_last_deferred_ids,
+                },
+                "debug": {
+                    "counters": phase2_debug_counter,
+                    "true_unbind_gate_reasons": phase2_true_unbind_gate_reasons,
                 },
             },
             "ttft_ms_all": _stat(ttft_ms_all),

@@ -343,6 +343,39 @@ def _run_single_case(
         str(out_json),
         "--no-serialize-gpu-tests",
     ]
+    if "phase2_enable_execution_escape" in eval_cfg:
+        eval_cmd.append(
+            "--phase2-enable-execution-escape"
+            if bool(eval_cfg.get("phase2_enable_execution_escape"))
+            else "--no-phase2-enable-execution-escape"
+        )
+    if "phase2_enable_v1_true_unbind" in eval_cfg:
+        eval_cmd.append(
+            "--phase2-enable-v1-true-unbind"
+            if bool(eval_cfg.get("phase2_enable_v1_true_unbind"))
+            else "--no-phase2-enable-v1-true-unbind"
+        )
+    if "phase2_execution_escape_mode" in eval_cfg:
+        eval_cmd.extend(
+            [
+                "--phase2-execution-escape-mode",
+                str(eval_cfg.get("phase2_execution_escape_mode", "bounded_spillover")),
+            ]
+        )
+    if "phase2_execution_escape_spillover_cap" in eval_cfg:
+        eval_cmd.extend(
+            [
+                "--phase2-execution-escape-spillover-cap",
+                str(int(eval_cfg.get("phase2_execution_escape_spillover_cap", 3))),
+            ]
+        )
+    if "phase2_execution_escape_max_active" in eval_cfg:
+        eval_cmd.extend(
+            [
+                "--phase2-execution-escape-max-active",
+                str(int(eval_cfg.get("phase2_execution_escape_max_active", 5))),
+            ]
+        )
     if model.trust_remote_code:
         eval_cmd.append("--trust-remote-code")
     eval_env = os.environ.copy()
