@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "buckets": [
+    256,
+    512,
+    1024,
+    1536
+  ],
+  "solo_bucket_count": 4,
+  "ratio_count": 10,
+  "ratio_min": 0.6863295785016456,
+  "ratio_median": 0.917844687896576,
+  "ratio_max": 1.1567279972906495,
+  "reasons": []
+}

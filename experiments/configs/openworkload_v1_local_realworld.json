@@ -1,0 +1,160 @@
+{
+  "suite_name": "openworkload_v1_local_realworld",
+  "out_root": "results/openworkload_v1_local_realworld",
+  "real_world_scenario": {
+    "name": "V1 Open-Workload Mixed Arrival Regression",
+    "description": "This suite re-runs Wave-Slice on the V1 engine using locally available open-weight models and open datasets. Each case mixes short conversational turns with long-context document tasks, orders short and long requests in a beneficiary-rich sequence, and assigns Poisson arrival times so that overlap and queueing are created by the workload rather than by a synthetic all-at-once burst.",
+    "why_real": [
+      "UltraChat supplies short interactive prompts that resemble assistant turns and follow-up questions.",
+      "LongBench supplies long-context prompts such as report summarization and long-document QA.",
+      "Poisson arrivals provide a standard online-serving approximation for independent user arrivals with bursty overlap.",
+      "Keeping request counts fixed while sweeping arrival rate isolates traffic density as the main controlled stress variable.",
+      "Using locally cached model snapshots and local workload generation keeps the experiment reproducible on this machine without hardcoded model paths in code."
+    ]
+  },
+  "models": [
+    {
+      "key": "gemma-7b-it",
+      "label": "Gemma-7B-IT",
+      "reason": "Primary non-Mistral reference model with a strong prior Phase I+II signal on V1."
+    },
+    {
+      "key": "mistral-7b-instruct-v0.2",
+      "label": "Mistral-7B-Instruct-v0.2",
+      "reason": "Instruction-tuned sibling used to test whether serving gains survive alignment changes."
+    }
+  ],
+  "datasets": [
+    {
+      "key": "ultrachat200k",
+      "dataset_id": "HuggingFaceH4/ultrachat_200k",
+      "split": "train_sft",
+      "extractor": "ultrachat",
+      "streaming": true,
+      "label": "UltraChat200k",
+      "role": "Short interactive turns",
+      "reason": "Provides short and medium-length conversational prompts that represent assistant traffic."
+    },
+    {
+      "key": "longbench",
+      "dataset_id": "Xnhyacinth/LongBench",
+      "split": "test",
+      "extractor": "longbench",
+      "streaming": false,
+      "label": "LongBench",
+      "role": "Long-context document tasks",
+      "reason": "Provides long prompts from summarization and long-document QA tasks that exercise head-of-line blocking."
+    }
+  ],
+  "workload": {
+    "reuse_workload_pool_root": "results/openworkload_execescape_tradeoff/20260408_133222/workloads/mid",
+    "arrival_mode": "poisson",
+    "phase1_arrival_layout": "beneficiary_rich",
+    "phase2_arrival_layout": "beneficiary_rich",
+    "phase1_early_short_frac": 0.25,
+    "phase2_early_short_frac": 0.20,
+    "phase1_post_long_short_bias": 0.70,
+    "phase2_post_long_short_bias": 0.60,
+    "sample_count": 256,
+    "densities": [
+      {
+        "name": "low",
+        "phase1_arrival_rate": 4.0,
+        "phase2_arrival_rate": 4.0,
+        "phase1_short_count": 24,
+        "phase1_long_count": 8,
+        "phase2_short_count": 24,
+        "phase2_long_count": 12,
+        "scenario": "Underloaded overlap",
+        "reason": "Requests still overlap, but sustained queueing is limited. This checks that the policy does not rely on artificial saturation to show gains."
+      },
+      {
+        "name": "mid",
+        "phase1_arrival_rate": 6.0,
+        "phase2_arrival_rate": 6.0,
+        "phase1_short_count": 24,
+        "phase1_long_count": 8,
+        "phase2_short_count": 24,
+        "phase2_long_count": 12,
+        "scenario": "Balanced daytime traffic",
+        "reason": "This is the center operating band where short and long requests overlap frequently enough to expose meaningful tradeoffs without collapsing into full saturation."
+      },
+      {
+        "name": "high",
+        "phase1_arrival_rate": 8.0,
+        "phase2_arrival_rate": 8.0,
+        "phase1_short_count": 24,
+        "phase1_long_count": 8,
+        "phase2_short_count": 24,
+        "phase2_long_count": 12,
+        "scenario": "Persistent queueing",
+        "reason": "This density creates repeated head-of-line blocking and is the first regime where strong Phase I+II rescues should become clearly visible if the implementation is working."
+      },
+      {
+        "name": "peak",
+        "phase1_arrival_rate": 10.0,
+        "phase2_arrival_rate": 10.0,
+        "phase1_short_count": 24,
+        "phase1_long_count": 8,
+        "phase2_short_count": 24,
+        "phase2_long_count": 12,
+        "scenario": "Near-saturation stress",
+        "reason": "This upper-band density keeps the queue pressure high enough to reveal robustness limits and wall-time regressions that would be hidden at lighter traffic."
+      }
+    ]
+  },
+  "eval": {
+    "python_bin": "/home/onceas/anaconda3/envs/sara/bin/python",
+    "vllm_mode": "v1",
+    "warmup_iters": 1,
+    "repeats": 2,
+    "timeout_sec": 240,
+    "gpu_guard_timeout_sec": 1800,
+    "gpu_guard_poll_interval_s": 5.0,
+    "max_new_tokens": 64,
+    "max_model_len": 3072,
+    "max_num_batched_tokens": 1536,
+    "gpu_memory_utilization": 0.6,
+    "queue_reorder_mode": "sjf",
+    "queue_reorder_aging_quantum_us": 20000
+  },
+  "phase1": {
+    "objective_mode": "fair_escape",
+    "baseline_mode": "both",
+    "gamma": 1.0,
+    "ingress_target_chunk": 768,
+    "ingress_direct_authoritative": true,
+    "ingress_exact_chunk": true,
+    "force_min_chunk": 128,
+    "target_long_fraction": 0.33
+  },
+  "phase12_soft_gate": {
+    "phase2_gate_mode": "soft",
+    "soft_ratio_scale": 1.15,
+    "soft_pressure_scale": 1.1,
+    "soft_min_long_prefill": 512,
+    "soft_allow_mixed_decode": true,
+    "soft_recent_strength_floor": 0.08,
+    "soft_require_cashout_signal": true,
+    "soft_recent_chunk_match_scale": 1.5,
+    "soft_window_score_threshold": 0.95,
+    "soft_window_recent_weight": 0.4,
+    "soft_window_chunk_weight": 0.25,
+    "soft_window_pressure_weight": 0.2,
+    "soft_window_ratio_weight": 0.1,
+    "soft_window_decode_bonus": 0.1
+  },
+  "phase2": {
+    "dispatch_mode": "synchronized",
+    "enable_mixed_prefill_decode": false,
+    "min_hetero_ratio": 4.0,
+    "min_long_prefill": 768,
+    "min_pressure_ratio": 4.0,
+    "enable_scheduler_cashout": true,
+    "enable_execution_escape": true,
+    "enable_v1_true_unbind": false,
+    "execution_escape_mode": "bounded_spillover",
+    "execution_escape_spillover_cap": 3,
+    "execution_escape_max_active": 5
+  }
+}

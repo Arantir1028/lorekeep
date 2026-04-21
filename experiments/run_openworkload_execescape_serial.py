@@ -11,7 +11,8 @@ from experiments.run_openworkload_execescape_suite import (
     _ensure_dir,
     _load_config,
     _purge_experiment_processes,
-    _resolve_model_entry,
+    _resolve_selected_datasets,
+    _resolve_selected_models,
     _run_single_case,
     _write_csv,
     _write_json,
@@ -22,23 +23,35 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Serial, per-case open-workload execution-escape runner.")
     parser.add_argument("--config", required=True)
     parser.add_argument("--run-name", default="")
+    parser.add_argument("--model-keys", default="", help="Optional comma-separated model keys to restrict the selected model set.")
+    parser.add_argument("--dataset-keys", default="", help="Optional comma-separated dataset keys to restrict the selected dataset set.")
     args = parser.parse_args()
 
     config = _load_config(args.config)
+    resolved_models, model_diagnostics = _resolve_selected_models(config, args.model_keys)
+    selected_datasets, dataset_diagnostics = _resolve_selected_datasets(config, args.dataset_keys)
+    if not resolved_models:
+        raise RuntimeError("no models selected for serial open-workload suite")
+    if not selected_datasets:
+        raise RuntimeError("no datasets selected for serial open-workload suite")
+    effective_config = dict(config)
+    effective_config["models"] = [asdict(model) for model in resolved_models]
+    effective_config["datasets"] = selected_datasets
     run_name = args.run_name or time.strftime("%Y%m%d_%H%M%S")
-    out_root = Path(str(config.get("out_root", "results/openworkload_execescape_tradeoff")))
+    out_root = Path(str(effective_config.get("out_root", "results/openworkload_execescape_tradeoff")))
     run_root = out_root / run_name
     metadata_dir = _ensure_dir(run_root / "metadata")
     _ensure_dir(run_root / "figures")
     _ensure_dir(run_root / "raw")
     _ensure_dir(run_root / "workloads")
 
-    resolved_models = [_resolve_model_entry(entry) for entry in config.get("models", [])]
-    dataset_payload = _build_dataset_source_payload(config)
-    _write_json(metadata_dir / "resolved_config.json", config)
+    dataset_payload = _build_dataset_source_payload(effective_config)
+    _write_json(metadata_dir / "resolved_config.json", effective_config)
     _write_json(metadata_dir / "models.json", [asdict(m) for m in resolved_models])
-    _write_json(metadata_dir / "datasets.json", config.get("datasets", []))
-    _write_json(metadata_dir / "densities.json", config.get("workload", {}).get("densities", []))
+    _write_json(metadata_dir / "model_selection_diagnostics.json", model_diagnostics)
+    _write_json(metadata_dir / "datasets.json", selected_datasets)
+    _write_json(metadata_dir / "dataset_selection_diagnostics.json", dataset_diagnostics)
+    _write_json(metadata_dir / "densities.json", effective_config.get("workload", {}).get("densities", []))
     dataset_source_path = metadata_dir / "dataset_sources_resolved.json"
     _write_json(dataset_source_path, dataset_payload)
     _purge_experiment_processes(reason=f"serial-run-start:{run_name}")
@@ -59,7 +72,7 @@ def main() -> int:
         if str(r.get("status")) == "ok"
     }
 
-    for density in config.get("workload", {}).get("densities", []):
+    for density in effective_config.get("workload", {}).get("densities", []):
         if not isinstance(density, dict):
             continue
         for model in resolved_models:
@@ -73,7 +86,7 @@ def main() -> int:
             row = _run_single_case(
                 model=model,
                 density=density,
-                config=config,
+                config=effective_config,
                 dataset_source_path=dataset_source_path,
                 run_root=run_root,
             )

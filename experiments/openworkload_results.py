@@ -156,9 +156,12 @@ def write_rationale_markdown(run_root: Path, config: dict[str, Any], rows: list[
     md.append("")
     ok_rows = [r for r in rows if r.get("status") == "ok"]
     if ok_rows:
-        ttft_vals = [float(r["phase12_ttft_improve_mean"]) for r in ok_rows if float_or_none(r.get("phase12_ttft_improve_mean")) is not None]
-        wall_vals = [float(r["phase12_wall_improve_mean"]) for r in ok_rows if float_or_none(r.get("phase12_wall_improve_mean")) is not None]
-        slow_vals = [float(r["phase12_slowdown_improve_mean"]) for r in ok_rows if float_or_none(r.get("phase12_slowdown_improve_mean")) is not None]
+        def _vals(metric: str) -> list[float]:
+            return [float(r[metric]) for r in ok_rows if float_or_none(r.get(metric)) is not None]
+
+        ttft_vals = _vals("phase12_ttft_improve_mean")
+        wall_vals = _vals("phase12_wall_improve_mean")
+        slow_vals = _vals("phase12_slowdown_improve_mean")
         md.append("## High-Level Result Summary")
         md.append("")
         if ttft_vals:
@@ -167,6 +170,21 @@ def write_rationale_markdown(run_root: Path, config: dict[str, Any], rows: list[
             md.append(f"- Mean round wall-time improvement: {sum(wall_vals)/len(wall_vals):.4f}x")
         if slow_vals:
             md.append(f"- Mean slowdown improvement: {sum(slow_vals)/len(slow_vals):.4f}x")
+        phase_summaries = [
+            ("Phase I", "phase1_ttft_improve_mean", "phase1_wall_improve_mean"),
+            ("Phase II", "phase2_ttft_improve_mean", "phase2_wall_improve_mean"),
+            ("Phase I+II", "phase12_ttft_improve_mean", "phase12_wall_improve_mean"),
+        ]
+        for phase_label, ttft_key, wall_key in phase_summaries:
+            phase_ttft = _vals(ttft_key)
+            phase_wall = _vals(wall_key)
+            if phase_ttft or phase_wall:
+                parts: list[str] = []
+                if phase_ttft:
+                    parts.append(f"TTFT={sum(phase_ttft)/len(phase_ttft):.4f}x")
+                if phase_wall:
+                    parts.append(f"wall={sum(phase_wall)/len(phase_wall):.4f}x")
+                md.append(f"- {phase_label}: " + ", ".join(parts))
         md.append(f"- Successful cases: {len(ok_rows)} / {len(rows)}")
         md.append("")
     md.append("## Notes")
@@ -175,6 +193,62 @@ def write_rationale_markdown(run_root: Path, config: dict[str, Any], rows: list[
     md.append("- Model and dataset identities are configuration-driven rather than hardcoded in the runner.")
     md.append("- Optional model extensions can be enabled in the JSON config when additional GPU budget is available.")
     (run_root / "metadata" / "experiment_rationale.md").write_text("\n".join(md), encoding="utf-8")
+
+
+def write_result_summary_markdown(run_root: Path, rows: list[dict[str, Any]]) -> None:
+    ok_rows = [r for r in rows if r.get("status") == "ok"]
+    md: list[str] = []
+    md.append("# V1 Open-Workload Result Summary")
+    md.append("")
+    md.append(f"- Successful cases: {len(ok_rows)} / {len(rows)}")
+    md.append("")
+    if not ok_rows:
+        md.append("No successful rows were recorded.")
+        (run_root / "metadata" / "result_summary.md").write_text("\n".join(md), encoding="utf-8")
+        return
+
+    phase_specs = [
+        ("Phase I", "phase1_ttft_improve_mean", "phase1_wall_improve_mean"),
+        ("Phase II", "phase2_ttft_improve_mean", "phase2_wall_improve_mean"),
+        ("Phase I+II", "phase12_ttft_improve_mean", "phase12_wall_improve_mean"),
+    ]
+    for label, ttft_key, wall_key in phase_specs:
+        ttft_vals = [float(r[ttft_key]) for r in ok_rows if float_or_none(r.get(ttft_key)) is not None]
+        wall_vals = [float(r[wall_key]) for r in ok_rows if float_or_none(r.get(wall_key)) is not None]
+        if not ttft_vals and not wall_vals:
+            continue
+        md.append(f"## {label}")
+        md.append("")
+        if ttft_vals:
+            md.append(f"- Mean TTFT improvement: {sum(ttft_vals) / len(ttft_vals):.4f}x")
+            md.append(f"- Min TTFT improvement: {min(ttft_vals):.4f}x")
+            md.append(f"- Max TTFT improvement: {max(ttft_vals):.4f}x")
+        if wall_vals:
+            md.append(f"- Mean wall-time improvement: {sum(wall_vals) / len(wall_vals):.4f}x")
+            md.append(f"- Min wall-time improvement: {min(wall_vals):.4f}x")
+            md.append(f"- Max wall-time improvement: {max(wall_vals):.4f}x")
+        md.append("")
+
+    best_rows = sorted(
+        ok_rows,
+        key=lambda r: float_or_none(r.get("phase12_ttft_improve_mean")) or 0.0,
+        reverse=True,
+    )[:5]
+    if best_rows:
+        md.append("## Best Phase I+II Cases")
+        md.append("")
+        for row in best_rows:
+            md.append(
+                "- "
+                f"{row.get('model_label')} / {row.get('density')}: "
+                f"Phase I+II TTFT={float_or_none(row.get('phase12_ttft_improve_mean')) or 0.0:.4f}x, "
+                f"wall={float_or_none(row.get('phase12_wall_improve_mean')) or 0.0:.4f}x, "
+                f"Phase I TTFT={float_or_none(row.get('phase1_ttft_improve_mean')) or 0.0:.4f}x, "
+                f"Phase II TTFT={float_or_none(row.get('phase2_ttft_improve_mean')) or 0.0:.4f}x"
+            )
+        md.append("")
+
+    (run_root / "metadata" / "result_summary.md").write_text("\n".join(md), encoding="utf-8")
 
 
 def plot_metric_by_model(rows: list[dict[str, Any]], metric: str, ylabel: str, title: str, out_path: Path) -> None:

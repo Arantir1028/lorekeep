@@ -59,7 +59,12 @@ def build_eval_invocation(
     _append_value(cmd, "adapter-a", adapters_cfg.get("adapter_a"))
     _append_value(cmd, "adapter-b", adapters_cfg.get("adapter_b"))
     _append_store_true(cmd, "no-auto-build-adapters", True)
-    _append_store_true(cmd, "include-phase12", True)
+    include_phase12 = config.get("include_phase12")
+    if include_phase12 is None:
+        include_phase12 = True
+    _append_store_true(cmd, "include-phase12", include_phase12)
+    _append_store_true(cmd, "include-phase1-lora-only", config.get("include_phase1_lora_only"))
+    _append_store_true(cmd, "include-strict", config.get("include_strict"))
 
     _append_value(cmd, "warmup-iters", runtime_cfg.get("warmup_iters"))
     _append_value(cmd, "repeats", runtime_cfg.get("repeats"))
@@ -101,6 +106,11 @@ def build_eval_invocation(
     _append_value(cmd, "phase2-min-hetero-ratio", phase2_cfg.get("min_hetero_ratio"))
     _append_value(cmd, "phase2-min-long-prefill", phase2_cfg.get("min_long_prefill"))
     _append_value(cmd, "phase2-min-pressure-ratio", phase2_cfg.get("min_pressure_ratio"))
+    _append_bool_optional(
+        cmd,
+        "phase2-baseline-enable-chunked-prefill",
+        phase2_cfg.get("baseline_enable_chunked_prefill"),
+    )
     _append_bool_optional(cmd, "phase2-enable-scheduler-cashout", phase2_cfg.get("enable_scheduler_cashout"))
     _append_bool_optional(cmd, "phase2-enable-execution-escape", phase2_cfg.get("enable_execution_escape"))
     _append_bool_optional(cmd, "phase2-enable-v1-true-unbind", phase2_cfg.get("enable_v1_true_unbind"))

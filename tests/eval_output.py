@@ -23,6 +23,7 @@ def build_summary(
     phase1: dict[str, Any],
     phase2: dict[str, Any],
     phase1_no_chunk_control: Optional[dict[str, Any]],
+    phase1_lora: Optional[dict[str, Any]],
     phase12: Optional[dict[str, Any]],
 ) -> dict[str, Any]:
     summary = {
@@ -37,6 +38,8 @@ def build_summary(
         "phase1": phase1["summary"],
         "phase2": phase2["summary"],
         "per_repeat": {
+            "phase1_baseline_chunked": phase1_base_rounds if need_chunked_baseline else None,
+            "phase1_baseline_no_chunk": phase1_no_chunk_rounds if need_no_chunk_baseline else None,
             "phase1": phase1["rows"],
             "phase2": phase2["rows"],
         },
@@ -47,13 +50,22 @@ def build_summary(
     if args.include_strict:
         summary["phase2_strict"] = phase2["strict_summary"]
         summary["per_repeat"]["phase2_strict"] = phase2["strict_rows"]
+    if phase1_lora is not None:
+        summary["phase1_lora"] = phase1_lora["summary"]
+        summary["per_repeat"]["phase1_lora"] = phase1_lora["rows"]
     if phase12 is not None:
         summary["phase12"] = phase12["summary"]
         summary["per_repeat"]["phase12"] = phase12["rows"]
     return summary
 
 
-def print_summary(summary: dict[str, Any], *, include_strict: bool, include_phase12: bool) -> None:
+def print_summary(
+    summary: dict[str, Any],
+    *,
+    include_strict: bool,
+    include_phase1_lora_only: bool,
+    include_phase12: bool,
+) -> None:
     print("\n[Summary] Phase-I")
     if summary.get("phase1_baseline_no_chunk_raw") is not None:
         print(f"  no_chunk_ttft_short_p99_ms={summary['phase1_baseline_no_chunk_raw']['ttft_short_p99_ms']}")
@@ -90,6 +102,16 @@ def print_summary(summary: dict[str, Any], *, include_strict: bool, include_phas
     print(f"  baseline_noise_error_rate={summary['phase2']['baseline_noise_error_rate']}")
     print(f"  incremental_error_rate={summary['phase2']['incremental_error_rate']}")
     print(f"  phase2_apply_ratio={summary['phase2']['phase2_apply_ratio']}")
+
+    if include_phase1_lora_only and summary.get("phase1_lora") is not None:
+        print("\n[Summary] Phase-I on LoRA")
+        print(f"  ttft_improve_ratio={summary['phase1_lora']['ttft_improve_ratio']}")
+        print(f"  slowdown_improve_ratio={summary['phase1_lora']['slowdown_improve_ratio']}")
+        print(f"  round_wall_improve_ratio={summary['phase1_lora']['round_wall_improve_ratio']}")
+        print(f"  wave_error_rate={summary['phase1_lora']['wave_error_rate']}")
+        print(f"  baseline_noise_error_rate={summary['phase1_lora']['baseline_noise_error_rate']}")
+        print(f"  incremental_error_rate={summary['phase1_lora']['incremental_error_rate']}")
+        print(f"  phase2_apply_ratio={summary['phase1_lora']['phase2_apply_ratio']}")
 
     if include_strict:
         print("\n[Summary] Phase-II Strict")

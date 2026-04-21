@@ -1,0 +1,21 @@
+{
+  "passed": false,
+  "buckets": [
+    256,
+    512,
+    1024,
+    1536
+  ],
+  "solo_bucket_count": 4,
+  "ratio_count": 10,
+  "ratio_min": 0.07861549922567428,
+  "ratio_median": 0.9720916016550093,
+  "ratio_max": 0.9998739707295764,
+  "reasons": [
+    "solo_non_monotonic:256->512",
+    "ratio_out_of_range:256:256:0.079",
+    "ratio_out_of_range:256:512:0.079",
+    "ratio_out_of_range:256:1024:0.080",
+    "ratio_out_of_range:256:1536:0.081"
+  ]
+}

@@ -1,0 +1,180 @@
+{
+  "models": [
+    {
+      "model_id": "Deci/DeciLM-7B",
+      "lut_name": "Deci--DeciLM-7B",
+      "snapshot": "/home/onceas/.cache/huggingface/hub/models--Deci--DeciLM-7B/snapshots/c3c9f4226801dc0433f32aebffe0aac68ee2f051",
+      "q_heads": 32,
+      "kv_heads": 32,
+      "head_dim": 128,
+      "d_model": 4096,
+      "aliases": [
+        "Deci/DeciLM-7B",
+        "DeciLM-7B",
+        "Deci--DeciLM-7B"
+      ],
+      "batch_size": 67,
+      "status": "ok"
+    },
+    {
+      "model_id": "EleutherAI/gpt-j-6b",
+      "lut_name": "EleutherAI--gpt-j-6b",
+      "snapshot": "/home/onceas/.cache/huggingface/hub/models--EleutherAI--gpt-j-6b/snapshots/47e169305d2e8376be1d31e765533382721b2cc1",
+      "q_heads": 16,
+      "kv_heads": 16,
+      "head_dim": 256,
+      "d_model": 4096,
+      "aliases": [
+        "EleutherAI/gpt-j-6b",
+        "gpt-j-6b",
+        "EleutherAI--gpt-j-6b"
+      ],
+      "batch_size": 67,
+      "status": "ok"
+    },
+    {
+      "model_id": "EleutherAI/pythia-6.9b",
+      "lut_name": "EleutherAI--pythia-6.9b",
+      "snapshot": "/home/onceas/.cache/huggingface/hub/models--EleutherAI--pythia-6.9b/snapshots/c0e3eee36dc47af0c49f361c74cfe459c09f7f23",
+      "q_heads": 32,
+      "kv_heads": 32,
+      "head_dim": 128,
+      "d_model": 4096,
+      "aliases": [
+        "EleutherAI/pythia-6.9b",
+        "pythia-6.9b",
+        "EleutherAI--pythia-6.9b"
+      ],
+      "batch_size": 67,
+      "status": "ok"
+    },
+    {
+      "model_id": "HuggingFaceH4/zephyr-7b-beta",
+      "lut_name": "HuggingFaceH4--zephyr-7b-beta",
+      "snapshot": "/home/onceas/.cache/huggingface/hub/models--HuggingFaceH4--zephyr-7b-beta/snapshots/892b3d7a7b1cf10c7a701c60881cd93df615734c",
+      "q_heads": 32,
+      "kv_heads": 8,
+      "head_dim": 128,
+      "d_model": 4096,
+      "aliases": [
+        "HuggingFaceH4/zephyr-7b-beta",
+        "zephyr-7b-beta",
+        "HuggingFaceH4--zephyr-7b-beta"
+      ],
+      "batch_size": 96,
+      "status": "ok"
+    },
+    {
+      "model_id": "Qwen/Qwen2.5-7B-Instruct",
+      "lut_name": "Qwen--Qwen2.5-7B-Instruct",
+      "snapshot": "/home/onceas/.cache/huggingface/hub/models--Qwen--Qwen2.5-7B-Instruct/snapshots/a09a35458c702b33eeacc393d103063234e8bc28",
+      "q_heads": 28,
+      "kv_heads": 4,
+      "head_dim": 128,
+      "d_model": 3584,
+      "aliases": [
+        "Qwen/Qwen2.5-7B-Instruct",
+        "Qwen2.5-7B-Instruct",
+        "Qwen--Qwen2.5-7B-Instruct"
+      ],
+      "batch_size": 116,
+      "status": "ok"
+    },
+    {
+      "model_id": "baichuan-inc/Baichuan2-7B-Chat",
+      "lut_name": "baichuan-inc--Baichuan2-7B-Chat",
+      "snapshot": "/home/onceas/.cache/huggingface/hub/models--baichuan-inc--Baichuan2-7B-Chat/snapshots/ea66ced17780ca3db39bc9f8aa601d8463db3da5",
+      "q_heads": 32,
+      "kv_heads": 32,
+      "head_dim": 128,
+      "d_model": 4096,
+      "aliases": [
+        "baichuan-inc/Baichuan2-7B-Chat",
+        "Baichuan2-7B-Chat",
+        "baichuan-inc--Baichuan2-7B-Chat"
+      ],
+      "batch_size": 67,
+      "status": "ok"
+    },
+    {
+      "model_id": "bigscience/bloomz-7b1",
+      "lut_name": "bigscience--bloomz-7b1",
+      "snapshot": "/home/onceas/.cache/huggingface/hub/models--bigscience--bloomz-7b1/snapshots/fa72440b228d7f42a42ec3681cf09735ad14822f",
+      "q_heads": 32,
+      "kv_heads": 32,
+      "head_dim": 128,
+      "d_model": 4096,
+      "aliases": [
+        "bigscience/bloomz-7b1",
+        "bloomz-7b1",
+        "bigscience--bloomz-7b1"
+      ],
+      "batch_size": 67,
+      "status": "ok"
+    },
+    {
+      "model_id": "facebook/opt-66b",
+      "lut_name": "facebook--opt-66b",
+      "snapshot": "/home/onceas/.cache/huggingface/hub/models--facebook--opt-66b/snapshots/7259969061237fe940036d22bea0fd349e4485e9",
+      "q_heads": 72,
+      "kv_heads": 72,
+      "head_dim": 128,
+      "d_model": 9216,
+      "aliases": [
+        "facebook/opt-66b",
+        "opt-66b",
+        "facebook--opt-66b"
+      ],
+      "batch_size": 29,
+      "status": "ok"
+    },
+    {
+      "model_id": "google/gemma-2-9b-it",
+      "lut_name": "google--gemma-2-9b-it",
+      "snapshot": "/home/onceas/.cache/huggingface/hub/models--google--gemma-2-9b-it/snapshots/11c9b309abf73637e4b6f9a3fa1e92e615547819",
+      "q_heads": 16,
+      "kv_heads": 8,
+      "head_dim": 224,
+      "d_model": 3584,
+      "aliases": [
+        "google/gemma-2-9b-it",
+        "gemma-2-9b-it",
+        "google--gemma-2-9b-it"
+      ],
+      "batch_size": 96,
+      "status": "ok"
+    },
+    {
+      "model_id": "google/gemma-7b-it",
+      "lut_name": "google--gemma-7b-it",
+      "snapshot": "/home/onceas/.cache/huggingface/hub/models--google--gemma-7b-it/snapshots/9c5798d27f588501ce1e108079d2a19e4c3a2353",
+      "q_heads": 16,
+      "kv_heads": 16,
+      "head_dim": 192,
+      "d_model": 3072,
+      "aliases": [
+        "google/gemma-7b-it",
+        "gemma-7b-it",
+        "google--gemma-7b-it"
+      ],
+      "batch_size": 89,
+      "status": "ok"
+    },
+    {
+      "model_id": "microsoft/DialoGPT-small",
+      "lut_name": "microsoft--DialoGPT-small",
+      "snapshot": "/home/onceas/.cache/huggingface/hub/models--microsoft--DialoGPT-small/snapshots/49c537161a457d5256512f9d2d38a87d81ae0f0e",
+      "q_heads": 12,
+      "kv_heads": 12,
+      "head_dim": 64,
+      "d_model": 768,
+      "aliases": [
+        "microsoft/DialoGPT-small",
+        "DialoGPT-small",
+        "microsoft--DialoGPT-small"
+      ],
+      "batch_size": 128,
+      "status": "ok"
+    }
+  ]
+}

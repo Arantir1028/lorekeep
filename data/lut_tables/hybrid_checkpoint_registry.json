@@ -1,0 +1,28 @@
+{
+  "models": [
+    {
+      "model_id": "microsoft/phi-2",
+      "lut_name": "microsoft--phi-2",
+      "snapshot": "/home/onceas/.cache/huggingface/hub/models--microsoft--phi-2/snapshots/810d367871c1d460086d9f82db8696f2e0a0fcd0",
+      "aliases": [
+        "microsoft/phi-2",
+        "phi-2",
+        "microsoft--phi-2"
+      ],
+      "q_heads": 32,
+      "kv_heads": 32,
+      "head_dim": 80,
+      "d_model": 2560,
+      "base_batch_size": 107,
+      "calibration_buckets": [
+        256,
+        512,
+        1024,
+        1536
+      ],
+      "status": "failed",
+      "error": "ValueError(\"runtime calibration failed sanity: ['solo_non_monotonic:256->512', 'ratio_out_of_range:256:256:0.079', 'ratio_out_of_range:256:512:0.079', 'ratio_out_of_range:256:1024:0.080', 'ratio_out_of_range:256:1536:0.081']\")",
+      "runtime_sanity": "/home/onceas/Arantir/lorekeep/data/lut_tables/runtime_sanity_microsoft--phi-2.json"
+    }
+  ]
+}

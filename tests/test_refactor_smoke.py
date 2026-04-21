@@ -18,6 +18,7 @@ if str(TESTS_DIR) not in sys.path:
 import evaluate_waveslice_claims as claims
 import eval_config
 from experiments.run_frozen_eval_config import build_eval_invocation
+from experiments.openworkload_support import extract_summary_from_result_json
 from engine.base_slicer import WaveBaseSlicer
 from engine.hijack.autoinject import merge_cross_process_metrics
 from engine.hijack.engine_hooks import (
@@ -1362,8 +1363,8 @@ class RefactorSmokeTests(unittest.TestCase):
                     return [_make_phase1_row(50.0, 980.0, 0.2) for _ in range(args.repeats)]
                 if mode == "baseline_lora_compat":
                     return [_make_phase2_row(100.0, 1000.0, 0.0) for _ in range(args.repeats)]
-                if mode in {"phase2_lora", "phase12_lora"}:
-                    ttft = 50.0 if mode == "phase12_lora" else 80.0
+                if mode in {"phase1_lora_only", "phase2_lora", "phase12_lora"}:
+                    ttft = 70.0 if mode == "phase1_lora_only" else (50.0 if mode == "phase12_lora" else 80.0)
                     return [_make_phase2_row(ttft, 990.0, 0.4) for _ in range(args.repeats)]
                 raise AssertionError(f"unexpected mode: {mode}")
 
@@ -1385,6 +1386,7 @@ class RefactorSmokeTests(unittest.TestCase):
                 "2",
                 "--warmup-iters",
                 "0",
+                "--include-phase1-lora-only",
                 "--include-phase12",
                 "--out-json",
                 str(out_json),
@@ -1408,8 +1410,51 @@ class RefactorSmokeTests(unittest.TestCase):
             payload = json.loads(out_json.read_text(encoding="utf-8"))
             self.assertEqual(payload["config"]["requests_json"], "fake_requests.json")
             self.assertEqual(payload["config"]["lora_requests_json"], "fake_lora_requests.json")
+            self.assertIsNotNone(payload["phase1_lora"]["ttft_improve_ratio"]["mean"])
             self.assertIsNotNone(payload["phase12"]["ttft_improve_ratio"]["mean"])
             self.assertIsNotNone(payload["phase2"]["phase2_apply_ratio"]["mean"])
+
+    def test_extract_openworkload_summary_includes_all_phases(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result_json = Path(tmpdir) / "result.json"
+            result_json.write_text(
+                json.dumps(
+                    {
+                        "phase1": {
+                            "ttft_improve_ratio": {"mean": 1.1},
+                            "round_wall_improve_ratio": {"mean": 0.98},
+                            "error_rate": {"mean": 0.2},
+                            "scheduler_apply_ratio": {"mean": 0.3},
+                        },
+                        "phase2": {
+                            "ttft_improve_ratio": {"mean": 1.02},
+                            "round_wall_improve_ratio": {"mean": 1.01},
+                            "slowdown_improve_ratio": {"mean": 1.0},
+                            "wave_error_rate": {"mean": 0.4},
+                            "phase2_apply_ratio": {"mean": 0.1},
+                        },
+                        "phase12": {
+                            "ttft_improve_ratio": {"mean": 2.5},
+                            "round_wall_improve_ratio": {"mean": 1.03},
+                            "slowdown_improve_ratio": {"mean": 1.1},
+                            "incremental_error_rate": {"mean": 0.05},
+                            "phase2_apply_ratio": {"mean": 0.12},
+                            "phase2_escape_lane_activations": {"mean": 3.0},
+                            "phase2_escape_lane_seen_active_hits": {"mean": 4.0},
+                            "phase2_escape_lane_finished_active_hits": {"mean": 2.0},
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            summary = extract_summary_from_result_json(result_json)
+        self.assertEqual(summary["phase1_ttft_improve_mean"], 1.1)
+        self.assertEqual(summary["phase1_wall_improve_mean"], 0.98)
+        self.assertEqual(summary["phase2_ttft_improve_mean"], 1.02)
+        self.assertEqual(summary["phase2_wall_improve_mean"], 1.01)
+        self.assertEqual(summary["phase2_apply_ratio_mean"], 0.1)
+        self.assertEqual(summary["phase12_ttft_improve_mean"], 2.5)
+        self.assertEqual(summary["phase12_wall_improve_mean"], 1.03)
 
     def test_inject_wave_slice_smoke_builds_patch_state(self) -> None:
         class FakeScheduler:

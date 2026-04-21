@@ -233,6 +233,7 @@ def _run_round(
     engine: Any,
     reqs: list[Req],
     max_new_tokens: int,
+    ignore_eos: bool,
     timeout_sec: int,
     enable_lora: bool,
     lora_map: dict[str, Any],
@@ -240,7 +241,7 @@ def _run_round(
 ) -> dict[str, Any]:
     from vllm.sampling_params import SamplingParams
 
-    sampling = SamplingParams(max_tokens=max_new_tokens, temperature=0.0)
+    sampling = SamplingParams(max_tokens=max_new_tokens, temperature=0.0, ignore_eos=ignore_eos)
     trackers: dict[str, dict[str, Any]] = {}
     reset_wave_slice_metrics()
 
@@ -348,6 +349,7 @@ def _run_mode_series(
     model_name: str,
     reqs: list[Req],
     max_new_tokens: int,
+    ignore_eos: bool,
     timeout_sec: int,
     mode: str,
     enable_lora: bool,
@@ -463,6 +465,7 @@ def _run_mode_series(
                 engine=engine,
                 reqs=reqs,
                 max_new_tokens=max_new_tokens,
+                ignore_eos=ignore_eos,
                 timeout_sec=timeout_sec,
                 enable_lora=enable_lora,
                 lora_map=lora_map,
@@ -475,6 +478,7 @@ def _run_mode_series(
                     engine=engine,
                     reqs=reqs,
                     max_new_tokens=max_new_tokens,
+                    ignore_eos=ignore_eos,
                     timeout_sec=timeout_sec,
                     enable_lora=enable_lora,
                     lora_map=lora_map,
@@ -503,6 +507,7 @@ def _common_series_kwargs(
         "model_name": model_name,
         "reqs": reqs,
         "max_new_tokens": args.max_new_tokens,
+        "ignore_eos": args.ignore_eos,
         "timeout_sec": args.timeout_sec,
         "mode": mode,
         "enable_lora": enable_lora,
@@ -592,6 +597,12 @@ def main() -> int:
     parser.add_argument("--model-name", default="Mistral-7B-v0.1")
     parser.add_argument("--trust-remote-code", action="store_true")
     parser.add_argument("--max-new-tokens", type=int, default=128)
+    parser.add_argument(
+        "--ignore-eos",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Force each request to decode up to --max-new-tokens by ignoring EOS.",
+    )
     parser.add_argument("--timeout-sec", type=int, default=240)
     parser.add_argument("--warmup-iters", type=int, default=2)
     parser.add_argument("--repeats", type=int, default=8)
@@ -754,6 +765,11 @@ def main() -> int:
         help="Also run the combined Phase-I + Phase-II LoRA series.",
     )
     parser.add_argument(
+        "--include-phase1-lora-only",
+        action="store_true",
+        help="Also run the Phase-I-only scheduler on the LoRA workload for like-for-like comparison against the LoRA baseline.",
+    )
+    parser.add_argument(
         "--phase2-dispatch-mode",
         choices=["synchronized", "async_experimental"],
         default="synchronized",
@@ -810,6 +826,12 @@ def main() -> int:
         "--phase2-execution-escape-max-active",
         type=int,
         default=5,
+    )
+    parser.add_argument(
+        "--phase2-baseline-enable-chunked-prefill",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Whether the paired Phase-II baseline uses chunked prefill. Disable this to capture vLLM default continuous batching on the LoRA phase2 segment.",
     )
     parser.add_argument(
         "--adapter-a",
@@ -903,9 +925,14 @@ def main() -> int:
     short_lens = [v for k, v in tok_lens.items() if "short" in k]
     long_lens = [v for k, v in tok_lens.items() if "long" in k]
 
+    def _fmt_range(vals: list[int]) -> str:
+        if not vals:
+            return "n/a"
+        return f"[{min(vals)}, {max(vals)}]"
+
     print("[Eval] Request token lengths")
     print(f"  per_request={tok_lens}")
-    print(f"  short_range=[{min(short_lens)}, {max(short_lens)}], long_range=[{min(long_lens)}, {max(long_lens)}]")
+    print(f"  short_range={_fmt_range(short_lens)}, long_range={_fmt_range(long_lens)}")
     print(f"  decode_max_new_tokens={args.max_new_tokens}")
     if fitted_long_repeat != args.long_repeat:
         print(f"  long_repeat auto-adjusted: {args.long_repeat} -> {fitted_long_repeat}")
@@ -914,7 +941,12 @@ def main() -> int:
     if fitted_lora_long_repeat != args.long_repeat:
         print(f"  lora_long_repeat auto-adjusted: {args.long_repeat} -> {fitted_lora_long_repeat}")
 
-    need_lora_adapters = (not args.skip_phase2) or args.include_phase12 or args.include_strict
+    need_lora_adapters = (
+        (not args.skip_phase2)
+        or args.include_phase12
+        or args.include_strict
+        or args.include_phase1_lora_only
+    )
     if need_lora_adapters:
         adapter_a = args.adapter_a.strip()
         adapter_b = args.adapter_b.strip()
@@ -1075,7 +1107,7 @@ def main() -> int:
         reqs=lora_reqs,
         enable_lora=True,
         mode="baseline_lora_compat",
-        enable_chunked_prefill=True,
+        enable_chunked_prefill=bool(args.phase2_baseline_enable_chunked_prefill),
         adapter_a=args.adapter_a,
         adapter_b=args.adapter_b,
     )
@@ -1087,7 +1119,7 @@ def main() -> int:
         reqs=lora_reqs,
         enable_lora=True,
         mode="baseline_lora_compat",
-        enable_chunked_prefill=True,
+        enable_chunked_prefill=bool(args.phase2_baseline_enable_chunked_prefill),
         adapter_a=args.adapter_a,
         adapter_b=args.adapter_b,
     )
@@ -1124,6 +1156,28 @@ def main() -> int:
         strict_rows=phase2_strict_rounds,
         include_strict=args.include_strict,
     )
+    phase1_lora: Optional[dict[str, Any]] = None
+    if args.include_phase1_lora_only:
+        print("[Eval] Running Phase-I-only LoRA Wave-Slice series")
+        phase1_lora_rounds = _run_series(
+            args,
+            model_name=args.model_name,
+            model_path=args.model_path,
+            reqs=lora_reqs,
+            enable_lora=True,
+            mode="phase1_lora_only",
+            enable_chunked_prefill=True,
+            adapter_a=args.adapter_a,
+            adapter_b=args.adapter_b,
+        )
+        phase1_lora = run_phase2_block(
+            base_rows=phase2_base_rounds,
+            base_repeat_rows=phase2_base_repeat_rounds,
+            wave_rows=phase1_lora_rounds,
+            strict_rows=None,
+            include_strict=False,
+        )
+
     phase12: Optional[dict[str, Any]] = None
     if args.include_phase12:
         print("[Eval] Running Phase-I + Phase-II Wave-Slice series")
@@ -1169,12 +1223,14 @@ def main() -> int:
         phase1=phase1,
         phase2=phase2,
         phase1_no_chunk_control=phase1_no_chunk_control,
+        phase1_lora=phase1_lora,
         phase12=phase12,
     )
 
     print_summary(
         summary,
         include_strict=args.include_strict,
+        include_phase1_lora_only=args.include_phase1_lora_only,
         include_phase12=args.include_phase12,
     )
 

@@ -1,0 +1,47 @@
+{
+  "suite_name": "chapter5_baseline_variants_lora7",
+  "out_root": "results/chapter5_baseline_variants",
+  "source_run_root": "",
+  "selection": {
+    "source_status": "ok"
+  },
+  "variants": [
+    {
+      "key": "fixed_chunk_vs_sarathi",
+      "label": "Fixed chunk vs Sarathi-style",
+      "enabled": true,
+      "include_phase12": false,
+      "include_strict": false,
+      "method_labels": {
+        "baseline": "Chunked prefill",
+        "wave": "Sarathi-style baseline"
+      },
+      "phase2": {
+        "baseline_enable_chunked_prefill": true,
+        "enable_scheduler_cashout": true,
+        "enable_execution_escape": false,
+        "enable_v1_true_unbind": false,
+        "enable_mixed_prefill_decode": false
+      }
+    },
+    {
+      "key": "strict_no_chunk",
+      "label": "Strict vs no chunk",
+      "enabled": true,
+      "include_phase12": false,
+      "include_strict": true,
+      "method_labels": {
+        "baseline": "Continuous batching",
+        "wave": "CUCUMIS-II",
+        "strict": "CUCUMIS-Strict"
+      },
+      "phase2": {
+        "baseline_enable_chunked_prefill": false,
+        "enable_scheduler_cashout": true,
+        "enable_execution_escape": true,
+        "enable_v1_true_unbind": false,
+        "enable_mixed_prefill_decode": false
+      }
+    }
+  ]
+}

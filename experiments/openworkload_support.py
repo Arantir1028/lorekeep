@@ -289,8 +289,26 @@ def extract_summary_from_result_json(result_json: Path) -> dict[str, Any]:
     if not result_json.exists():
         return {}
     data = json.loads(result_json.read_text(encoding="utf-8"))
+    phase1 = data.get("phase1") or {}
+    phase2 = data.get("phase2") or {}
     phase12 = data.get("phase12") or {}
+
+    def _mean(payload: dict[str, Any], key: str) -> Optional[float]:
+        raw = payload.get(key)
+        if isinstance(raw, dict):
+            return float_or_none(raw.get("mean"))
+        return float_or_none(raw)
+
     return {
+        "phase1_ttft_improve_mean": _mean(phase1, "ttft_improve_ratio"),
+        "phase1_wall_improve_mean": _mean(phase1, "round_wall_improve_ratio"),
+        "phase1_error_rate_mean": _mean(phase1, "error_rate"),
+        "phase1_scheduler_apply_mean": _mean(phase1, "scheduler_apply_ratio"),
+        "phase2_ttft_improve_mean": _mean(phase2, "ttft_improve_ratio"),
+        "phase2_wall_improve_mean": _mean(phase2, "round_wall_improve_ratio"),
+        "phase2_slowdown_improve_mean": _mean(phase2, "slowdown_improve_ratio"),
+        "phase2_error_rate_mean": _mean(phase2, "wave_error_rate"),
+        "phase2_apply_ratio_mean": _mean(phase2, "phase2_apply_ratio"),
         "phase12_ttft_improve_mean": float_or_none((phase12.get("ttft_improve_ratio") or {}).get("mean")),
         "phase12_wall_improve_mean": float_or_none((phase12.get("round_wall_improve_ratio") or {}).get("mean")),
         "phase12_slowdown_improve_mean": float_or_none((phase12.get("slowdown_improve_ratio") or {}).get("mean")),

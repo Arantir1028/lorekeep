@@ -666,8 +666,10 @@ class WaveSliceMetrics:
 
         ttft_ms_all: list[float] = []
         ttft_ms_short: list[float] = []
+        ttft_ms_long: list[float] = []
         slowdown_all: list[float] = []
         slowdown_short: list[float] = []
+        slowdown_long: list[float] = []
 
         for rec in records:
             if rec.arrival_s is not None and rec.first_token_s is not None:
@@ -675,12 +677,16 @@ class WaveSliceMetrics:
                 ttft_ms_all.append(ttft)
                 if rec.is_short:
                     ttft_ms_short.append(ttft)
+                else:
+                    ttft_ms_long.append(ttft)
 
             if rec.arrival_s is not None and rec.finish_s is not None and rec.solo_us and rec.solo_us > 0:
                 slowdown = ((rec.finish_s - rec.arrival_s) * 1e6) / rec.solo_us
                 slowdown_all.append(slowdown)
                 if rec.is_short:
                     slowdown_short.append(slowdown)
+                else:
+                    slowdown_long.append(slowdown)
 
         def _stat(values: list[float]) -> dict[str, Optional[float]]:
             return {
@@ -892,6 +898,8 @@ class WaveSliceMetrics:
             },
             "ttft_ms_all": _stat(ttft_ms_all),
             "ttft_ms_short": _stat(ttft_ms_short),
+            "ttft_ms_long": _stat(ttft_ms_long),
             "slowdown_all": _stat(slowdown_all),
             "slowdown_short": _stat(slowdown_short),
+            "slowdown_long": _stat(slowdown_long),
         }

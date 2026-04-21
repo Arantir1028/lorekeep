@@ -1,0 +1,121 @@
+{
+  "paths": {
+    "out_root": "results/chapter2_prestudy_v1",
+    "density_suite_root": ""
+  },
+  "resource_catalog_config": "experiments/configs/openworkload_execescape_full10.json",
+  "resource_selection": {
+    "model_mode": "local_all_runnable",
+    "dataset_mode": "local_supported_from_catalog",
+    "require_runtime_sanity": true,
+    "require_supported_extractors": true,
+    "require_lora_support": true,
+    "exclude_name_substrings": [
+      "llama"
+    ]
+  },
+  "model": {
+    "max_model_len": 3072
+  },
+  "eval": {
+    "python_bin": "/home/onceas/anaconda3/envs/sara/bin/python",
+    "warmup_iters": 1,
+    "repeats": 2,
+    "timeout_sec": 240,
+    "max_new_tokens": 64,
+    "max_num_batched_tokens": 1536,
+    "gpu_memory_utilization": 0.6,
+    "queue_reorder_mode": "sjf",
+    "queue_reorder_aging_quantum_us": 20000
+  },
+  "phase1": {
+    "objective_mode": "fair_escape",
+    "gamma": 1.0,
+    "ingress_target_chunk": 768,
+    "ingress_direct_authoritative": true,
+    "ingress_exact_chunk": true,
+    "force_min_chunk": 128,
+    "target_long_fraction": 0.33
+  },
+  "phase12_soft_gate": {
+    "phase2_gate_mode": "soft",
+    "soft_ratio_scale": 1.15,
+    "soft_pressure_scale": 1.1,
+    "soft_min_long_prefill": 512,
+    "soft_allow_mixed_decode": true,
+    "soft_recent_strength_floor": 0.08,
+    "soft_require_cashout_signal": true,
+    "soft_recent_chunk_match_scale": 1.5,
+    "soft_window_score_threshold": 0.95,
+    "soft_window_recent_weight": 0.4,
+    "soft_window_chunk_weight": 0.25,
+    "soft_window_pressure_weight": 0.2,
+    "soft_window_ratio_weight": 0.1,
+    "soft_window_decode_bonus": 0.1
+  },
+  "phase2": {
+    "dispatch_mode": "synchronized",
+    "enable_mixed_prefill_decode": false,
+    "min_hetero_ratio": 4.0,
+    "min_long_prefill": 768,
+    "min_pressure_ratio": 4.0,
+    "enable_scheduler_cashout": true,
+    "enable_execution_escape": true,
+    "enable_v1_true_unbind": false,
+    "execution_escape_mode": "bounded_spillover",
+    "execution_escape_spillover_cap": 3,
+    "execution_escape_max_active": 5
+  },
+  "characterization": {
+    "short_leq_tokens": 256,
+    "medium_leq_tokens": 1024
+  },
+  "microbenchmark": {
+    "short_count": 6,
+    "long_count": 1,
+    "short_prompt_repeat": 2,
+    "long_prompt_repeat": 40,
+    "short_start_s": 0.2,
+    "short_gap_s": 0.05,
+    "long_gap_s": 0.0,
+    "sequential_delay_s": 6.0
+  },
+  "arrival_sensitivity": {
+    "patterns": [
+      "short_first",
+      "interleaved",
+      "long_first"
+    ],
+    "short_count": 6,
+    "long_count": 1,
+    "short_prompt_repeat": 2,
+    "long_prompt_repeat": 40,
+    "short_start_s": 0.2,
+    "short_gap_s": 0.05,
+    "long_gap_s": 0.0,
+    "sequential_delay_s": 6.0
+  },
+  "chunking": {
+    "short_count": 6,
+    "short_prompt_repeat": 2,
+    "long_prompt_repeat": 40,
+    "short_start_s": 0.2,
+    "short_gap_s": 0.05,
+    "sequential_delay_s": 6.0
+  },
+  "paper_e3": {
+    "case_label": "Gemma-7B-IT beneficiary-rich mixed workload",
+    "source_result_json": "results/openworkload_execescape_tradeoff/reuse_exec6_20260408_v2/raw/gemma-7b-it_dataset_eval.json",
+    "source_meta_json": "results/openworkload_execescape_tradeoff/reuse_exec6_20260408_v2/raw/gemma-7b-it_meta.json"
+  },
+  "lora_relevance": {
+    "short_count": 6,
+    "long_count": 2,
+    "short_prompt_repeat": 2,
+    "long_prompt_repeat": 36,
+    "short_start_s": 0.2,
+    "short_gap_s": 0.05,
+    "long_gap_s": 0.02,
+    "sequential_delay_s": 6.0
+  }
+}

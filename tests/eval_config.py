@@ -112,6 +112,21 @@ def configure_mode(
         inject_wave_slice(model_name, gamma=float(phase1_gamma), policy=policy, force=True)
         return
 
+    if mode == "phase1_lora_only":
+        phase1_lora_kwargs = dict(phase1_kwargs)
+        phase1_lora_kwargs["enable_tick_hide"] = True
+        phase1_lora_kwargs["allow_phase1_tick_hide_with_lora"] = True
+        policy = WaveSlicePolicy(
+            enable_phase1_scheduler=True,
+            enable_phase2_modelrunner=False,
+            enable_sjf_reorder=True,
+            queue_reorder_mode=str(queue_reorder_mode),
+            queue_reorder_aging_quantum_us=float(queue_reorder_aging_quantum_us),
+            **phase1_lora_kwargs,
+        )
+        inject_wave_slice(model_name, gamma=float(phase1_gamma), policy=policy, force=True)
+        return
+
     if mode == "phase2_lora":
         policy = WaveSlicePolicy(
             enable_phase1_scheduler=False,
@@ -227,6 +242,7 @@ def build_summary_config(args: Namespace, *, short_a_repeat: int, short_b_repeat
         "phase1_baseline_mode": args.phase1_baseline_mode,
         "include_phase12": args.include_phase12,
         "include_strict": args.include_strict,
+        "include_phase1_lora_only": getattr(args, "include_phase1_lora_only", False),
         "phase1_ingress_target_chunk": args.phase1_ingress_target_chunk,
         "phase1_gamma": args.phase1_gamma,
         "phase1_ingress_direct_authoritative": args.phase1_ingress_direct_authoritative,
@@ -267,6 +283,7 @@ def build_summary_config(args: Namespace, *, short_a_repeat: int, short_b_repeat
         "phase2_min_hetero_ratio": args.phase2_min_hetero_ratio,
         "phase2_min_long_prefill": args.phase2_min_long_prefill,
         "phase2_min_pressure_ratio": args.phase2_min_pressure_ratio,
+        "phase2_baseline_enable_chunked_prefill": getattr(args, "phase2_baseline_enable_chunked_prefill", True),
         "phase2_enable_scheduler_cashout": args.phase2_enable_scheduler_cashout,
         "phase2_enable_execution_escape": args.phase2_enable_execution_escape,
         "phase2_enable_v1_true_unbind": args.phase2_enable_v1_true_unbind,
