@@ -67,7 +67,7 @@ def _infer_target_modules_from_config(config: object) -> list[str]:
     model_type = str(getattr(config, "model_type", "") or "").lower()
     if model_type == "baichuan":
         return ["W_pack", "o_proj", "gate_proj", "up_proj", "down_proj"]
-    if model_type in {"deci", "llama", "mistral"}:
+    if model_type in {"deci", "gemma", "gemma2", "llama", "mistral", "qwen2"}:
         return ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
     raise RuntimeError(f"Unsupported config-only LoRA generation for model_type={model_type!r}")
 
@@ -93,7 +93,7 @@ def _build_config_linear_specs(config: object) -> list[tuple[str, int, int]]:
             )
         return specs
 
-    if model_type in {"deci", "llama", "mistral"}:
+    if model_type in {"deci", "gemma", "gemma2", "llama", "mistral", "qwen2"}:
         num_heads = int(getattr(config, "num_attention_heads"))
         head_dim = hidden // max(1, num_heads)
         kv_heads_list = getattr(config, "num_key_value_heads_per_layer", None)
@@ -167,6 +167,24 @@ def _build_one_adapter(
     os.makedirs(out_dir, exist_ok=True)
     target_path = os.path.join(out_dir, spec.name)
     os.makedirs(target_path, exist_ok=True)
+    try:
+        config = AutoConfig.from_pretrained(base_model, trust_remote_code=trust_remote_code)
+        target_modules = _infer_target_modules_from_config(config)
+        linear_specs = _build_config_linear_specs(config)
+        return _write_manual_adapter_from_specs(
+            base_model=base_model,
+            target_path=target_path,
+            spec=spec,
+            target_modules=target_modules,
+            linear_specs=linear_specs,
+        )
+    except Exception as config_exc:
+        if os.environ.get("WAVESLICE_SYNTHETIC_LORA_LOAD_MODEL", "").strip() != "1":
+            raise RuntimeError(
+                "config-only synthetic LoRA generation failed; set "
+                "WAVESLICE_SYNTHETIC_LORA_LOAD_MODEL=1 to allow full model loading"
+            ) from config_exc
+
     model: torch.nn.Module | None = None
     model_exc: Exception | None = None
     try:

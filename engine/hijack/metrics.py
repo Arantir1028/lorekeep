@@ -32,10 +32,8 @@ class WaveSliceMetrics:
         self._requests: dict[str, _RequestMetric] = {}
         self._phase2_total = 0
         self._phase2_applied = 0
-        self._phase2_v1_unbind_applied = 0
         self._phase2_reason_counter: dict[str, int] = {}
         self._phase2_debug_counter: dict[str, int] = {}
-        self._phase2_true_unbind_gate_reasons: dict[str, int] = {}
         self._sched_total = 0
         self._sched_applied = 0
         self._phase1_baseline_chunk_sum = 0.0
@@ -77,6 +75,14 @@ class WaveSliceMetrics:
         self._phase1_cohort_target_sum = 0.0
         self._phase1_cohort_target_count = 0
         self._phase1_direct_wins = 0
+        self._phase1_runtime_adapt_total = 0
+        self._phase1_runtime_effective_pressure_sum = 0.0
+        self._phase1_runtime_wall_pressure_sum = 0.0
+        self._phase1_runtime_short_urgency_sum = 0.0
+        self._phase1_runtime_target_fraction_sum = 0.0
+        self._phase1_runtime_target_chunk_sum = 0.0
+        self._phase1_runtime_queue_sum = 0.0
+        self._phase1_runtime_waiting_short_sum = 0.0
         self._phase1_request_traces: dict[str, list[dict[str, Any]]] = {}
         self._phase1_last_is_prompt: dict[str, bool] = {}
         self._escape_lane_activations = 0
@@ -129,10 +135,8 @@ class WaveSliceMetrics:
             self._requests.clear()
             self._phase2_total = 0
             self._phase2_applied = 0
-            self._phase2_v1_unbind_applied = 0
             self._phase2_reason_counter.clear()
             self._phase2_debug_counter.clear()
-            self._phase2_true_unbind_gate_reasons.clear()
             self._sched_total = 0
             self._sched_applied = 0
             self._phase1_baseline_chunk_sum = 0.0
@@ -176,6 +180,14 @@ class WaveSliceMetrics:
             self._phase1_cohort_target_sum = 0.0
             self._phase1_cohort_target_count = 0
             self._phase1_direct_wins = 0
+            self._phase1_runtime_adapt_total = 0
+            self._phase1_runtime_effective_pressure_sum = 0.0
+            self._phase1_runtime_wall_pressure_sum = 0.0
+            self._phase1_runtime_short_urgency_sum = 0.0
+            self._phase1_runtime_target_fraction_sum = 0.0
+            self._phase1_runtime_target_chunk_sum = 0.0
+            self._phase1_runtime_queue_sum = 0.0
+            self._phase1_runtime_waiting_short_sum = 0.0
             self._escape_lane_activations = 0
             self._escape_lane_active_sum = 0.0
             self._escape_lane_deferred_sum = 0.0
@@ -522,6 +534,53 @@ class WaveSliceMetrics:
             },
         )
 
+    def phase1_virtual_cap_hit_ratio(self) -> float:
+        with self._lock:
+            numerator = float(self._phase1_virtual_cap_target_hits)
+            denominator = float(
+                max(
+                    self._phase1_virtual_cap_prefill_calls,
+                    self._phase1_virtual_cap_target_set,
+                    0,
+                )
+            )
+        if denominator <= 0.0:
+            return 0.0
+        return max(0.0, min(1.0, numerator / denominator))
+
+    def record_phase1_runtime_adaptation(
+        self,
+        *,
+        queue_len: int,
+        waiting_short_count: int,
+        effective_pressure: float,
+        wall_pressure: float,
+        short_urgency: float,
+        target_fraction: float,
+        target_chunk: int,
+    ) -> None:
+        with self._lock:
+            self._phase1_runtime_adapt_total += 1
+            self._phase1_runtime_effective_pressure_sum += float(effective_pressure)
+            self._phase1_runtime_wall_pressure_sum += float(wall_pressure)
+            self._phase1_runtime_short_urgency_sum += float(short_urgency)
+            self._phase1_runtime_target_fraction_sum += float(target_fraction)
+            self._phase1_runtime_target_chunk_sum += float(target_chunk)
+            self._phase1_runtime_queue_sum += float(max(0, int(queue_len)))
+            self._phase1_runtime_waiting_short_sum += float(max(0, int(waiting_short_count)))
+        self._emit_cross_process_event(
+            "phase1_runtime_adaptation",
+            {
+                "queue_len": int(max(0, queue_len)),
+                "waiting_short_count": int(max(0, waiting_short_count)),
+                "effective_pressure": float(effective_pressure),
+                "wall_pressure": float(wall_pressure),
+                "short_urgency": float(short_urgency),
+                "target_fraction": float(target_fraction),
+                "target_chunk": int(max(1, target_chunk)),
+            },
+        )
+
     def record_phase2_decision(
         self,
         applied: bool,
@@ -542,11 +601,6 @@ class WaveSliceMetrics:
             },
         )
 
-    def record_phase2_v1_unbind(self) -> None:
-        with self._lock:
-            self._phase2_v1_unbind_applied += 1
-        self._emit_cross_process_event("phase2_v1_unbind", {})
-
     def record_phase2_debug_counter(self, name: str, amount: int = 1) -> None:
         counter_name = str(name or "").strip()
         delta = int(amount)
@@ -559,19 +613,6 @@ class WaveSliceMetrics:
         self._emit_cross_process_event(
             "phase2_debug_counter",
             {"name": counter_name, "amount": delta},
-        )
-
-    def record_phase2_true_unbind_gate(self, reason: str) -> None:
-        gate_reason = str(reason or "").strip()
-        if not gate_reason:
-            return
-        with self._lock:
-            self._phase2_true_unbind_gate_reasons[gate_reason] = (
-                self._phase2_true_unbind_gate_reasons.get(gate_reason, 0) + 1
-            )
-        self._emit_cross_process_event(
-            "phase2_true_unbind_gate",
-            {"reason": gate_reason},
         )
 
     def record_escape_lane_activation(
@@ -699,10 +740,8 @@ class WaveSliceMetrics:
         with self._lock:
             phase2_total = self._phase2_total
             phase2_applied = self._phase2_applied
-            phase2_v1_unbind_applied = self._phase2_v1_unbind_applied
             phase2_reasons = dict(self._phase2_reason_counter)
             phase2_debug_counter = dict(self._phase2_debug_counter)
-            phase2_true_unbind_gate_reasons = dict(self._phase2_true_unbind_gate_reasons)
             sched_total = self._sched_total
             sched_applied = self._sched_applied
             phase1_baseline_chunk_sum = self._phase1_baseline_chunk_sum
@@ -747,6 +786,14 @@ class WaveSliceMetrics:
             phase1_cohort_target_sum = self._phase1_cohort_target_sum
             phase1_cohort_target_count = self._phase1_cohort_target_count
             phase1_direct_wins = self._phase1_direct_wins
+            phase1_runtime_adapt_total = self._phase1_runtime_adapt_total
+            phase1_runtime_effective_pressure_sum = self._phase1_runtime_effective_pressure_sum
+            phase1_runtime_wall_pressure_sum = self._phase1_runtime_wall_pressure_sum
+            phase1_runtime_short_urgency_sum = self._phase1_runtime_short_urgency_sum
+            phase1_runtime_target_fraction_sum = self._phase1_runtime_target_fraction_sum
+            phase1_runtime_target_chunk_sum = self._phase1_runtime_target_chunk_sum
+            phase1_runtime_queue_sum = self._phase1_runtime_queue_sum
+            phase1_runtime_waiting_short_sum = self._phase1_runtime_waiting_short_sum
             escape_lane_activations = self._escape_lane_activations
             escape_lane_active_sum = self._escape_lane_active_sum
             escape_lane_deferred_sum = self._escape_lane_deferred_sum
@@ -857,14 +904,41 @@ class WaveSliceMetrics:
                 "proposal_direct_win_ratio": (
                     phase1_direct_wins / sched_total if sched_total else 0.0
                 ),
+                "runtime_adaptive_total": float(phase1_runtime_adapt_total),
+                "runtime_effective_pressure_avg": (
+                    phase1_runtime_effective_pressure_sum / phase1_runtime_adapt_total
+                    if phase1_runtime_adapt_total else None
+                ),
+                "runtime_wall_pressure_avg": (
+                    phase1_runtime_wall_pressure_sum / phase1_runtime_adapt_total
+                    if phase1_runtime_adapt_total else None
+                ),
+                "runtime_short_urgency_avg": (
+                    phase1_runtime_short_urgency_sum / phase1_runtime_adapt_total
+                    if phase1_runtime_adapt_total else None
+                ),
+                "runtime_target_fraction_avg": (
+                    phase1_runtime_target_fraction_sum / phase1_runtime_adapt_total
+                    if phase1_runtime_adapt_total else None
+                ),
+                "runtime_target_chunk_avg": (
+                    phase1_runtime_target_chunk_sum / phase1_runtime_adapt_total
+                    if phase1_runtime_adapt_total else None
+                ),
+                "runtime_queue_avg": (
+                    phase1_runtime_queue_sum / phase1_runtime_adapt_total
+                    if phase1_runtime_adapt_total else None
+                ),
+                "runtime_waiting_short_avg": (
+                    phase1_runtime_waiting_short_sum / phase1_runtime_adapt_total
+                    if phase1_runtime_adapt_total else None
+                ),
                 "probe_reasons": phase1_probe_reason_counter,
             },
             "phase2": {
                 "attempts": phase2_total,
                 "applied": phase2_applied,
                 "apply_ratio": (phase2_applied / phase2_total) if phase2_total else 0.0,
-                "v1_true_unbind_applied": phase2_v1_unbind_applied,
-                "v1_true_unbind_ratio": (phase2_v1_unbind_applied / phase2_total) if phase2_total else 0.0,
                 "reasons": phase2_reasons,
                 "escape_lane": {
                     "activations": float(escape_lane_activations),
@@ -893,7 +967,6 @@ class WaveSliceMetrics:
                 },
                 "debug": {
                     "counters": phase2_debug_counter,
-                    "true_unbind_gate_reasons": phase2_true_unbind_gate_reasons,
                 },
             },
             "ttft_ms_all": _stat(ttft_ms_all),

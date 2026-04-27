@@ -93,6 +93,9 @@ def print_summary(
     print(f"  virtual_cap_apply_ratio={summary['phase1']['virtual_cap_apply_ratio']}")
     print(f"  virtual_cap_old_avg={summary['phase1']['virtual_cap_old_avg']}")
     print(f"  virtual_cap_new_avg={summary['phase1']['virtual_cap_new_avg']}")
+    print(f"  runtime_effective_pressure_avg={summary['phase1'].get('runtime_effective_pressure_avg')}")
+    print(f"  runtime_target_fraction_avg={summary['phase1'].get('runtime_target_fraction_avg')}")
+    print(f"  runtime_target_chunk_avg={summary['phase1'].get('runtime_target_chunk_avg')}")
 
     print("\n[Summary] Phase-II")
     print(f"  ttft_improve_ratio={summary['phase2']['ttft_improve_ratio']}")

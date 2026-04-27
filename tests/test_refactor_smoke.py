@@ -18,6 +18,7 @@ if str(TESTS_DIR) not in sys.path:
 import evaluate_waveslice_claims as claims
 import eval_config
 from experiments.run_frozen_eval_config import build_eval_invocation
+from experiments.run_openworkload_execescape_suite import _adapt_config_for_density
 from experiments.openworkload_support import extract_summary_from_result_json
 from engine.base_slicer import WaveBaseSlicer
 from engine.hijack.autoinject import merge_cross_process_metrics
@@ -32,12 +33,15 @@ from engine.hijack.metrics import WaveSliceMetrics
 from engine.hijack.phase1_math import (
     phase1_authoritative_chunk,
     phase1_effective_ingress_min_chunk,
+    phase1_runtime_adapt_policy,
+    phase1_runtime_pressure_meta,
 )
 from engine.hijack.phase1_selection import phase1_find_ingress_virtual_candidate
 from engine.hijack.phase1_stateful import phase1_maybe_seed_ingress_virtual
 from engine.hijack.policy import WaveSlicePolicy
 from engine.hijack.types import (
     _Phase12BeneficiarySignal,
+    _Phase1CohortStats,
     _Phase1IngressVirtualSlice,
     _ScheduledReqInfo,
 )
@@ -125,6 +129,141 @@ def _make_phase2_row(ttft: float, wall: float, apply: float) -> dict:
 
 
 class RefactorSmokeTests(unittest.TestCase):
+    def test_workload_pressure_adaptation_records_explainable_scope(self) -> None:
+        config = {
+            "phase1": {"ingress_target_chunk": 768, "target_long_fraction": 0.33},
+            "phase2": {
+                "enable_execution_escape": True,
+                "min_hetero_ratio": 4.0,
+                "min_pressure_ratio": 4.0,
+                "min_long_prefill": 768,
+                "execution_escape_spillover_cap": 3,
+                "execution_escape_max_active": 5,
+            },
+            "adaptive_density_policy": {
+                "enabled": True,
+                "scope": "workload_pressure",
+                "pressure_source": "configured_phase2_arrival_rate",
+                "pressure_formula": "(current_rate - min_rate) / (max_rate - min_rate)",
+                "runtime_queue_pressure": False,
+                "low_pressure_target_long_fraction": 0.65,
+                "high_pressure_target_long_fraction": 0.33,
+                "low_pressure_ingress_target_chunk": 1536,
+                "high_pressure_ingress_target_chunk": 768,
+                "low_pressure_phase2_min_hetero_ratio": 6.0,
+                "high_pressure_phase2_min_hetero_ratio": 4.0,
+                "low_pressure_phase2_min_pressure_ratio": 6.0,
+                "high_pressure_phase2_min_pressure_ratio": 4.0,
+                "low_pressure_phase2_min_long_prefill": 1024,
+                "high_pressure_phase2_min_long_prefill": 768,
+                "low_pressure_escape_spillover_cap": 1,
+                "high_pressure_escape_spillover_cap": 3,
+                "low_pressure_escape_max_active": 2,
+                "high_pressure_escape_max_active": 5,
+                "disable_execution_escape_below_pressure": 0.05,
+            },
+        }
+        densities = [
+            {"name": "low", "phase2_arrival_rate": 4.0},
+            {"name": "peak", "phase2_arrival_rate": 10.0},
+        ]
+
+        low = _adapt_config_for_density(config, densities[0], densities)
+        peak = _adapt_config_for_density(config, densities[1], densities)
+        low_runtime = low["_adaptive_density_runtime"]
+        peak_runtime = peak["_adaptive_density_runtime"]
+
+        self.assertEqual(low_runtime["scope"], "workload_pressure")
+        self.assertFalse(low_runtime["runtime_queue_pressure"])
+        self.assertEqual(low_runtime["pressure_source"], "configured_phase2_arrival_rate")
+        self.assertEqual(low_runtime["pressure_current_rate"], 4.0)
+        self.assertEqual(low_runtime["pressure_min_rate"], 4.0)
+        self.assertEqual(low_runtime["pressure_max_rate"], 10.0)
+        self.assertEqual(low["phase1"]["ingress_target_chunk"], 1536)
+        self.assertFalse(low["phase2"]["enable_execution_escape"])
+        self.assertEqual(peak_runtime["pressure_score"], 1.0)
+        self.assertEqual(peak["phase1"]["ingress_target_chunk"], 768)
+        self.assertTrue(peak["phase2"]["enable_execution_escape"])
+
+    def test_runtime_queue_pressure_adaptation_uses_runtime_bounds_not_density_values(self) -> None:
+        config = {
+            "phase1": {"ingress_target_chunk": 768, "target_long_fraction": 0.33},
+            "phase2": {
+                "enable_execution_escape": True,
+                "min_hetero_ratio": 4.0,
+                "min_pressure_ratio": 4.0,
+                "min_long_prefill": 768,
+                "execution_escape_spillover_cap": 3,
+                "execution_escape_max_active": 5,
+            },
+            "adaptive_density_policy": {
+                "enabled": True,
+                "scope": "runtime_queue_pressure",
+                "runtime_queue_pressure": True,
+                "runtime_aggressive_long_fraction": 0.33,
+                "runtime_conservative_long_fraction": 0.50,
+                "runtime_aggressive_ingress_target_chunk": 768,
+                "runtime_conservative_ingress_target_chunk": 1536,
+            },
+        }
+        densities = [
+            {"name": "low", "phase2_arrival_rate": 4.0},
+            {"name": "peak", "phase2_arrival_rate": 10.0},
+        ]
+
+        low = _adapt_config_for_density(config, densities[0], densities)
+        peak = _adapt_config_for_density(config, densities[1], densities)
+
+        self.assertEqual(low["_adaptive_density_runtime"]["scope"], "runtime_queue_pressure")
+        self.assertTrue(low["_adaptive_density_runtime"]["runtime_queue_pressure"])
+        self.assertEqual(low["phase1"]["target_long_fraction"], peak["phase1"]["target_long_fraction"])
+        self.assertEqual(low["phase1"]["ingress_target_chunk"], peak["phase1"]["ingress_target_chunk"])
+        self.assertTrue(low["phase1"]["runtime_adaptive_enabled"])
+        self.assertEqual(low["phase1"]["runtime_aggressive_ingress_target_chunk"], 768)
+        self.assertEqual(peak["_adaptive_density_runtime"]["workload_pressure_score"], 1.0)
+
+    def test_runtime_pressure_policy_moves_between_aggressive_and_conservative_targets(self) -> None:
+        policy = WaveSlicePolicy(
+            phase1_runtime_adaptive_enabled=True,
+            phase2_runtime_adaptive_enabled=True,
+            phase1_runtime_aggressive_long_fraction=0.33,
+            phase1_runtime_conservative_long_fraction=0.50,
+            phase1_runtime_aggressive_ingress_target_chunk=768,
+            phase1_runtime_conservative_ingress_target_chunk=1536,
+        )
+        cohort = _Phase1CohortStats(
+            representative_short_len=128,
+            short_count=2,
+            short_token_mass=256,
+            short_lengths=[128, 128],
+            long_len=3072,
+            long_req_id="long",
+            total_count=3,
+        )
+
+        low_meta = phase1_runtime_pressure_meta(
+            policy=policy,
+            cohort=cohort,
+            queue_len=1,
+            waiting_short_count=2,
+            max_wait_us=250_000.0,
+            virtual_cap_hit_rate=0.0,
+        )
+        high_meta = phase1_runtime_pressure_meta(
+            policy=policy,
+            cohort=cohort,
+            queue_len=12,
+            waiting_short_count=0,
+            max_wait_us=100_000.0,
+            virtual_cap_hit_rate=1.0,
+        )
+        low_policy, low_payload = phase1_runtime_adapt_policy(policy, low_meta)
+        high_policy, high_payload = phase1_runtime_adapt_policy(policy, high_meta)
+
+        self.assertLess(low_policy.phase1_target_long_fraction, high_policy.phase1_target_long_fraction)
+        self.assertLess(low_policy.phase1_ingress_target_chunk, high_policy.phase1_ingress_target_chunk)
+        self.assertLess(low_payload["effective_pressure"], high_payload["effective_pressure"])
+
     def test_frozen_v1_regression_config_builds_expected_invocation(self) -> None:
         config_path = ROOT / "experiments" / "configs" / "frozen_v1_gemma_mid_global_activity_repro.json"
         config = json.loads(config_path.read_text(encoding="utf-8"))
@@ -487,7 +626,6 @@ class RefactorSmokeTests(unittest.TestCase):
             phase12_joint_coordination=True,
             phase2_enable_execution_escape=False,
             phase2_enable_scheduler_cashout=False,
-            phase2_enable_v1_true_unbind=False,
         )
         snapshot = SimpleNamespace(running=["run"], waiting=["wait"])
 
@@ -1560,14 +1698,12 @@ class RefactorSmokeTests(unittest.TestCase):
                 phase12_phase2_scheduler_cashout_cooldown_ticks=2,
                 phase2_enable_scheduler_cashout=True,
                 phase2_enable_execution_escape=False,
-                phase2_enable_v1_true_unbind=True,
             )
 
         policy = inject_mock.call_args.kwargs["policy"]
         self.assertTrue(policy.enable_phase2_modelrunner)
         self.assertTrue(policy.phase2_enable_scheduler_cashout)
         self.assertFalse(policy.phase2_enable_execution_escape)
-        self.assertTrue(policy.phase2_enable_v1_true_unbind)
         self.assertFalse(policy.enable_tick_hide)
         self.assertTrue(policy.allow_phase1_tick_hide_with_lora)
 
@@ -1603,7 +1739,6 @@ class RefactorSmokeTests(unittest.TestCase):
                 phase12_phase2_scheduler_cashout_cooldown_ticks=2,
                 phase2_enable_scheduler_cashout=False,
                 phase2_enable_execution_escape=False,
-                phase2_enable_v1_true_unbind=False,
             )
 
         policy = inject_mock.call_args.kwargs["policy"]
@@ -1614,20 +1749,13 @@ class RefactorSmokeTests(unittest.TestCase):
         metrics = WaveSliceMetrics()
         metrics.record_phase2_debug_counter("execution_escape_v1_output_hits")
         metrics.record_phase2_debug_counter("execution_escape_v1_output_misses", amount=2)
-        metrics.record_phase2_true_unbind_gate("non_v1_scheduler_output")
-        metrics.record_phase2_v1_unbind()
 
         report = metrics.summary()
         phase2 = report["phase2"]
         debug = phase2["debug"]
 
-        self.assertEqual(phase2["v1_true_unbind_applied"], 1)
         self.assertEqual(debug["counters"]["execution_escape_v1_output_hits"], 1)
         self.assertEqual(debug["counters"]["execution_escape_v1_output_misses"], 2)
-        self.assertEqual(
-            debug["true_unbind_gate_reasons"]["non_v1_scheduler_output"],
-            1,
-        )
 
     def test_merge_cross_process_metrics_includes_phase1_detail_events(self) -> None:
         base_report = {

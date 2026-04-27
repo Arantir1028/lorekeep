@@ -2,9 +2,21 @@
 
 [English](./README.md) | [简体中文](./README.zh-CN.md)
 
-CUCUMIS 是一个构建在 vLLM 之上的异构 LoRA 推理运行时调度层。
+CUCUMIS 是一个构建在 vLLM 之上的异构 LLM 推理运行时调度层。
 
 ## 当前保留的入口
+
+## 当前方法定义
+
+当前论文和实验主线固定为：
+
+- **Phase I：** 通过控制 long prefill 的 chunk size，让长请求更早返回调度边界。
+- **Phase II：** 在调度边界暴露后，通过 execution escape / priority promotion 重塑下一个调度窗口。
+- **自适应策略：** 在 scheduler 内基于运行时队列压力做 runtime queue-pressure adaptation，避免低压误触发，同时响应真实队列状态。
+
+这不是已经放弃的 `true_unbind` / dual-stream 路线。当前结果和论文表述都不应该再写成长短请求在执行层双流并行。
+
+当前 adaptive policy 是 runtime queue-pressure adaptation。配置里的 density 只负责生成 workload，真正的 chunk/gate 选择由在线 queue length、waiting short、等待时间、long remaining tokens 和 virtual-cap hit 信号驱动。精确定义见 `docs/current_method.md`。
 
 支持的实验入口：
 
@@ -127,7 +139,7 @@ Chapter 5 包含四个阶段：
 路径约定：
 
 - 这一节里的输出目录、run 目录和命令示例，默认都按仓库根目录下的相对路径来写。
-- Chapter 5 主实验配置里的 `eval.python_bin` 默认是 `python3`。如果你想换解释器，改这个字段或者换一份配置传进去即可。
+- Chapter 5 主实验使用 suite 配置里的 `eval.python_bin`。在这台机器上，当前 v1 open-workload 配置指向 `sara` conda 环境。
 
 模型和数据集配置：
 
@@ -266,29 +278,6 @@ python experiments/chapter2_prestudy.py e5 --config experiments/configs/chapter2
 - `E3 Paper Case`：从已有 beneficiary-rich 结果中导出稳定的正文图。
 - `E4 Density Sweep`：展示随着负载上升，TTFT 膨胀和 slowdown 如何变化。
 - `E5 LoRA Multi-Tenancy Relevance`：比较 non-LoRA、homogeneous LoRA、mixed-adapter LoRA。
-
-## 多模型 Suite
-
-Synthetic 多模型 suite：
-
-```bash
-python experiments/waveslice_a100_suite.py \
-  --repeats 3 \
-  --warmup-iters 2 \
-  --max-new-tokens 64 \
-  --include-phase12 \
-  --timeout-sec 240
-```
-
-Dataset-driven 多模型 suite：
-
-```bash
-python experiments/waveslice_dataset_suite.py \
-  --repeats 3 \
-  --timeout-sec 240
-```
-
-这两个 suite 都会输出每个模型的 JSON 结果和带 TTFT / wall-time 字段的 CSV 汇总。
 
 ## 输出说明
 

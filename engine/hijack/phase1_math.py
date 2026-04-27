@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any, Optional
 
 from engine.base_slicer import WaveBaseSlicer
@@ -22,6 +23,164 @@ def need_wave_slice(lengths: list[int], policy: WaveSlicePolicy) -> bool:
     if s_max <= policy.min_long_seq:
         return False
     return s_max >= int(s_min * policy.min_hetero_ratio)
+
+
+def _clamp01(value: float) -> float:
+    return max(0.0, min(1.0, float(value)))
+
+
+def _lerp(low: float, high: float, score: float) -> float:
+    score = _clamp01(score)
+    return float(low) + (float(high) - float(low)) * score
+
+
+def phase1_runtime_pressure_meta(
+    *,
+    policy: WaveSlicePolicy,
+    cohort: _Phase1CohortStats,
+    queue_len: int,
+    waiting_short_count: int,
+    max_wait_us: float,
+    virtual_cap_hit_rate: float,
+    previous_wall_pressure: float = 0.0,
+) -> dict[str, float]:
+    queue_pressure = _clamp01(
+        float(max(0, int(queue_len)))
+        / float(max(1, int(policy.phase1_runtime_queue_high_watermark)))
+    )
+    waiting_short_pressure = _clamp01(
+        float(max(0, int(waiting_short_count)))
+        / float(max(1, int(policy.phase1_runtime_waiting_short_high_watermark)))
+    )
+    wait_pressure = _clamp01(
+        float(max(0.0, max_wait_us))
+        / float(max(1.0, float(policy.phase1_runtime_wait_us_high_watermark)))
+    )
+    long_pressure = _clamp01(
+        float(max(0, int(cohort.long_len)))
+        / float(max(1, int(policy.phase1_runtime_long_high_watermark)))
+    )
+    cap_hit_pressure = _clamp01(virtual_cap_hit_rate)
+    short_mass_ratio = _clamp01(
+        float(max(0, int(cohort.short_token_mass)))
+        / float(max(1, int(cohort.long_len)))
+    )
+    urgency = _clamp01(
+        (0.55 * waiting_short_pressure)
+        + (0.30 * wait_pressure)
+        + (0.15 * short_mass_ratio)
+    )
+    raw_wall_pressure = _clamp01(
+        (0.35 * queue_pressure)
+        + (0.25 * long_pressure)
+        + (0.20 * cap_hit_pressure)
+        + (0.20 * _clamp01(previous_wall_pressure))
+    )
+    effective_pressure = _clamp01(
+        raw_wall_pressure
+        * (1.0 - (float(policy.phase1_runtime_urgency_discount) * urgency))
+    )
+    return {
+        "queue_pressure": queue_pressure,
+        "waiting_short_pressure": waiting_short_pressure,
+        "wait_pressure": wait_pressure,
+        "long_pressure": long_pressure,
+        "cap_hit_pressure": cap_hit_pressure,
+        "short_urgency": urgency,
+        "wall_pressure": raw_wall_pressure,
+        "effective_pressure": effective_pressure,
+    }
+
+
+def phase1_runtime_adapt_policy(
+    policy: WaveSlicePolicy,
+    meta: dict[str, float],
+) -> tuple[WaveSlicePolicy, dict[str, float]]:
+    if not bool(policy.phase1_runtime_adaptive_enabled):
+        return policy, {}
+    pressure = _clamp01(meta.get("effective_pressure", 0.0))
+    wall_pressure = _clamp01(meta.get("wall_pressure", pressure))
+
+    target_fraction = _lerp(
+        float(policy.phase1_runtime_aggressive_long_fraction),
+        float(policy.phase1_runtime_conservative_long_fraction),
+        pressure,
+    )
+    ingress_target_chunk = int(
+        round(
+            _lerp(
+                float(policy.phase1_runtime_aggressive_ingress_target_chunk),
+                float(policy.phase1_runtime_conservative_ingress_target_chunk),
+                pressure,
+            )
+        )
+    )
+    payload: dict[str, Any] = {
+        "phase1_target_long_fraction": max(0.01, float(target_fraction)),
+        "phase1_ingress_target_chunk": max(1, int(ingress_target_chunk)),
+    }
+
+    if bool(policy.phase2_runtime_adaptive_enabled):
+        phase2_pressure = wall_pressure
+        payload.update(
+            {
+                "phase2_min_hetero_ratio": _lerp(
+                    float(policy.phase2_runtime_low_pressure_min_hetero_ratio),
+                    float(policy.phase2_runtime_high_pressure_min_hetero_ratio),
+                    phase2_pressure,
+                ),
+                "phase2_min_pressure_ratio": _lerp(
+                    float(policy.phase2_runtime_low_pressure_min_pressure_ratio),
+                    float(policy.phase2_runtime_high_pressure_min_pressure_ratio),
+                    phase2_pressure,
+                ),
+                "phase2_min_long_prefill": int(
+                    round(
+                        _lerp(
+                            float(policy.phase2_runtime_low_pressure_min_long_prefill),
+                            float(policy.phase2_runtime_high_pressure_min_long_prefill),
+                            phase2_pressure,
+                        )
+                    )
+                ),
+                "phase2_execution_escape_spillover_cap": int(
+                    round(
+                        _lerp(
+                            float(policy.phase2_runtime_low_pressure_escape_spillover_cap),
+                            float(policy.phase2_runtime_high_pressure_escape_spillover_cap),
+                            phase2_pressure,
+                        )
+                    )
+                ),
+                "phase2_execution_escape_max_active": int(
+                    round(
+                        _lerp(
+                            float(policy.phase2_runtime_low_pressure_escape_max_active),
+                            float(policy.phase2_runtime_high_pressure_escape_max_active),
+                            phase2_pressure,
+                        )
+                    )
+                ),
+            }
+        )
+        disable_below = float(policy.phase2_runtime_disable_execution_escape_below_pressure)
+        if disable_below >= 0.0 and phase2_pressure < disable_below:
+            payload["phase2_enable_execution_escape"] = False
+
+    adapted = replace(policy, **payload)
+    return adapted, {
+        **{key: float(value) for key, value in meta.items()},
+        "phase1_target_long_fraction": float(payload["phase1_target_long_fraction"]),
+        "phase1_ingress_target_chunk": float(payload["phase1_ingress_target_chunk"]),
+        "phase2_min_hetero_ratio": float(getattr(adapted, "phase2_min_hetero_ratio", 0.0)),
+        "phase2_min_pressure_ratio": float(getattr(adapted, "phase2_min_pressure_ratio", 0.0)),
+        "phase2_min_long_prefill": float(getattr(adapted, "phase2_min_long_prefill", 0.0)),
+        "phase2_execution_escape_spillover_cap": float(getattr(adapted, "phase2_execution_escape_spillover_cap", 0.0)),
+        "phase2_execution_escape_max_active": float(getattr(adapted, "phase2_execution_escape_max_active", 0.0)),
+        "phase2_enable_execution_escape": (
+            1.0 if bool(getattr(adapted, "phase2_enable_execution_escape", False)) else 0.0
+        ),
+    }
 
 
 def compute_budget(

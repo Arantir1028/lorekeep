@@ -299,8 +299,6 @@ def _merged_phase2(source_resolved: dict[str, Any], variant: dict[str, Any]) -> 
         phase2_cfg["enable_scheduler_cashout"] = bool(overrides["enable_scheduler_cashout"])
     if "enable_execution_escape" in overrides:
         phase2_cfg["enable_execution_escape"] = bool(overrides["enable_execution_escape"])
-    if "enable_v1_true_unbind" in overrides:
-        phase2_cfg["enable_v1_true_unbind"] = bool(overrides["enable_v1_true_unbind"])
     if "enable_mixed_prefill_decode" in overrides:
         phase2_cfg["enable_mixed_prefill_decode"] = bool(overrides["enable_mixed_prefill_decode"])
     return phase2_cfg

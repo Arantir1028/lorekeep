@@ -14,6 +14,5 @@ def phase2_scheduler_cashout_enabled(policy: Any) -> bool:
 def phase2_modelrunner_passthrough(policy: Any) -> bool:
     return (
         phase2_scheduler_cashout_enabled(policy)
-        and not bool(getattr(policy, "phase2_enable_v1_true_unbind", False))
         and not bool(getattr(policy, "phase2_enable_execution_escape", False))
     )

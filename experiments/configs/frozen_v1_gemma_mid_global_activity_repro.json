@@ -16,7 +16,6 @@
     "adapter_b": "results/synthetic_adapters/_home_onceas_.cache_huggingface_hub_models--google--gemma-7b-it_snapshots_9c5798d27f588501ce1e108079d2a19e4c3a2353/adapter_rank16_seed11"
   },
   "runtime": {
-    "python_bin": "/home/onceas/anaconda3/envs/sara/bin/python",
     "vllm_mode": "v1",
     "trust_remote_code": false,
     "warmup_iters": 1,
@@ -63,7 +62,6 @@
     "min_pressure_ratio": 4.0,
     "enable_scheduler_cashout": true,
     "enable_execution_escape": true,
-    "enable_v1_true_unbind": false,
     "execution_escape_mode": "bounded_spillover",
     "execution_escape_spillover_cap": 3,
     "execution_escape_max_active": 5

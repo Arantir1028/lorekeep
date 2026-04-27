@@ -20,7 +20,6 @@
         "baseline_enable_chunked_prefill": true,
         "enable_scheduler_cashout": true,
         "enable_execution_escape": false,
-        "enable_v1_true_unbind": false,
         "enable_mixed_prefill_decode": false
       }
     },
@@ -39,7 +38,6 @@
         "baseline_enable_chunked_prefill": false,
         "enable_scheduler_cashout": true,
         "enable_execution_escape": true,
-        "enable_v1_true_unbind": false,
         "enable_mixed_prefill_decode": false
       }
     }

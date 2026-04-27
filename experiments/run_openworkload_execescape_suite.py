@@ -5,8 +5,8 @@
 # Rebuild metadata and English figures from an existing CSV/JSON run without rerunning GPUs:
 #   python3 experiments/run_openworkload_execescape_suite.py \
 #     --config experiments/configs/openworkload_execescape_default.json \
-#     --reuse-csv results/waveslice_dataset_suite_exec6_20260407.csv \
-#     --reuse-results-dir results/waveslice_dataset_suite_exec6_20260407
+#     --reuse-csv <existing-main-suite>/metadata/suite_results.csv \
+#     --reuse-results-dir <existing-main-suite>
 #
 # Output layout:
 #   <out_root>/<timestamp>/
@@ -76,7 +76,6 @@ from experiments.openworkload_support import (
 
 _GPU_LOCK_PATH = Path(os.environ.get("WAVESLICE_GPU_LOCK_PATH", "/tmp/waveslice_gpu_experiment.lock"))
 _EXPERIMENT_PROC_PATTERNS = (
-    "run_openworkload_execescape_serial.py",
     "run_openworkload_execescape_suite.py",
     "evaluate_waveslice_claims.py",
     "VLLM::EngineCore",
@@ -226,6 +225,218 @@ def _resolve_selected_densities(
     return selected
 
 
+def _density_arrival_pressure_score(
+    density: dict[str, Any],
+    reference_densities: list[dict[str, Any]],
+) -> tuple[float, dict[str, float]]:
+    def _rate(item: dict[str, Any]) -> float:
+        phase2 = item.get("phase2_arrival_rate")
+        phase1 = item.get("phase1_arrival_rate")
+        try:
+            return float(phase2 if phase2 is not None else phase1)
+        except Exception:
+            return 0.0
+
+    rates = [_rate(item) for item in reference_densities if isinstance(item, dict)]
+    rates = [rate for rate in rates if rate > 0.0]
+    current = max(0.0, _rate(density))
+    meta = {
+        "current_rate": current,
+        "min_rate": min(rates) if rates else 0.0,
+        "max_rate": max(rates) if rates else 0.0,
+    }
+    if not rates:
+        return 0.5, meta
+    lo = min(rates)
+    hi = max(rates)
+    if hi <= lo:
+        return 0.5, meta
+    return max(0.0, min(1.0, (current - lo) / (hi - lo))), meta
+
+
+def _lerp(low: float, high: float, pressure_score: float) -> float:
+    score = max(0.0, min(1.0, float(pressure_score)))
+    return float(low) + (float(high) - float(low)) * score
+
+
+def _adapt_config_for_density(
+    config: dict[str, Any],
+    density: dict[str, Any],
+    reference_densities: list[dict[str, Any]],
+) -> dict[str, Any]:
+    adaptive_cfg = dict(config.get("adaptive_density_policy") or {})
+    if not bool(adaptive_cfg.get("enabled", False)):
+        return config
+
+    adapted = deepcopy(config)
+    pressure_score, pressure_meta = _density_arrival_pressure_score(density, reference_densities)
+    phase1_cfg = dict(adapted.get("phase1") or {})
+    phase2_cfg = dict(adapted.get("phase2") or {})
+    runtime_queue_pressure = bool(adaptive_cfg.get("runtime_queue_pressure", False)) or str(
+        adaptive_cfg.get("scope") or ""
+    ).strip().lower() in {"runtime_queue_pressure", "runtime_pressure"}
+
+    if runtime_queue_pressure:
+        phase1_cfg["runtime_adaptive_enabled"] = True
+        phase1_cfg["runtime_aggressive_long_fraction"] = float(
+            adaptive_cfg.get(
+                "runtime_aggressive_long_fraction",
+                adaptive_cfg.get("high_pressure_target_long_fraction", phase1_cfg.get("target_long_fraction", 0.33)),
+            )
+        )
+        phase1_cfg["runtime_conservative_long_fraction"] = float(
+            adaptive_cfg.get(
+                "runtime_conservative_long_fraction",
+                adaptive_cfg.get("low_pressure_target_long_fraction", phase1_cfg.get("target_long_fraction", 0.50)),
+            )
+        )
+        phase1_cfg["runtime_aggressive_ingress_target_chunk"] = int(
+            adaptive_cfg.get(
+                "runtime_aggressive_ingress_target_chunk",
+                adaptive_cfg.get("high_pressure_ingress_target_chunk", phase1_cfg.get("ingress_target_chunk", 768)),
+            )
+        )
+        phase1_cfg["runtime_conservative_ingress_target_chunk"] = int(
+            adaptive_cfg.get(
+                "runtime_conservative_ingress_target_chunk",
+                adaptive_cfg.get("low_pressure_ingress_target_chunk", phase1_cfg.get("ingress_target_chunk", 1536)),
+            )
+        )
+        for cfg_key, default in {
+            "runtime_queue_high_watermark": 8,
+            "runtime_waiting_short_high_watermark": 4,
+            "runtime_wait_us_high_watermark": 1_000_000.0,
+            "runtime_long_high_watermark": 3072,
+            "runtime_urgency_discount": 0.55,
+            "runtime_ema_alpha": 0.35,
+        }.items():
+            if cfg_key in adaptive_cfg:
+                phase1_cfg[cfg_key] = adaptive_cfg[cfg_key]
+            elif cfg_key not in phase1_cfg:
+                phase1_cfg[cfg_key] = default
+
+        phase2_cfg["runtime_adaptive_enabled"] = True
+        phase2_cfg["runtime_low_pressure_min_hetero_ratio"] = float(
+            adaptive_cfg.get("runtime_low_pressure_phase2_min_hetero_ratio", adaptive_cfg.get("low_pressure_phase2_min_hetero_ratio", phase2_cfg.get("min_hetero_ratio", 6.0)))
+        )
+        phase2_cfg["runtime_high_pressure_min_hetero_ratio"] = float(
+            adaptive_cfg.get("runtime_high_pressure_phase2_min_hetero_ratio", adaptive_cfg.get("high_pressure_phase2_min_hetero_ratio", phase2_cfg.get("min_hetero_ratio", 4.0)))
+        )
+        phase2_cfg["runtime_low_pressure_min_pressure_ratio"] = float(
+            adaptive_cfg.get("runtime_low_pressure_phase2_min_pressure_ratio", adaptive_cfg.get("low_pressure_phase2_min_pressure_ratio", phase2_cfg.get("min_pressure_ratio", 6.0)))
+        )
+        phase2_cfg["runtime_high_pressure_min_pressure_ratio"] = float(
+            adaptive_cfg.get("runtime_high_pressure_phase2_min_pressure_ratio", adaptive_cfg.get("high_pressure_phase2_min_pressure_ratio", phase2_cfg.get("min_pressure_ratio", 4.0)))
+        )
+        phase2_cfg["runtime_low_pressure_min_long_prefill"] = int(
+            adaptive_cfg.get("runtime_low_pressure_phase2_min_long_prefill", adaptive_cfg.get("low_pressure_phase2_min_long_prefill", phase2_cfg.get("min_long_prefill", 1024)))
+        )
+        phase2_cfg["runtime_high_pressure_min_long_prefill"] = int(
+            adaptive_cfg.get("runtime_high_pressure_phase2_min_long_prefill", adaptive_cfg.get("high_pressure_phase2_min_long_prefill", phase2_cfg.get("min_long_prefill", 768)))
+        )
+        phase2_cfg["runtime_low_pressure_escape_spillover_cap"] = int(
+            adaptive_cfg.get("runtime_low_pressure_escape_spillover_cap", adaptive_cfg.get("low_pressure_escape_spillover_cap", phase2_cfg.get("execution_escape_spillover_cap", 1)))
+        )
+        phase2_cfg["runtime_high_pressure_escape_spillover_cap"] = int(
+            adaptive_cfg.get("runtime_high_pressure_escape_spillover_cap", adaptive_cfg.get("high_pressure_escape_spillover_cap", phase2_cfg.get("execution_escape_spillover_cap", 3)))
+        )
+        phase2_cfg["runtime_low_pressure_escape_max_active"] = int(
+            adaptive_cfg.get("runtime_low_pressure_escape_max_active", adaptive_cfg.get("low_pressure_escape_max_active", phase2_cfg.get("execution_escape_max_active", 2)))
+        )
+        phase2_cfg["runtime_high_pressure_escape_max_active"] = int(
+            adaptive_cfg.get("runtime_high_pressure_escape_max_active", adaptive_cfg.get("high_pressure_escape_max_active", phase2_cfg.get("execution_escape_max_active", 5)))
+        )
+        phase2_cfg["runtime_disable_execution_escape_below_pressure"] = float(
+            adaptive_cfg.get("runtime_disable_execution_escape_below_pressure", adaptive_cfg.get("disable_execution_escape_below_pressure", -1.0))
+        )
+
+        adapted["phase1"] = phase1_cfg
+        adapted["phase2"] = phase2_cfg
+        adapted["_adaptive_density_runtime"] = {
+            "enabled": True,
+            "density": str(density.get("name") or ""),
+            "scope": "runtime_queue_pressure",
+            "pressure_source": "scheduler_queue_waiting_short_wait_us_long_remaining_cap_hit_ema",
+            "pressure_formula": "per-schedule weighted wall pressure with short-urgency discount",
+            "workload_pressure_score": pressure_score,
+            "pressure_current_rate": pressure_meta["current_rate"],
+            "pressure_min_rate": pressure_meta["min_rate"],
+            "pressure_max_rate": pressure_meta["max_rate"],
+            "runtime_queue_pressure": True,
+            "phase1_runtime_aggressive_long_fraction": phase1_cfg.get("runtime_aggressive_long_fraction"),
+            "phase1_runtime_conservative_long_fraction": phase1_cfg.get("runtime_conservative_long_fraction"),
+            "phase1_runtime_aggressive_ingress_target_chunk": phase1_cfg.get("runtime_aggressive_ingress_target_chunk"),
+            "phase1_runtime_conservative_ingress_target_chunk": phase1_cfg.get("runtime_conservative_ingress_target_chunk"),
+            "phase2_runtime_adaptive_enabled": phase2_cfg.get("runtime_adaptive_enabled"),
+        }
+        return adapted
+
+    phase1_cfg["target_long_fraction"] = _lerp(
+        float(adaptive_cfg.get("low_pressure_target_long_fraction", phase1_cfg.get("target_long_fraction", 0.33))),
+        float(adaptive_cfg.get("high_pressure_target_long_fraction", phase1_cfg.get("target_long_fraction", 0.33))),
+        pressure_score,
+    )
+    phase1_cfg["ingress_target_chunk"] = int(round(_lerp(
+        float(adaptive_cfg.get("low_pressure_ingress_target_chunk", phase1_cfg.get("ingress_target_chunk", 768))),
+        float(adaptive_cfg.get("high_pressure_ingress_target_chunk", phase1_cfg.get("ingress_target_chunk", 768))),
+        pressure_score,
+    )))
+
+    phase2_cfg["min_hetero_ratio"] = _lerp(
+        float(adaptive_cfg.get("low_pressure_phase2_min_hetero_ratio", phase2_cfg.get("min_hetero_ratio", 4.0))),
+        float(adaptive_cfg.get("high_pressure_phase2_min_hetero_ratio", phase2_cfg.get("min_hetero_ratio", 4.0))),
+        pressure_score,
+    )
+    phase2_cfg["min_pressure_ratio"] = _lerp(
+        float(adaptive_cfg.get("low_pressure_phase2_min_pressure_ratio", phase2_cfg.get("min_pressure_ratio", 4.0))),
+        float(adaptive_cfg.get("high_pressure_phase2_min_pressure_ratio", phase2_cfg.get("min_pressure_ratio", 4.0))),
+        pressure_score,
+    )
+    phase2_cfg["min_long_prefill"] = int(round(_lerp(
+        float(adaptive_cfg.get("low_pressure_phase2_min_long_prefill", phase2_cfg.get("min_long_prefill", 768))),
+        float(adaptive_cfg.get("high_pressure_phase2_min_long_prefill", phase2_cfg.get("min_long_prefill", 768))),
+        pressure_score,
+    )))
+    phase2_cfg["execution_escape_spillover_cap"] = int(round(_lerp(
+        float(adaptive_cfg.get("low_pressure_escape_spillover_cap", phase2_cfg.get("execution_escape_spillover_cap", 3))),
+        float(adaptive_cfg.get("high_pressure_escape_spillover_cap", phase2_cfg.get("execution_escape_spillover_cap", 3))),
+        pressure_score,
+    )))
+    phase2_cfg["execution_escape_max_active"] = int(round(_lerp(
+        float(adaptive_cfg.get("low_pressure_escape_max_active", phase2_cfg.get("execution_escape_max_active", 5))),
+        float(adaptive_cfg.get("high_pressure_escape_max_active", phase2_cfg.get("execution_escape_max_active", 5))),
+        pressure_score,
+    )))
+
+    disable_below = adaptive_cfg.get("disable_execution_escape_below_pressure")
+    if disable_below is not None and pressure_score < float(disable_below):
+        phase2_cfg["enable_execution_escape"] = False
+
+    adapted["phase1"] = phase1_cfg
+    adapted["phase2"] = phase2_cfg
+    adapted["_adaptive_density_runtime"] = {
+        "enabled": True,
+        "density": str(density.get("name") or ""),
+        "scope": str(adaptive_cfg.get("scope") or "workload_pressure"),
+        "pressure_source": str(adaptive_cfg.get("pressure_source") or "configured_phase2_arrival_rate"),
+        "pressure_formula": str(adaptive_cfg.get("pressure_formula") or "(current_rate - min_rate) / (max_rate - min_rate)"),
+        "pressure_score": pressure_score,
+        "pressure_current_rate": pressure_meta["current_rate"],
+        "pressure_min_rate": pressure_meta["min_rate"],
+        "pressure_max_rate": pressure_meta["max_rate"],
+        "runtime_queue_pressure": bool(adaptive_cfg.get("runtime_queue_pressure", False)),
+        "phase1_target_long_fraction": phase1_cfg.get("target_long_fraction"),
+        "phase1_ingress_target_chunk": phase1_cfg.get("ingress_target_chunk"),
+        "phase2_min_hetero_ratio": phase2_cfg.get("min_hetero_ratio"),
+        "phase2_min_pressure_ratio": phase2_cfg.get("min_pressure_ratio"),
+        "phase2_min_long_prefill": phase2_cfg.get("min_long_prefill"),
+        "phase2_enable_execution_escape": phase2_cfg.get("enable_execution_escape"),
+        "phase2_execution_escape_spillover_cap": phase2_cfg.get("execution_escape_spillover_cap"),
+        "phase2_execution_escape_max_active": phase2_cfg.get("execution_escape_max_active"),
+    }
+    return adapted
+
+
 def _case_eval_config(
     *,
     model: ResolvedModel,
@@ -255,7 +466,6 @@ def _case_eval_config(
     legacy_phase2_map = {
         "dispatch_mode": "phase2_dispatch_mode",
         "enable_execution_escape": "phase2_enable_execution_escape",
-        "enable_v1_true_unbind": "phase2_enable_v1_true_unbind",
         "execution_escape_mode": "phase2_execution_escape_mode",
         "execution_escape_spillover_cap": "phase2_execution_escape_spillover_cap",
         "execution_escape_max_active": "phase2_execution_escape_max_active",
@@ -282,6 +492,51 @@ def _case_eval_config(
         "phase12_soft_gate": dict(config.get("phase12_soft_gate") or {}),
         "phase2": phase2_cfg,
     }
+
+
+def _per_model_progress_rows(
+    *,
+    rows: list[dict[str, Any]],
+    models: list[ResolvedModel],
+    densities: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    density_names = [str(item.get("name") or "") for item in densities if isinstance(item, dict)]
+    progress: list[dict[str, Any]] = []
+    for model in models:
+        model_rows = [row for row in rows if str(row.get("model_key") or "") == model.key]
+        by_density = {str(row.get("density") or ""): row for row in model_rows}
+        ok_rows = [row for row in model_rows if str(row.get("status") or "") == "ok"]
+
+        def _mean(metric: str) -> Optional[float]:
+            vals = [
+                float(row[metric])
+                for row in ok_rows
+                if _float_or_none(row.get(metric)) is not None
+            ]
+            return (sum(vals) / len(vals)) if vals else None
+
+        progress.append(
+            {
+                "model_key": model.key,
+                "model_label": model.label,
+                "model": model.model_id,
+                "completed_density_count": len(model_rows),
+                "ok_density_count": len(ok_rows),
+                "expected_density_count": len(density_names),
+                "density_status": {
+                    density: str(by_density.get(density, {}).get("status") or "pending")
+                    for density in density_names
+                },
+                "phase12_ttft_improve_mean": _mean("phase12_ttft_improve_mean"),
+                "phase12_wall_improve_mean": _mean("phase12_wall_improve_mean"),
+                "phase12_slowdown_improve_mean": _mean("phase12_slowdown_improve_mean"),
+                "phase1_runtime_pressure_mean": _mean("phase1_runtime_pressure_mean"),
+                "phase1_runtime_target_fraction_mean": _mean("phase1_runtime_target_fraction_mean"),
+                "phase1_runtime_target_chunk_mean": _mean("phase1_runtime_target_chunk_mean"),
+            }
+        )
+    return progress
+
 
 def _run_single_case(
     *,
@@ -493,6 +748,9 @@ def _run_single_case(
             else "\n".join((workload_proc.stderr or "").splitlines()[-20:])
         ),
     }
+    adaptive_runtime = dict(config.get("_adaptive_density_runtime") or {})
+    if adaptive_runtime:
+        row.update({f"adaptive_{key}": value for key, value in adaptive_runtime.items()})
     if workload_proc is not None and workload_proc.returncode != 0:
         row["error"] = f"build_dataset_workload exited with code {workload_proc.returncode}"
         return row
@@ -501,10 +759,26 @@ def _run_single_case(
     lora_req_json = str(existing_lora_req_json if existing_lora_req_json.exists() else Path(f"{out_prefix}_lora_requests.json"))
     meta_json = str(existing_meta_json if existing_meta_json.exists() else Path(f"{out_prefix}_meta.json"))
     out_json = raw_dir / f"{safe_key(model.key)}_dataset_eval.json"
+    if out_json.exists() and Path(meta_json).exists():
+        row["status"] = "ok"
+        row["result_json"] = str(out_json)
+        row["workload_meta_json"] = meta_json
+        row["stdout_tail"] = "[reuse existing result json]"
+        row["stderr_tail"] = ""
+        row.update(_extract_summary_from_result_json(out_json))
+        meta = json.loads(Path(meta_json).read_text(encoding="utf-8"))
+        row["phase1_request_count"] = meta.get("phase1_request_count")
+        row["phase2_request_count"] = meta.get("phase2_request_count")
+        row["dataset_short_a_tokens"] = meta.get("short_a_tokens")
+        row["dataset_short_b_tokens"] = meta.get("short_b_tokens")
+        row["dataset_long_a_tokens"] = meta.get("long_a_tokens")
+        row["dataset_long_b_tokens"] = meta.get("long_b_tokens")
+        return row
     _purge_experiment_processes(
         reason=f"before-case:{density['name']}:{model.key}",
         gpu_lock_path=_GPU_LOCK_PATH,
         experiment_proc_patterns=_EXPERIMENT_PROC_PATTERNS,
+        preserve_pid=os.getpid(),
     )
     _wait_for_clean_gpu(
         label=f"{density['name']}:{model.label}",
@@ -624,6 +898,11 @@ def main() -> int:
         "models": model_diagnostics,
         "datasets": dataset_diagnostics,
     }
+    reference_densities = [
+        dict(item)
+        for item in list(config.get("workload", {}).get("densities") or selected_densities)
+        if isinstance(item, dict)
+    ]
     run_name = args.run_name or time.strftime("%Y%m%d_%H%M%S")
     out_root = Path(str(effective_config.get("out_root", "results/openworkload_execescape_tradeoff")))
     run_root = out_root / run_name
@@ -675,10 +954,11 @@ def main() -> int:
     else:
         dataset_source_path = metadata_dir / "dataset_sources_resolved.json"
         done_keys = _completed_case_keys(rows)
-        for density in selected_densities:
-            if not isinstance(density, dict):
-                continue
-            for model in resolved_models:
+        dry_run_done = False
+        for model in resolved_models:
+            for density in selected_densities:
+                if not isinstance(density, dict):
+                    continue
                 case_key = (str(density.get("name") or "").strip(), model.key)
                 if case_key in done_keys:
                     print(
@@ -692,6 +972,20 @@ def main() -> int:
                     f"model={model.label}",
                     flush=True,
                 )
+                case_config = _adapt_config_for_density(effective_config, density, reference_densities)
+                adaptive_runtime = dict(case_config.get("_adaptive_density_runtime") or {})
+                if adaptive_runtime:
+                    print(
+                        "[SupplementSuite] adaptive-policy "
+                        f"density={density.get('name')} "
+                        f"scope={adaptive_runtime.get('scope')} "
+                        f"source={adaptive_runtime.get('pressure_source')} "
+                        f"workload_pressure={adaptive_runtime.get('pressure_score', adaptive_runtime.get('workload_pressure_score'))} "
+                        f"chunk={adaptive_runtime.get('phase1_ingress_target_chunk', adaptive_runtime.get('phase1_runtime_aggressive_ingress_target_chunk'))} "
+                        f"fraction={adaptive_runtime.get('phase1_target_long_fraction', adaptive_runtime.get('phase1_runtime_aggressive_long_fraction'))} "
+                        f"phase2_runtime={adaptive_runtime.get('phase2_runtime_adaptive_enabled', adaptive_runtime.get('phase2_enable_execution_escape'))}",
+                        flush=True,
+                    )
                 if args.dry_run:
                     row = {
                         "density": str(density.get("name") or ""),
@@ -706,11 +1000,13 @@ def main() -> int:
                         "model_reason": model.reason,
                         "status": "dry_run",
                     }
+                    if adaptive_runtime:
+                        row.update({f"adaptive_{key}": value for key, value in adaptive_runtime.items()})
                 else:
                     row = _run_single_case(
                         model=model,
                         density=density,
-                        config=effective_config,
+                        config=case_config,
                         dataset_source_path=dataset_source_path,
                         run_root=run_root,
                     )
@@ -733,16 +1029,49 @@ def main() -> int:
                     f"status={row.get('status')} "
                     f"ttft={row.get('phase12_ttft_improve_mean')} "
                     f"wall={row.get('phase12_wall_improve_mean')} "
-                    f"slow={row.get('phase12_slowdown_improve_mean')}",
+                        f"slow={row.get('phase12_slowdown_improve_mean')}",
                     flush=True,
                 )
                 if args.dry_run:
+                    dry_run_done = True
                     break
+            model_progress = _per_model_progress_rows(
+                rows=rows,
+                models=resolved_models,
+                densities=selected_densities,
+            )
+            _write_json(metadata_dir / "per_model_progress.json", model_progress)
+            current_progress = next(
+                (item for item in model_progress if item.get("model_key") == model.key),
+                None,
+            )
+            if current_progress is not None:
+                print(
+                    "[SupplementSuite] model_complete "
+                    f"model={model.label} "
+                    f"ok={current_progress.get('ok_density_count')}/{current_progress.get('expected_density_count')} "
+                    f"ttft={current_progress.get('phase12_ttft_improve_mean')} "
+                    f"wall={current_progress.get('phase12_wall_improve_mean')} "
+                    f"slow={current_progress.get('phase12_slowdown_improve_mean')} "
+                    f"statuses={current_progress.get('density_status')}",
+                    flush=True,
+                )
             if args.dry_run:
+                dry_run_done = True
                 break
+        if dry_run_done:
+            pass
 
     _write_csv(metadata_dir / "suite_results.csv", rows)
     _write_json(metadata_dir / "suite_results.json", rows)
+    _write_json(
+        metadata_dir / "per_model_progress.json",
+        _per_model_progress_rows(
+            rows=rows,
+            models=resolved_models,
+            densities=selected_densities,
+        ),
+    )
 
     aggregate_by_model = _aggregate_rows(
         rows,

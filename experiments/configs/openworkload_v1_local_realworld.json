@@ -1,6 +1,18 @@
 {
   "suite_name": "openworkload_v1_local_realworld",
   "out_root": "results/openworkload_v1_local_realworld",
+  "config_status": {
+    "current_main_entry": false,
+    "role": "legacy_reference_config",
+    "note": "The current Chapter 5 main path uses experiments/configs/openworkload_v1_local_realworld_lora8.json. Keep this file only as a small reference config."
+  },
+  "method_definition": {
+    "current_method": "phase1_chunk_boundary_plus_phase2_execution_escape",
+    "phase1": "Use chunk-size control to return from long prefills to the scheduler boundary earlier.",
+    "phase2": "Use execution escape and scheduler-side priority promotion to reshape the next scheduled window.",
+    "adaptation": "The current main config uses workload-pressure adaptation; this legacy reference config does not enable that policy.",
+    "pressure_scope": "none_in_this_legacy_reference_config"
+  },
   "real_world_scenario": {
     "name": "V1 Open-Workload Mixed Arrival Regression",
     "description": "This suite re-runs Wave-Slice on the V1 engine using locally available open-weight models and open datasets. Each case mixes short conversational turns with long-context document tasks, orders short and long requests in a beneficiary-rich sequence, and assigns Poisson arrival times so that overlap and queueing are created by the workload rather than by a synthetic all-at-once burst.",
@@ -152,7 +164,6 @@
     "min_pressure_ratio": 4.0,
     "enable_scheduler_cashout": true,
     "enable_execution_escape": true,
-    "enable_v1_true_unbind": false,
     "execution_escape_mode": "bounded_spillover",
     "execution_escape_spillover_cap": 3,
     "execution_escape_max_active": 5

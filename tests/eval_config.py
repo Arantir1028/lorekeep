@@ -37,6 +37,17 @@ def configure_mode(
     phase12_phase2_scheduler_cashout_cooldown_ticks: int,
     phase1_force_min_chunk: int = 128,
     phase1_target_long_fraction: float = 0.33,
+    phase1_runtime_adaptive_enabled: bool = False,
+    phase1_runtime_aggressive_long_fraction: float = 0.33,
+    phase1_runtime_conservative_long_fraction: float = 0.50,
+    phase1_runtime_aggressive_ingress_target_chunk: int = 768,
+    phase1_runtime_conservative_ingress_target_chunk: int = 1536,
+    phase1_runtime_queue_high_watermark: int = 8,
+    phase1_runtime_waiting_short_high_watermark: int = 4,
+    phase1_runtime_wait_us_high_watermark: float = 1_000_000.0,
+    phase1_runtime_long_high_watermark: int = 3072,
+    phase1_runtime_urgency_discount: float = 0.55,
+    phase1_runtime_ema_alpha: float = 0.35,
     phase12_phase2_require_beneficiary_signal: bool = True,
     phase12_phase2_beneficiary_score_threshold: float = 0.55,
     phase2_enable_mixed_prefill_decode: bool = True,
@@ -45,10 +56,21 @@ def configure_mode(
     phase2_min_pressure_ratio: float = 2.0,
     phase2_enable_scheduler_cashout: bool = True,
     phase2_enable_execution_escape: bool = True,
-    phase2_enable_v1_true_unbind: bool = False,
     phase2_execution_escape_mode: str = "bounded_spillover",
     phase2_execution_escape_spillover_cap: int = 3,
     phase2_execution_escape_max_active: int = 5,
+    phase2_runtime_adaptive_enabled: bool = False,
+    phase2_runtime_low_pressure_min_hetero_ratio: float = 6.0,
+    phase2_runtime_high_pressure_min_hetero_ratio: float = 4.0,
+    phase2_runtime_low_pressure_min_pressure_ratio: float = 6.0,
+    phase2_runtime_high_pressure_min_pressure_ratio: float = 4.0,
+    phase2_runtime_low_pressure_min_long_prefill: int = 1024,
+    phase2_runtime_high_pressure_min_long_prefill: int = 768,
+    phase2_runtime_low_pressure_escape_spillover_cap: int = 1,
+    phase2_runtime_high_pressure_escape_spillover_cap: int = 3,
+    phase2_runtime_low_pressure_escape_max_active: int = 2,
+    phase2_runtime_high_pressure_escape_max_active: int = 5,
+    phase2_runtime_disable_execution_escape_below_pressure: float = -1.0,
 ) -> None:
     if mode == "baseline":
         uninject_wave_slice()
@@ -64,9 +86,19 @@ def configure_mode(
         phase1_ingress_exact_chunk=bool(phase1_ingress_exact_chunk),
         phase1_force_min_chunk=int(phase1_force_min_chunk),
         phase1_target_long_fraction=float(phase1_target_long_fraction),
+        phase1_runtime_adaptive_enabled=bool(phase1_runtime_adaptive_enabled),
+        phase1_runtime_aggressive_long_fraction=float(phase1_runtime_aggressive_long_fraction),
+        phase1_runtime_conservative_long_fraction=float(phase1_runtime_conservative_long_fraction),
+        phase1_runtime_aggressive_ingress_target_chunk=int(phase1_runtime_aggressive_ingress_target_chunk),
+        phase1_runtime_conservative_ingress_target_chunk=int(phase1_runtime_conservative_ingress_target_chunk),
+        phase1_runtime_queue_high_watermark=int(phase1_runtime_queue_high_watermark),
+        phase1_runtime_waiting_short_high_watermark=int(phase1_runtime_waiting_short_high_watermark),
+        phase1_runtime_wait_us_high_watermark=float(phase1_runtime_wait_us_high_watermark),
+        phase1_runtime_long_high_watermark=int(phase1_runtime_long_high_watermark),
+        phase1_runtime_urgency_discount=float(phase1_runtime_urgency_discount),
+        phase1_runtime_ema_alpha=float(phase1_runtime_ema_alpha),
     )
     phase2_kwargs = dict(
-        phase2_enable_v1_true_unbind=bool(phase2_enable_v1_true_unbind),
         phase2_enable_scheduler_cashout=bool(phase2_enable_scheduler_cashout),
         phase2_enable_execution_escape=bool(phase2_enable_execution_escape),
         phase2_enable_mixed_prefill_decode=bool(phase2_enable_mixed_prefill_decode),
@@ -77,6 +109,18 @@ def configure_mode(
         phase2_execution_escape_spillover_cap=int(phase2_execution_escape_spillover_cap),
         phase2_execution_escape_max_active=int(phase2_execution_escape_max_active),
         phase2_dispatch_mode=phase2_dispatch_mode,
+        phase2_runtime_adaptive_enabled=bool(phase2_runtime_adaptive_enabled),
+        phase2_runtime_low_pressure_min_hetero_ratio=float(phase2_runtime_low_pressure_min_hetero_ratio),
+        phase2_runtime_high_pressure_min_hetero_ratio=float(phase2_runtime_high_pressure_min_hetero_ratio),
+        phase2_runtime_low_pressure_min_pressure_ratio=float(phase2_runtime_low_pressure_min_pressure_ratio),
+        phase2_runtime_high_pressure_min_pressure_ratio=float(phase2_runtime_high_pressure_min_pressure_ratio),
+        phase2_runtime_low_pressure_min_long_prefill=int(phase2_runtime_low_pressure_min_long_prefill),
+        phase2_runtime_high_pressure_min_long_prefill=int(phase2_runtime_high_pressure_min_long_prefill),
+        phase2_runtime_low_pressure_escape_spillover_cap=int(phase2_runtime_low_pressure_escape_spillover_cap),
+        phase2_runtime_high_pressure_escape_spillover_cap=int(phase2_runtime_high_pressure_escape_spillover_cap),
+        phase2_runtime_low_pressure_escape_max_active=int(phase2_runtime_low_pressure_escape_max_active),
+        phase2_runtime_high_pressure_escape_max_active=int(phase2_runtime_high_pressure_escape_max_active),
+        phase2_runtime_disable_execution_escape_below_pressure=float(phase2_runtime_disable_execution_escape_below_pressure),
     )
     phase12_kwargs = dict(
         phase12_phase2_gate_mode=str(phase12_phase2_gate_mode),
@@ -145,7 +189,6 @@ def configure_mode(
         phase2_paths_enabled = bool(
             phase2_kwargs.get("phase2_enable_execution_escape")
             or phase2_kwargs.get("phase2_enable_scheduler_cashout")
-            or phase2_kwargs.get("phase2_enable_v1_true_unbind")
         )
         phase12_phase1_kwargs = dict(phase1_kwargs)
         phase12_phase1_kwargs["enable_tick_hide"] = not phase2_paths_enabled
@@ -182,7 +225,6 @@ def configure_mode(
         phase2_paths_enabled = bool(
             phase2_kwargs.get("phase2_enable_execution_escape")
             or phase2_kwargs.get("phase2_enable_scheduler_cashout")
-            or phase2_kwargs.get("phase2_enable_v1_true_unbind")
         )
         phase12_phase1_kwargs = dict(phase1_kwargs)
         phase12_phase1_kwargs["enable_tick_hide"] = not phase2_paths_enabled
@@ -249,6 +291,17 @@ def build_summary_config(args: Namespace, *, short_a_repeat: int, short_b_repeat
         "phase1_ingress_exact_chunk": args.phase1_ingress_exact_chunk,
         "phase1_force_min_chunk": getattr(args, "phase1_force_min_chunk", 128),
         "phase1_target_long_fraction": getattr(args, "phase1_target_long_fraction", 0.33),
+        "phase1_runtime_adaptive_enabled": getattr(args, "phase1_runtime_adaptive_enabled", False),
+        "phase1_runtime_aggressive_long_fraction": getattr(args, "phase1_runtime_aggressive_long_fraction", 0.33),
+        "phase1_runtime_conservative_long_fraction": getattr(args, "phase1_runtime_conservative_long_fraction", 0.50),
+        "phase1_runtime_aggressive_ingress_target_chunk": getattr(args, "phase1_runtime_aggressive_ingress_target_chunk", 768),
+        "phase1_runtime_conservative_ingress_target_chunk": getattr(args, "phase1_runtime_conservative_ingress_target_chunk", 1536),
+        "phase1_runtime_queue_high_watermark": getattr(args, "phase1_runtime_queue_high_watermark", 8),
+        "phase1_runtime_waiting_short_high_watermark": getattr(args, "phase1_runtime_waiting_short_high_watermark", 4),
+        "phase1_runtime_wait_us_high_watermark": getattr(args, "phase1_runtime_wait_us_high_watermark", 1_000_000.0),
+        "phase1_runtime_long_high_watermark": getattr(args, "phase1_runtime_long_high_watermark", 3072),
+        "phase1_runtime_urgency_discount": getattr(args, "phase1_runtime_urgency_discount", 0.55),
+        "phase1_runtime_ema_alpha": getattr(args, "phase1_runtime_ema_alpha", 0.35),
         "phase12_phase2_gate_mode": args.phase12_phase2_gate_mode,
         "phase12_phase2_soft_ratio_scale": args.phase12_phase2_soft_ratio_scale,
         "phase12_phase2_soft_pressure_scale": args.phase12_phase2_soft_pressure_scale,
@@ -286,10 +339,21 @@ def build_summary_config(args: Namespace, *, short_a_repeat: int, short_b_repeat
         "phase2_baseline_enable_chunked_prefill": getattr(args, "phase2_baseline_enable_chunked_prefill", True),
         "phase2_enable_scheduler_cashout": args.phase2_enable_scheduler_cashout,
         "phase2_enable_execution_escape": args.phase2_enable_execution_escape,
-        "phase2_enable_v1_true_unbind": args.phase2_enable_v1_true_unbind,
         "phase2_execution_escape_mode": args.phase2_execution_escape_mode,
         "phase2_execution_escape_spillover_cap": args.phase2_execution_escape_spillover_cap,
         "phase2_execution_escape_max_active": args.phase2_execution_escape_max_active,
+        "phase2_runtime_adaptive_enabled": getattr(args, "phase2_runtime_adaptive_enabled", False),
+        "phase2_runtime_low_pressure_min_hetero_ratio": getattr(args, "phase2_runtime_low_pressure_min_hetero_ratio", 6.0),
+        "phase2_runtime_high_pressure_min_hetero_ratio": getattr(args, "phase2_runtime_high_pressure_min_hetero_ratio", 4.0),
+        "phase2_runtime_low_pressure_min_pressure_ratio": getattr(args, "phase2_runtime_low_pressure_min_pressure_ratio", 6.0),
+        "phase2_runtime_high_pressure_min_pressure_ratio": getattr(args, "phase2_runtime_high_pressure_min_pressure_ratio", 4.0),
+        "phase2_runtime_low_pressure_min_long_prefill": getattr(args, "phase2_runtime_low_pressure_min_long_prefill", 1024),
+        "phase2_runtime_high_pressure_min_long_prefill": getattr(args, "phase2_runtime_high_pressure_min_long_prefill", 768),
+        "phase2_runtime_low_pressure_escape_spillover_cap": getattr(args, "phase2_runtime_low_pressure_escape_spillover_cap", 1),
+        "phase2_runtime_high_pressure_escape_spillover_cap": getattr(args, "phase2_runtime_high_pressure_escape_spillover_cap", 3),
+        "phase2_runtime_low_pressure_escape_max_active": getattr(args, "phase2_runtime_low_pressure_escape_max_active", 2),
+        "phase2_runtime_high_pressure_escape_max_active": getattr(args, "phase2_runtime_high_pressure_escape_max_active", 5),
+        "phase2_runtime_disable_execution_escape_below_pressure": getattr(args, "phase2_runtime_disable_execution_escape_below_pressure", -1.0),
         "serialize_gpu_tests": args.serialize_gpu_tests,
         "gpu_lock_path": args.gpu_lock_path,
         "adapter_a": args.adapter_a,

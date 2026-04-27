@@ -208,12 +208,20 @@ def purge_experiment_processes(
     preserve_pid: Optional[int] = None,
 ) -> list[int]:
     victims = list_waveslice_processes(experiment_proc_patterns=experiment_proc_patterns)
+    preserve_pgid: Optional[int] = None
+    if preserve_pid is not None:
+        try:
+            preserve_pgid = os.getpgid(int(preserve_pid))
+        except Exception:
+            preserve_pgid = None
     killed_pgids: set[int] = set()
     killed_pids: list[int] = []
     for item in victims:
         pid = int(item["pid"])
         pgid = int(item["pgid"])
         if preserve_pid is not None and pid == preserve_pid:
+            continue
+        if preserve_pgid is not None and pgid == preserve_pgid:
             continue
         if pgid not in killed_pgids and pgid > 0:
             kill_process_group(pgid)
@@ -304,6 +312,9 @@ def extract_summary_from_result_json(result_json: Path) -> dict[str, Any]:
         "phase1_wall_improve_mean": _mean(phase1, "round_wall_improve_ratio"),
         "phase1_error_rate_mean": _mean(phase1, "error_rate"),
         "phase1_scheduler_apply_mean": _mean(phase1, "scheduler_apply_ratio"),
+        "phase1_runtime_pressure_mean": _mean(phase1, "runtime_effective_pressure_avg"),
+        "phase1_runtime_target_fraction_mean": _mean(phase1, "runtime_target_fraction_avg"),
+        "phase1_runtime_target_chunk_mean": _mean(phase1, "runtime_target_chunk_avg"),
         "phase2_ttft_improve_mean": _mean(phase2, "ttft_improve_ratio"),
         "phase2_wall_improve_mean": _mean(phase2, "round_wall_improve_ratio"),
         "phase2_slowdown_improve_mean": _mean(phase2, "slowdown_improve_ratio"),

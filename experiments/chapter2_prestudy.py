@@ -538,10 +538,6 @@ def _run_eval_case(
         cmd.append("--phase2-enable-execution-escape")
     else:
         cmd.append("--no-phase2-enable-execution-escape")
-    if bool(phase2_cfg.get("enable_v1_true_unbind", False)):
-        cmd.append("--phase2-enable-v1-true-unbind")
-    else:
-        cmd.append("--no-phase2-enable-v1-true-unbind")
     if include_phase12:
         cmd.append("--include-phase12")
     if skip_phase2:

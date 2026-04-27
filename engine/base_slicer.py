@@ -212,7 +212,7 @@ class WaveBaseSlicer:
 
         Returns:
             packed: tensor of shape [short_len + chunk_len, hidden]
-            meta: indices and offsets needed by downstream unbinding.
+            meta: indices and offsets needed by downstream scheduling.
         """
         if x_short.ndim != 2 or x_long.ndim != 2:
             raise ValueError("x_short and x_long must be 2D")

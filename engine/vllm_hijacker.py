@@ -1,8 +1,10 @@
 """Wave-Slice runtime hijacker for vLLM.
 
 This module implements:
-- Phase I: scheduler-side fairness-aware chunk/budget hijacking.
-- Phase II: optional ModelRunner-level stream rebinding hijack.
+- Phase I: scheduler-side chunk-size control that returns to the
+  scheduling boundary earlier for long prefills.
+- Phase II: execution escape / priority promotion that reshapes the next
+  scheduled window without relying on the abandoned true-unbind path.
 - Runtime metrics hooks: TTFT / P99 / slowdown accounting.
 
 All changes are applied via monkey patching and can be fully reverted.
@@ -49,7 +51,6 @@ from engine.hijack.common import (
     estimate_prompt_tokens as _estimate_prompt_tokens,
     estimate_solo_us as _estimate_solo_us,
     infer_lora_rank as _infer_lora_rank,
-    is_phase2_async_experimental as _is_phase2_async_experimental,
     is_phase2_strict as _is_phase2_strict,
     phase12_expected_chunk_tokens as _phase12_expected_chunk_tokens,
     queue_reorder_key as _queue_reorder_key,
@@ -82,6 +83,8 @@ from engine.hijack.phase1_math import (
     phase1_cohort_target_len as _phase1_cohort_target_len,
     phase1_effective_ingress_min_chunk as _phase1_effective_ingress_min_chunk,
     phase1_effective_short_token_mass as _phase1_effective_short_token_mass,
+    phase1_runtime_adapt_policy as _phase1_runtime_adapt_policy,
+    phase1_runtime_pressure_meta as _phase1_runtime_pressure_meta,
 )
 from engine.hijack.phase1_stateful import (
     phase1_apply_sticky_chunk as _phase1_apply_sticky_chunk,
@@ -113,22 +116,13 @@ from engine.hijack.queue_ops import (
     restore_hidden_queue_items as _restore_hidden_queue_items,
     restore_queue_pair as _restore_queue_pair,
 )
-from engine.hijack.phase2_decision import (
-    phase2_decide_from_prefill_window as _phase2_decide_from_prefill_window,
-)
 from engine.hijack.hook_guards import (
     has_running_waiting_queues as _has_running_waiting_queues,
     phase2_modelrunner_passthrough as _phase2_modelrunner_passthrough,
     phase2_scheduler_cashout_enabled as _phase2_scheduler_cashout_enabled,
 )
 from engine.hijack.v1_split import (
-    v1_build_subset_scheduler_output as _v1_build_subset_scheduler_output,
     v1_execution_escape_req_ids as _v1_execution_escape_req_ids,
-    v1_partition_req_ids_diagnostic as _v1_partition_req_ids_diagnostic,
-)
-from engine.hijack.v1_merge import (
-    freeze_v1_runner_output as _freeze_v1_runner_output,
-    merge_v1_runner_outputs as _merge_v1_runner_outputs,
 )
 from engine.hijack.phase1_selection import (
     phase1_basic_cohort as _phase1_basic_cohort,
@@ -162,8 +156,6 @@ from engine.hijack.types import (
     _Phase12BeneficiarySignal,
     _Phase1CohortStats,
     _Phase1IngressVirtualSlice,
-    _Phase2Decision,
-    _RunnerStreamState,
     _ScheduledReqInfo,
 )
 
@@ -1282,6 +1274,20 @@ def _phase1_filter_snapshot_for_lora_cohort(
     return filtered
 
 
+def _phase1_waiting_short_count(
+    waiting: Iterable[Any],
+    *,
+    short_threshold_tokens: int,
+) -> int:
+    count = 0
+    threshold = max(1, int(short_threshold_tokens))
+    for seq_group in list(waiting):
+        remaining = _safe_prefill_uncomputed_tokens(seq_group) or 0
+        if 0 < int(remaining) <= threshold:
+            count += 1
+    return count
+
+
 def _phase1_build_ingress_fallback_cohort(
     state: _PatchState,
     snapshot: list[tuple[Any, int]],
@@ -1729,7 +1735,6 @@ def _phase12_joint_phase1_floor(
     if not (
         bool(policy.phase2_enable_execution_escape)
         or bool(policy.phase2_enable_scheduler_cashout)
-        or bool(policy.phase2_enable_v1_true_unbind)
     ):
         return None
     if hasattr(snapshot, "running") and hasattr(snapshot, "waiting"):
@@ -2544,133 +2549,6 @@ def _phase12_apply_scheduler_cashout_to_queues(
     return new_running, new_waiting, hidden_running, hidden_waiting, True
 
 
-def _extract_prefill_lens(attn_meta: Any) -> list[int]:
-    lens_tensor = getattr(attn_meta, "prompt_lens_tensor", None)
-    if lens_tensor is None:
-        lens_tensor = getattr(attn_meta, "seq_lens_tensor", None)
-    if lens_tensor is None:
-        return []
-    try:
-        raw = lens_tensor.tolist()
-        return [int(x) for x in raw if int(x) > 0]
-    except Exception:
-        return []
-
-
-def _phase2_decide(
-    model_input: Any,
-    policy: WaveSlicePolicy,
-    *,
-    runner_self: Optional[Any] = None,
-) -> _Phase2Decision:
-    with _PATCH_LOCK:
-        state = _PATCH_STATE
-    lora_ranks = _extract_phase2_lora_ranks(model_input, runner_self=runner_self)
-    req_infos = _phase12_collect_scheduled_req_infos(
-        model_input,
-        runner_self=runner_self,
-        state=state,
-        policy=policy,
-        rank_infer=_infer_lora_rank,
-    )
-
-    if hasattr(model_input, "num_scheduled_tokens") and hasattr(model_input, "total_num_scheduled_tokens"):
-        strict_mode = _is_phase2_strict(policy)
-        try:
-            vals = [int(v) for v in getattr(model_input, "num_scheduled_tokens", {}).values()]
-        except Exception:
-            vals = []
-        prefill_lens = [v for v in vals if v > 1]
-        num_prefills = len(prefill_lens)
-        num_decode_tokens = sum(1 for v in vals if v <= 1)
-        if state is not None:
-            phase12_ready, phase12_reason = _phase12_joint_phase2_ready(
-                state=state,
-                policy=policy,
-                prefill_lens=prefill_lens,
-                num_decode_tokens=num_decode_tokens,
-                lora_ranks=lora_ranks,
-                req_infos=req_infos,
-                strict_mode=strict_mode,
-            )
-        else:
-            phase12_ready, phase12_reason = True, "joint_state_absent"
-        return _phase2_decide_from_prefill_window(
-            policy=policy,
-            prefill_lens=prefill_lens,
-            num_prefills=num_prefills,
-            num_decode_tokens=num_decode_tokens,
-            lora_ranks=lora_ranks,
-            strict_mode=strict_mode,
-            phase12_ready=phase12_ready,
-            phase12_reason=phase12_reason,
-            reason_suffix="_v1",
-            selective_gate=lambda prefill_lens, lora_ranks, policy, strict_mode: _phase2_selective_gate(
-                prefill_lens=prefill_lens,
-                lora_ranks=lora_ranks,
-                policy=policy,
-                strict_mode=strict_mode,
-            ),
-            mixed_escape_ok_fn=lambda prefill_lens, num_decode_tokens, ratio, pressure_ratio, lora_rank_hetero, policy, strict_mode: _phase2_mixed_escape_ok(
-                prefill_lens=prefill_lens,
-                num_decode_tokens=num_decode_tokens,
-                ratio=ratio,
-                pressure_ratio=pressure_ratio,
-                lora_rank_hetero=lora_rank_hetero,
-                policy=policy,
-                strict_mode=strict_mode,
-            ),
-            pressure_ratio_fn=_phase2_pressure_ratio,
-        )
-
-    attn_meta = getattr(model_input, "attn_metadata", None)
-    if attn_meta is None:
-        return _Phase2Decision(False, "no_attn_meta", [], 0, 0, lora_ranks)
-
-    num_prefills = int(getattr(attn_meta, "num_prefills", 0) or 0)
-    num_decode_tokens = int(getattr(attn_meta, "num_decode_tokens", 0) or 0)
-    prefill_lens = _extract_prefill_lens(attn_meta)
-    strict_mode = _is_phase2_strict(policy)
-    if state is not None:
-        phase12_ready, phase12_reason = _phase12_joint_phase2_ready(
-            state=state,
-            policy=policy,
-            prefill_lens=prefill_lens,
-            num_decode_tokens=num_decode_tokens,
-            lora_ranks=lora_ranks,
-            req_infos=req_infos,
-            strict_mode=strict_mode,
-        )
-    else:
-        phase12_ready, phase12_reason = True, "joint_state_absent"
-    return _phase2_decide_from_prefill_window(
-        policy=policy,
-        prefill_lens=prefill_lens,
-        num_prefills=num_prefills,
-        num_decode_tokens=num_decode_tokens,
-        lora_ranks=lora_ranks,
-        strict_mode=strict_mode,
-        phase12_ready=phase12_ready,
-        phase12_reason=phase12_reason,
-        selective_gate=lambda prefill_lens, lora_ranks, policy, strict_mode: _phase2_selective_gate(
-            prefill_lens=prefill_lens,
-            lora_ranks=lora_ranks,
-            policy=policy,
-            strict_mode=strict_mode,
-        ),
-        mixed_escape_ok_fn=lambda prefill_lens, num_decode_tokens, ratio, pressure_ratio, lora_rank_hetero, policy, strict_mode: _phase2_mixed_escape_ok(
-            prefill_lens=prefill_lens,
-            num_decode_tokens=num_decode_tokens,
-            ratio=ratio,
-            pressure_ratio=pressure_ratio,
-            lora_rank_hetero=lora_rank_hetero,
-            policy=policy,
-            strict_mode=strict_mode,
-        ),
-        pressure_ratio_fn=_phase2_pressure_ratio,
-    )
-
-
 def _is_v1_scheduler_output(model_input: Any) -> bool:
     return hasattr(model_input, "num_scheduled_tokens") and hasattr(
         model_input, "total_num_scheduled_tokens"
@@ -2690,66 +2568,6 @@ def _record_phase2_v1_output_probe(
     return is_v1
 
 
-def _record_true_unbind_subset_snapshot(
-    state: _PatchState,
-    *,
-    label: str,
-    model_input: Any,
-    selected_ids: list[str],
-) -> None:
-    tag = str(label or "subset").strip() or "subset"
-    selected_set = {str(rid) for rid in selected_ids if str(rid)}
-    cached = getattr(model_input, "scheduled_cached_reqs", None)
-    cached_req_ids = [str(rid) for rid in list(getattr(cached, "req_ids", []) or [])]
-    cached_req_ids_set = set(cached_req_ids)
-    new_reqs = list(getattr(model_input, "scheduled_new_reqs", []) or [])
-    selected_new_hits = sum(
-        1 for req in new_reqs if str(getattr(req, "req_id", "")) in selected_set
-    )
-    selected_cached_hits = sum(1 for rid in cached_req_ids if rid in selected_set)
-
-    snapshot_counts = {
-        f"true_unbind_{tag}_selected_req_ids_len": len(selected_set),
-        f"true_unbind_{tag}_selected_cached_hits": selected_cached_hits,
-        f"true_unbind_{tag}_selected_new_hits": selected_new_hits,
-        f"true_unbind_{tag}_source_cached_req_ids_len": len(cached_req_ids),
-        f"true_unbind_{tag}_source_cached_resumed_len": len(list(getattr(cached, "resumed_from_preemption", []) or [])),
-        f"true_unbind_{tag}_source_cached_new_token_ids_len": len(list(getattr(cached, "new_token_ids", []) or [])),
-        f"true_unbind_{tag}_source_cached_new_block_ids_len": len(list(getattr(cached, "new_block_ids", []) or [])),
-        f"true_unbind_{tag}_source_cached_num_computed_len": len(list(getattr(cached, "num_computed_tokens", []) or [])),
-        f"true_unbind_{tag}_source_new_reqs_len": len(new_reqs),
-        f"true_unbind_{tag}_source_num_sched_len": len(dict(getattr(model_input, "num_scheduled_tokens", {}) or {})),
-        f"true_unbind_{tag}_selected_not_in_cached_or_new": max(
-            0,
-            len(selected_set)
-            - selected_cached_hits
-            - selected_new_hits,
-        ),
-        f"true_unbind_{tag}_selected_overlap_cached_and_new": sum(
-            1
-            for req in new_reqs
-            if str(getattr(req, "req_id", "")) in selected_set
-            and str(getattr(req, "req_id", "")) in cached_req_ids_set
-        ),
-    }
-    for counter_name, amount in snapshot_counts.items():
-        state.metrics.record_phase2_debug_counter(counter_name, amount=int(amount))
-
-
-def _record_phase2_debug_duration_us(
-    state: _PatchState,
-    *,
-    name: str,
-    started_at: float,
-) -> int:
-    elapsed_us = max(0, int((time.perf_counter() - started_at) * 1_000_000.0))
-    metric_name = str(name or "").strip()
-    if metric_name:
-        state.metrics.record_phase2_debug_counter(f"{metric_name}_us_sum", amount=elapsed_us)
-        state.metrics.record_phase2_debug_counter(f"{metric_name}_count", amount=1)
-    return elapsed_us
-
-
 def _phase12_expected_chunk_tokens_adapter(
     seq_group: Any,
     state: Optional[_PatchState],
@@ -2762,293 +2580,96 @@ def _phase12_expected_chunk_tokens_adapter(
     )
 
 
-def _safe_v1_pipeline_size(model_runner: Any) -> int:
-    try:
-        pc = getattr(model_runner, "parallel_config", None)
-        if pc is None:
-            return 1
-        return int(getattr(pc, "pipeline_parallel_size", 1) or 1)
-    except Exception:
-        return 1
+def _v1_request_status_name(request: Any) -> str:
+    status = getattr(request, "status", None)
+    if status is None:
+        return ""
+    return str(getattr(status, "name", status))
 
 
-def _call_original_execute_with_model_input(
-    original_execute: Callable[..., Any],
-    runner_self: Any,
-    model_input: Any,
-    args: tuple[Any, ...],
-    kwargs: dict[str, Any],
-) -> Any:
-    if len(args) > 0:
-        new_args = (model_input,) + tuple(args[1:])
-    else:
-        new_args = (model_input,)
-    new_kwargs = dict(kwargs)
-    if "model_input" in new_kwargs:
-        new_kwargs.pop("model_input", None)
-    if "scheduler_output" in new_kwargs:
-        new_kwargs.pop("scheduler_output", None)
-    return original_execute(runner_self, *new_args, **new_kwargs)
-
-
-def _try_v1_true_unbind_execute(
-    *,
-    runner_self: Any,
+def _reconcile_v1_waiting_running_status(
+    scheduler_obj: Any,
     state: _PatchState,
-    original_execute: Callable[..., Any],
-    model_input: Any,
-    args: tuple[Any, ...],
-    kwargs: dict[str, Any],
-    torch_mod: Any,
-    stream_state: _RunnerStreamState,
-) -> Optional[Any]:
-    total_started_at = time.perf_counter()
-    state.metrics.record_phase2_debug_counter("true_unbind_invocations")
-    if not state.policy.phase2_enable_v1_true_unbind:
-        state.metrics.record_phase2_true_unbind_gate("disabled")
-        return None
-    if not _record_phase2_v1_output_probe(
-        state,
-        context="true_unbind",
-        model_input=model_input,
-    ):
-        state.metrics.record_phase2_true_unbind_gate("non_v1_scheduler_output")
-        return None
-    if _safe_v1_pipeline_size(runner_self) > 1:
-        state.metrics.record_phase2_true_unbind_gate("pipeline_parallel_gt1")
-        return None
-    if getattr(model_input, "grammar_bitmask", None) is not None:
-        state.metrics.record_phase2_true_unbind_gate("grammar_bitmask_present")
-        return None
-    if dict(getattr(model_input, "structured_output_request_ids", {}) or {}):
-        state.metrics.record_phase2_true_unbind_gate("structured_output_present")
-        return None
-    if dict(getattr(model_input, "scheduled_spec_decode_tokens", {}) or {}):
-        state.metrics.record_phase2_true_unbind_gate("spec_decode_present")
-        return None
-    if getattr(model_input, "kv_connector_metadata", None) is not None:
-        state.metrics.record_phase2_true_unbind_gate("kv_connector_metadata_present")
-        return None
-    if getattr(getattr(runner_self, "input_batch", None), "pooling_params", None):
-        state.metrics.record_phase2_true_unbind_gate("pooling_params_present")
-        return None
+    *,
+    context: str,
+) -> None:
+    """Keep vLLM V1's waiting queue free of RUNNING requests.
 
-    partition_started_at = time.perf_counter()
-    split_ids, partition_reason, partition_debug = _v1_partition_req_ids_diagnostic(
-        model_input,
-        state.policy,
-        runner_self=runner_self,
-        state=state,
-        req_info_collector=lambda model_input, runner_self, state, policy: _phase12_collect_scheduled_req_infos(
-            model_input,
-            runner_self=runner_self,
-            state=state,
-            policy=policy,
-            rank_infer=_infer_lora_rank,
-        ),
-        beneficiary_signal_builder=lambda state, policy, req_infos: _phase12_beneficiary_signal(
-            state=state,
-            policy=policy,
-            req_infos=req_infos,
-        ),
-        include_non_prefill_in_long=True,
-    )
-    _record_phase2_debug_duration_us(
-        state,
-        name="true_unbind_partition",
-        started_at=partition_started_at,
-    )
-    state.metrics.record_phase2_debug_counter(
-        f"true_unbind_partition_reason_{partition_reason}"
-    )
-    for debug_name, amount in partition_debug.items():
-        state.metrics.record_phase2_debug_counter(
-            f"true_unbind_partition_{debug_name}",
-            amount=int(amount),
-        )
-    if split_ids is None:
-        state.metrics.record_phase2_true_unbind_gate(f"no_partition_{partition_reason}")
-        state.metrics.record_phase2_true_unbind_gate("no_partition")
-        return None
-    state.metrics.record_phase2_debug_counter("true_unbind_partition_ready")
-    short_ids, long_ids = split_ids
-    if not short_ids or not long_ids:
-        state.metrics.record_phase2_true_unbind_gate("empty_partition")
-        return None
+    vLLM V1 treats the queue object and request.status as a state-machine
+    contract: requests in `waiting` must be WAITING/PREEMPTED/WAITING_*.
+    Our scheduler-side prehide/restore can briefly perturb queue ownership
+    around a native schedule() call, so repair the queue before handing control
+    back to vLLM.
+    """
+    if state.scheduler_method_name != "schedule":
+        return
+    if not _has_running_waiting_queues(scheduler_obj):
+        return
+    running = getattr(scheduler_obj, "running", None)
+    waiting = getattr(scheduler_obj, "waiting", None)
+    if running is None or waiting is None:
+        return
 
-    _record_true_unbind_subset_snapshot(
-        state,
-        label="short",
-        model_input=model_input,
-        selected_ids=short_ids,
-    )
-    _record_true_unbind_subset_snapshot(
-        state,
-        label="long",
-        model_input=model_input,
-        selected_ids=long_ids,
-    )
-    subset_build_started_at = time.perf_counter()
     try:
-        short_sched = _v1_build_subset_scheduler_output(
-            model_input,
-            short_ids,
-            carry_finished=True,
-            carry_kv_metadata=False,
-        )
-        long_sched = _v1_build_subset_scheduler_output(
-            model_input,
-            long_ids,
-            carry_finished=False,
-            carry_kv_metadata=False,
-        )
-    except Exception as exc:
-        state.metrics.record_phase2_debug_counter(
-            f"true_unbind_subset_build_exception_{type(exc).__name__}"
-        )
-        state.metrics.record_phase2_true_unbind_gate(
-            f"subset_build_exception_{type(exc).__name__}"
-        )
-        logger.exception("[Wave-Slice][P2-v1-unbind] subset scheduler-output build failed.")
-        raise
-    finally:
-        _record_phase2_debug_duration_us(
-            state,
-            name="true_unbind_subset_build",
-            started_at=subset_build_started_at,
-        )
-    if getattr(short_sched, "total_num_scheduled_tokens", 0) <= 0 or getattr(long_sched, "total_num_scheduled_tokens", 0) <= 0:
-        state.metrics.record_phase2_true_unbind_gate("empty_subset_schedule")
-        return None
-    state.metrics.record_phase2_debug_counter("true_unbind_subset_ready")
-    state.metrics.record_phase2_debug_counter(
-        "true_unbind_short_total_sched_tokens",
-        amount=int(getattr(short_sched, "total_num_scheduled_tokens", 0) or 0),
-    )
-    state.metrics.record_phase2_debug_counter(
-        "true_unbind_long_total_sched_tokens",
-        amount=int(getattr(long_sched, "total_num_scheduled_tokens", 0) or 0),
-    )
+        waiting_items = list(waiting)
+    except Exception:
+        return
+    if not waiting_items:
+        return
 
-    strict_mode = _is_phase2_strict(state.policy)
-    if strict_mode:
-        pre_sync_started_at = time.perf_counter()
-        torch_mod.cuda.synchronize(device=stream_state.device)
-        _record_phase2_debug_duration_us(
-            state,
-            name="true_unbind_pre_sync",
-            started_at=pre_sync_started_at,
-        )
+    try:
+        running_items = list(running)
+    except Exception:
+        running_items = []
+    running_ids = {
+        str(rid)
+        for rid in (_safe_request_id(req) for req in running_items)
+        if rid is not None
+    }
 
-    main_stream = torch_mod.cuda.current_stream(device=stream_state.device)
-    stream_state.fast_stream.wait_stream(main_stream)
-    with torch_mod.cuda.stream(stream_state.fast_stream):
-        short_execute_started_at = time.perf_counter()
+    keep_waiting: list[Any] = []
+    move_to_running: list[Any] = []
+    dropped_duplicates = 0
+    for req in waiting_items:
+        if _v1_request_status_name(req) != "RUNNING":
+            keep_waiting.append(req)
+            continue
+        rid = _safe_request_id(req)
+        rid_s = str(rid) if rid is not None else ""
+        if rid_s and rid_s in running_ids:
+            dropped_duplicates += 1
+            continue
+        move_to_running.append(req)
+        if rid_s:
+            running_ids.add(rid_s)
+
+    if not move_to_running and not dropped_duplicates:
+        return
+
+    try:
+        scheduler_obj.waiting = _rebuild_queue_like(waiting, keep_waiting)
+    except Exception:
+        logger.exception("[Wave-Slice] failed to rebuild V1 waiting queue during status reconciliation.")
+        return
+    if move_to_running:
         try:
-            out_short = _call_original_execute_with_model_input(
-                original_execute, runner_self, short_sched, args, kwargs
-            )
-            out_short = _freeze_v1_runner_output(out_short)
-        except Exception as exc:
-            state.metrics.record_phase2_debug_counter(
-                f"true_unbind_short_execute_exception_{type(exc).__name__}"
-            )
-            state.metrics.record_phase2_true_unbind_gate(
-                f"short_execute_exception_{type(exc).__name__}"
-            )
-            logger.exception("[Wave-Slice][P2-v1-unbind] short subset execute failed.")
-            raise
-        finally:
-            _record_phase2_debug_duration_us(
-                state,
-                name="true_unbind_short_execute",
-                started_at=short_execute_started_at,
-            )
-        state.metrics.record_phase2_debug_counter("true_unbind_short_execute_ok")
-        evt_short = torch_mod.cuda.Event(enable_timing=False)
-        evt_short.record(stream_state.fast_stream)
-    wait_event_started_at = time.perf_counter()
-    main_stream.wait_event(evt_short)
-    _record_phase2_debug_duration_us(
-        state,
-        name="true_unbind_wait_event",
-        started_at=wait_event_started_at,
+            if hasattr(scheduler_obj.running, "extend"):
+                scheduler_obj.running.extend(move_to_running)
+            else:
+                scheduler_obj.running = _rebuild_queue_like(
+                    scheduler_obj.running,
+                    list(scheduler_obj.running) + move_to_running,
+                )
+        except Exception:
+            logger.exception("[Wave-Slice] failed to restore RUNNING requests to V1 running queue.")
+            return
+    state.metrics.record_phase2_debug_counter(f"v1_waiting_running_reconciled_{context}")
+    logger.warning(
+        "[Wave-Slice][V1-reconcile] context=%s moved_running=%d dropped_duplicates=%d",
+        str(context),
+        len(move_to_running),
+        dropped_duplicates,
     )
-
-    long_execute_started_at = time.perf_counter()
-    try:
-        out_long = _call_original_execute_with_model_input(
-            original_execute, runner_self, long_sched, args, kwargs
-        )
-        out_long = _freeze_v1_runner_output(out_long)
-    except Exception as exc:
-        state.metrics.record_phase2_debug_counter(
-            f"true_unbind_long_execute_exception_{type(exc).__name__}"
-        )
-        state.metrics.record_phase2_true_unbind_gate(
-            f"long_execute_exception_{type(exc).__name__}"
-        )
-        logger.exception("[Wave-Slice][P2-v1-unbind] long subset execute failed.")
-        raise
-    finally:
-        _record_phase2_debug_duration_us(
-            state,
-            name="true_unbind_long_execute",
-            started_at=long_execute_started_at,
-        )
-    state.metrics.record_phase2_debug_counter("true_unbind_long_execute_ok")
-
-    merge_started_at = time.perf_counter()
-    try:
-        merged = _merge_v1_runner_outputs(
-            original_order=[str(rid) for rid in dict(getattr(model_input, "num_scheduled_tokens", {}) or {}).keys()],
-            out_a=out_short,
-            out_b=out_long,
-        )
-    except Exception as exc:
-        state.metrics.record_phase2_debug_counter(
-            f"true_unbind_merge_exception_{type(exc).__name__}"
-        )
-        state.metrics.record_phase2_true_unbind_gate(
-            f"merge_exception_{type(exc).__name__}"
-        )
-        logger.exception("[Wave-Slice][P2-v1-unbind] merge failed.")
-        raise
-    finally:
-        _record_phase2_debug_duration_us(
-            state,
-            name="true_unbind_merge",
-            started_at=merge_started_at,
-        )
-    state.metrics.record_phase2_debug_counter("true_unbind_merge_ok")
-
-    if strict_mode:
-        post_sync_started_at = time.perf_counter()
-        torch_mod.cuda.synchronize(device=stream_state.device)
-        _record_phase2_debug_duration_us(
-            state,
-            name="true_unbind_post_sync",
-            started_at=post_sync_started_at,
-        )
-
-    logger.info(
-        "[Wave-Slice][P2-v1-unbind] short=%d long=%d short_tokens=%d long_tokens=%d",
-        len(short_ids),
-        len(long_ids),
-        int(getattr(short_sched, "total_num_scheduled_tokens", 0)),
-        int(getattr(long_sched, "total_num_scheduled_tokens", 0)),
-    )
-    state.phase12_recent_phase2_cashout_cooldown = max(
-        0,
-        int(getattr(state.policy, "phase12_phase2_sparse_cashout_cooldown", 2) or 0),
-    )
-    _record_phase2_debug_duration_us(
-        state,
-        name="true_unbind_total",
-        started_at=total_started_at,
-    )
-    state.metrics.record_phase2_debug_counter("true_unbind_return_ready")
-    return merged
 
 
 def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
@@ -3104,6 +2725,11 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                 except Exception:
                     logger.exception("[Wave-Slice] pre-schedule cashout wrapper failed.")
             try:
+                _reconcile_v1_waiting_running_status(
+                    self,
+                    state,
+                    context="pre_native",
+                )
                 outputs = schedule_impl(self, *args, **kwargs)
             finally:
                 try:
@@ -3364,6 +2990,58 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
             short_len = int(cohort.representative_short_len)
             long_len = int(cohort.long_len)
             queue_len = len(waiting) + len(running)
+            runtime_base_policy: Optional[WaveSlicePolicy] = None
+            runtime_adaptive_meta: dict[str, float] = {}
+            if bool(getattr(state.policy, "phase1_runtime_adaptive_enabled", False)):
+                try:
+                    waiting_short_count_for_pressure = _phase1_waiting_short_count(
+                        waiting,
+                        short_threshold_tokens=int(state.policy.metrics_short_request_tokens),
+                    )
+                    raw_runtime_meta = _phase1_runtime_pressure_meta(
+                        policy=state.policy,
+                        cohort=cohort,
+                        queue_len=int(queue_len),
+                        waiting_short_count=int(waiting_short_count_for_pressure),
+                        max_wait_us=float(max_wait_us),
+                        virtual_cap_hit_rate=float(state.metrics.phase1_virtual_cap_hit_ratio()),
+                        previous_wall_pressure=float(state.phase1_runtime_wall_pressure_ema),
+                    )
+                    alpha = max(
+                        0.0,
+                        min(1.0, float(getattr(state.policy, "phase1_runtime_ema_alpha", 0.35) or 0.35)),
+                    )
+                    state.phase1_runtime_wall_pressure_ema = (
+                        (1.0 - alpha) * float(state.phase1_runtime_wall_pressure_ema)
+                        + alpha * float(raw_runtime_meta.get("wall_pressure", 0.0))
+                    )
+                    state.phase1_runtime_pressure_ema = (
+                        (1.0 - alpha) * float(state.phase1_runtime_pressure_ema)
+                        + alpha * float(raw_runtime_meta.get("effective_pressure", 0.0))
+                    )
+                    raw_runtime_meta["wall_pressure"] = float(state.phase1_runtime_wall_pressure_ema)
+                    raw_runtime_meta["effective_pressure"] = float(state.phase1_runtime_pressure_ema)
+                    adapted_policy, runtime_adaptive_meta = _phase1_runtime_adapt_policy(
+                        state.policy,
+                        raw_runtime_meta,
+                    )
+                    if adapted_policy is not state.policy:
+                        runtime_base_policy = state.policy
+                        state.policy = adapted_policy
+                        state.phase1_runtime_last_meta = dict(runtime_adaptive_meta)
+                        state.metrics.record_phase1_runtime_adaptation(
+                            queue_len=int(queue_len),
+                            waiting_short_count=int(waiting_short_count_for_pressure),
+                            effective_pressure=float(runtime_adaptive_meta.get("effective_pressure", 0.0)),
+                            wall_pressure=float(runtime_adaptive_meta.get("wall_pressure", 0.0)),
+                            short_urgency=float(runtime_adaptive_meta.get("short_urgency", 0.0)),
+                            target_fraction=float(runtime_adaptive_meta.get("phase1_target_long_fraction", state.policy.phase1_target_long_fraction)),
+                            target_chunk=int(runtime_adaptive_meta.get("phase1_ingress_target_chunk", state.policy.phase1_ingress_target_chunk)),
+                        )
+                except Exception:
+                    logger.exception("[Wave-Slice] runtime pressure adaptation failed; continue with base policy.")
+                    runtime_base_policy = None
+                    runtime_adaptive_meta = {}
             adjusted_queue_len = _phase1_adjusted_queue_len(cohort, queue_len, state.policy)
             baseline_chunk = _phase1_baseline_chunk_proxy(
                 long_len=long_len,
@@ -3510,6 +3188,8 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                     slice_eligible=False,
                 )
                 state.metrics.record_scheduler_decision(False)
+                if runtime_base_policy is not None:
+                    state.policy = runtime_base_policy
                 _phase1_update_sticky_chunk(
                     state=state,
                     cohort=cohort,
@@ -3520,6 +3200,8 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                 return _run_schedule_with_optional_phase2_cashout()
         except Exception as exc:
             logger.exception("Wave-Slice Phase I pre-check failed; fallback to original scheduler.")
+            if "runtime_base_policy" in locals() and runtime_base_policy is not None:
+                state.policy = runtime_base_policy
             state.metrics.record_phase1_probe(
                 reason=f"precheck_exception:{type(exc).__name__}",
             )
@@ -3761,10 +3443,26 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                 str(new_threshold) if new_threshold is not None else "unchanged",
                 str(new_budget) if new_budget is not None else "unchanged",
             )
+            if runtime_adaptive_meta:
+                logger.info(
+                    "[Wave-Slice][P1-runtime-adapt] pressure=%.3f wall=%.3f urgency=%.3f target_fraction=%.3f target_chunk=%d phase2_ratio=%.2f phase2_pressure=%.2f",
+                    float(runtime_adaptive_meta.get("effective_pressure", 0.0)),
+                    float(runtime_adaptive_meta.get("wall_pressure", 0.0)),
+                    float(runtime_adaptive_meta.get("short_urgency", 0.0)),
+                    float(runtime_adaptive_meta.get("phase1_target_long_fraction", 0.0)),
+                    int(runtime_adaptive_meta.get("phase1_ingress_target_chunk", 0.0)),
+                    float(runtime_adaptive_meta.get("phase2_min_hetero_ratio", 0.0)),
+                    float(runtime_adaptive_meta.get("phase2_min_pressure_ratio", 0.0)),
+                )
             self.running, self.waiting, hidden_phase2_running, hidden_phase2_waiting, _ = _phase12_apply_scheduler_cashout_to_queues(
                 state=state,
                 running=self.running,
                 waiting=self.waiting,
+            )
+            _reconcile_v1_waiting_running_status(
+                self,
+                state,
+                context="phase12_pre_native",
             )
             outputs = schedule_impl(self, *args, **kwargs)
             outputs = _maybe_apply_phase2_schedule_cashout(outputs)
@@ -3797,6 +3495,8 @@ def _build_scheduler_hook(state: _PatchState) -> Callable[..., Any]:
                 pass
             state.phase1_shadow_seq_lens.clear()
             state.phase1_virtual_token_caps.clear()
+            if "runtime_base_policy" in locals() and runtime_base_policy is not None:
+                state.policy = runtime_base_policy
             if scheduler_cfg is not None and isinstance(original_budget, int) and original_budget > 0:
                 try:
                     scheduler_cfg.max_num_batched_tokens = original_budget
@@ -3946,54 +3646,6 @@ def _build_public_schedule_hook(state: _PatchState) -> Callable[..., Any]:
     return _wave_public_schedule_hook
 
 
-def _safe_import_torch() -> Optional[Any]:
-    try:
-        import torch
-        return torch
-    except Exception:
-        return None
-
-
-def _infer_runner_device(model_runner: Any, torch_mod: Any) -> Optional[Any]:
-    device = getattr(model_runner, "device", None)
-    if device is None:
-        model = getattr(model_runner, "model", None)
-        device = getattr(model, "device", None)
-    if device == "":
-        try:
-            device = f"cuda:{int(torch_mod.cuda.current_device())}"
-        except Exception:
-            device = "cuda"
-    if device is None:
-        return None
-    try:
-        return torch_mod.device(device)
-    except Exception:
-        return None
-
-
-def _get_or_create_runner_stream_state(
-    model_runner: Any,
-    torch_mod: Any,
-    policy: WaveSlicePolicy,
-) -> Optional[_RunnerStreamState]:
-    stream_state = getattr(model_runner, "_wave_slice_stream_state", None)
-    if isinstance(stream_state, _RunnerStreamState):
-        return stream_state
-
-    device = _infer_runner_device(model_runner, torch_mod)
-    if device is None or device.type != "cuda":
-        return None
-    try:
-        priority = 0 if _is_phase2_strict(policy) else -1
-        fast_stream = torch_mod.cuda.Stream(device=device, priority=priority)
-    except Exception:
-        return None
-    stream_state = _RunnerStreamState(device=device, fast_stream=fast_stream)
-    setattr(model_runner, "_wave_slice_stream_state", stream_state)
-    return stream_state
-
-
 def _build_model_runner_hook(state: _PatchState) -> Callable[..., Any]:
     original_execute = state.original_execute_model
     if original_execute is None:
@@ -4006,155 +3658,93 @@ def _build_model_runner_hook(state: _PatchState) -> Callable[..., Any]:
         if _phase2_modelrunner_passthrough(state.policy):
             return original_execute(self, *args, **kwargs)
 
-        model_input = args[0] if len(args) > 0 else kwargs.get("model_input")
-
-        if bool(getattr(state.policy, "phase2_enable_execution_escape", False)):
-            try:
-                split_ids = None
-                model_input_is_v1 = _record_phase2_v1_output_probe(
-                    state,
-                    context="execution_escape",
-                    model_input=model_input,
-                )
-                if model_input_is_v1:
-                    split_ids = _v1_execution_escape_req_ids(
-                        model_input,
-                        state.policy,
-                        runner_self=self,
-                        state=state,
-                        req_info_collector=lambda model_input, runner_self, state, policy: _phase12_collect_scheduled_req_infos(
-                            model_input,
-                            runner_self=runner_self,
-                            state=state,
-                            policy=policy,
-                            rank_infer=_infer_lora_rank,
-                        ),
-                        beneficiary_signal_builder=lambda state, policy, req_infos: _phase12_beneficiary_signal(
-                            state=state,
-                            policy=policy,
-                            req_infos=req_infos,
-                        ),
-                    )
-                if split_ids is not None:
-                    active_ids, deferred_ids = split_ids
-                    activated = _phase12_activate_execution_escape(
-                        state,
-                        active_ids=active_ids,
-                        deferred_ids=deferred_ids,
-                    )
-                    state.metrics.record_phase2_decision(
-                        activated,
-                        "execution_escape_activate" if activated else "execution_escape_noop",
-                        selected_count=int(len(active_ids or [])),
-                    )
-                else:
-                    # V0 model_input does not expose the V1 scheduler output shape
-                    # needed by the execution-escape lane. Fall back to the legacy
-                    # Phase-II decision path below instead of short-circuiting the
-                    # whole Phase-II block as a permanent no-candidate.
-                    state.metrics.record_phase2_debug_counter("execution_escape_fallback_steps")
-                    state.metrics.record_phase2_decision(False, "execution_escape_v0_fallback")
-            except Exception:
-                logger.exception("Wave-Slice execution escape activation failed; falling back to original execute.")
-                exc_type, exc, _tb = sys.exc_info()
-                state.metrics.record_phase2_decision(
-                    False,
-                    "execution_escape_exception",
-                    exception_type=str(getattr(exc_type, "__name__", "UnknownError")),
-                    exception_message=str(exc)[:240] if exc is not None else "",
-                )
-                return original_execute(self, *args, **kwargs)
-            if model_input_is_v1:
-                state.metrics.record_phase2_debug_counter("execution_escape_original_execute_returns")
-                return original_execute(self, *args, **kwargs)
-
-        if _phase2_scheduler_cashout_enabled(state.policy) and not bool(
-            getattr(state.policy, "phase2_enable_v1_true_unbind", False)
+        runtime_base_policy: Optional[WaveSlicePolicy] = None
+        if (
+            bool(getattr(state.policy, "phase2_runtime_adaptive_enabled", False))
+            and bool(getattr(state.policy, "phase1_runtime_adaptive_enabled", False))
+            and getattr(state, "phase1_runtime_last_meta", None)
         ):
-            return original_execute(self, *args, **kwargs)
-        decision = _phase2_decide(model_input, state.policy, runner_self=self)
-        state.metrics.record_phase2_decision(decision.apply, decision.reason)
-        if not decision.apply:
-            return original_execute(self, *args, **kwargs)
-
-        torch_mod = _safe_import_torch()
-        if torch_mod is None or not torch_mod.cuda.is_available():
-            return original_execute(self, *args, **kwargs)
-
-        strict_mode = _is_phase2_strict(state.policy)
-        stream_state = _get_or_create_runner_stream_state(self, torch_mod, state.policy)
-        if stream_state is None:
-            return original_execute(self, *args, **kwargs)
+            try:
+                adapted_policy, _ = _phase1_runtime_adapt_policy(
+                    state.policy,
+                    dict(state.phase1_runtime_last_meta or {}),
+                )
+                if adapted_policy is not state.policy:
+                    runtime_base_policy = state.policy
+                    state.policy = adapted_policy
+            except Exception:
+                logger.exception("[Wave-Slice] modelrunner runtime gate adaptation failed; continue with base policy.")
 
         try:
-            state.metrics.record_phase2_debug_counter("true_unbind_outer_attempts")
-            v1_unbind_output = _try_v1_true_unbind_execute(
-                runner_self=self,
-                state=state,
-                original_execute=original_execute,
-                model_input=model_input,
-                args=args,
-                kwargs=kwargs,
-                torch_mod=torch_mod,
-                stream_state=stream_state,
-            )
-            if v1_unbind_output is not None:
-                state.metrics.record_phase2_debug_counter("true_unbind_outer_returned_output")
-                state.metrics.record_phase2_v1_unbind()
-                return v1_unbind_output
-            state.metrics.record_phase2_debug_counter("true_unbind_outer_returned_none")
+            model_input = args[0] if len(args) > 0 else kwargs.get("model_input")
 
-            if strict_mode:
-                # Enforce a conservative boundary to reduce numerical drift.
-                torch_mod.cuda.synchronize(device=stream_state.device)
-            main_stream = torch_mod.cuda.current_stream(device=stream_state.device)
-            stream_state.fast_stream.wait_stream(main_stream)
-            with torch_mod.cuda.stream(stream_state.fast_stream):
-                output = _call_original_execute_with_model_input(
-                    original_execute,
-                    self,
-                    model_input,
-                    args,
-                    kwargs,
-                )
-                done_evt = torch_mod.cuda.Event(enable_timing=False)
-                done_evt.record(stream_state.fast_stream)
+            if bool(getattr(state.policy, "phase2_enable_execution_escape", False)):
+                try:
+                    split_ids = None
+                    model_input_is_v1 = _record_phase2_v1_output_probe(
+                        state,
+                        context="execution_escape",
+                        model_input=model_input,
+                    )
+                    if model_input_is_v1:
+                        split_ids = _v1_execution_escape_req_ids(
+                            model_input,
+                            state.policy,
+                            runner_self=self,
+                            state=state,
+                            req_info_collector=lambda model_input, runner_self, state, policy: _phase12_collect_scheduled_req_infos(
+                                model_input,
+                                runner_self=runner_self,
+                                state=state,
+                                policy=policy,
+                                rank_infer=_infer_lora_rank,
+                            ),
+                            beneficiary_signal_builder=lambda state, policy, req_infos: _phase12_beneficiary_signal(
+                                state=state,
+                                policy=policy,
+                                req_infos=req_infos,
+                            ),
+                        )
+                    if split_ids is not None:
+                        active_ids, deferred_ids = split_ids
+                        activated = _phase12_activate_execution_escape(
+                            state,
+                            active_ids=active_ids,
+                            deferred_ids=deferred_ids,
+                        )
+                        state.metrics.record_phase2_decision(
+                            activated,
+                            "execution_escape_activate" if activated else "execution_escape_noop",
+                            selected_count=int(len(active_ids or [])),
+                        )
+                    else:
+                        # V0 model_input does not expose the V1 scheduler output shape
+                        # needed by the execution-escape lane. Fall back to the legacy
+                        # Phase-II decision path below instead of short-circuiting the
+                        # whole Phase-II block as a permanent no-candidate.
+                        state.metrics.record_phase2_debug_counter("execution_escape_fallback_steps")
+                        state.metrics.record_phase2_decision(False, "execution_escape_v0_fallback")
+                except Exception:
+                    logger.exception("Wave-Slice execution escape activation failed; falling back to original execute.")
+                    exc_type, exc, _tb = sys.exc_info()
+                    state.metrics.record_phase2_decision(
+                        False,
+                        "execution_escape_exception",
+                        exception_type=str(getattr(exc_type, "__name__", "UnknownError")),
+                        exception_message=str(exc)[:240] if exc is not None else "",
+                    )
+                    return original_execute(self, *args, **kwargs)
+                if model_input_is_v1:
+                    state.metrics.record_phase2_debug_counter("execution_escape_original_execute_returns")
+                    return original_execute(self, *args, **kwargs)
 
-            async_mode = (not strict_mode) and _is_phase2_async_experimental(state.policy)
-            if async_mode:
-                stream_state.inflight_events.append(done_evt)
-                max_inflight = max(1, int(state.policy.phase2_max_inflight_events))
-                while len(stream_state.inflight_events) > max_inflight:
-                    evt = stream_state.inflight_events.popleft()
-                    evt.synchronize()
-            else:
-                main_stream.wait_event(done_evt)
-                if strict_mode or state.policy.phase2_host_sync_after_dispatch:
-                    done_evt.synchronize()
-            if strict_mode:
-                torch_mod.cuda.synchronize(device=stream_state.device)
-
-            logger.info(
-                "[Wave-Slice][P2] mode=%s dispatch=%s reason=%s prefills=%d decodes=%d lens=%s lora_ranks=%s",
-                state.policy.phase2_consistency_mode,
-                state.policy.phase2_dispatch_mode,
-                decision.reason,
-                decision.num_prefills,
-                decision.num_decode_tokens,
-                decision.prefill_lens,
-                decision.lora_ranks,
-            )
-            return output
-        except Exception as exc:
-            state.metrics.record_phase2_debug_counter(
-                f"true_unbind_outer_exception_{type(exc).__name__}"
-            )
-            state.metrics.record_phase2_true_unbind_gate(
-                f"outer_exception_{type(exc).__name__}"
-            )
-            state.metrics.record_phase2_debug_counter("true_unbind_outer_exception")
-            logger.exception("Wave-Slice Phase II stream dispatch failed; fallback to original execute_model.")
+            # Non-current legacy stream rebinding was removed. The current Phase II
+            # path is execution escape / scheduler-side promotion only.
+            state.metrics.record_phase2_decision(False, "phase2_no_current_modelrunner_path")
             return original_execute(self, *args, **kwargs)
+        finally:
+            if runtime_base_policy is not None:
+                state.policy = runtime_base_policy
 
     _wave_execute_model_hook.__wave_slice_phase2_hook__ = True  # type: ignore[attr-defined]
     return _wave_execute_model_hook

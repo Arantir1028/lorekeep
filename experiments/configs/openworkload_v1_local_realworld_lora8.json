@@ -23,8 +23,20 @@
       "Selecting locally cached model snapshots and datasets through configuration keeps the experiment reproducible without hardcoded model paths or dataset IDs in code."
     ]
   },
+  "method_definition": {
+    "current_method": "phase1_chunk_boundary_plus_phase2_execution_escape",
+    "phase1": "Use chunk-size control to return from long prefills to the scheduler boundary earlier.",
+    "phase2": "Use execution escape and scheduler-side priority promotion to reshape the next scheduled window.",
+    "adaptation": "Use runtime queue-pressure adaptation inside the scheduler; configured density only selects the workload, not the active chunk policy.",
+    "inactive_paths": [
+      "true_unbind",
+      "dual_stream"
+    ],
+    "pressure_scope": "runtime_queue_pressure",
+    "pressure_scope_note": "The active policy is chosen at each scheduler step from live queue length, waiting short count, wait urgency, long remaining tokens, and virtual-cap hit EMA."
+  },
   "workload": {
-    "reuse_workload_pool_root": "results/openworkload_execescape_tradeoff/20260408_133222/workloads/mid",
+    "reuse_workload_pool_root": "results/dataset_workloads",
     "arrival_mode": "poisson",
     "phase1_arrival_layout": "beneficiary_rich",
     "phase2_arrival_layout": "beneficiary_rich",
@@ -81,7 +93,7 @@
     ]
   },
   "eval": {
-    "python_bin": "python3",
+    "python_bin": "/home/onceas/anaconda3/envs/sara/bin/python",
     "vllm_mode": "v1",
     "warmup_iters": 1,
     "repeats": 2,
@@ -104,6 +116,40 @@
     "ingress_exact_chunk": true,
     "force_min_chunk": 128,
     "target_long_fraction": 0.33
+  },
+  "adaptive_density_policy": {
+    "enabled": true,
+    "scope": "runtime_queue_pressure",
+    "pressure_source": "scheduler_queue_waiting_short_wait_us_long_remaining_cap_hit_ema",
+    "pressure_formula": "wall_pressure = weighted(queue, long_remaining, cap_hit, previous_wall); effective_pressure = wall_pressure * (1 - urgency_discount * short_urgency)",
+    "runtime_queue_pressure": true,
+    "description": "Runtime policy. Each scheduler step maps live pressure to chunk targets: short urgency pushes toward aggressive chunks, sustained wall pressure pushes toward conservative chunks.",
+    "runtime_aggressive_long_fraction": 0.33,
+    "runtime_conservative_long_fraction": 0.50,
+    "runtime_aggressive_ingress_target_chunk": 768,
+    "runtime_conservative_ingress_target_chunk": 1536,
+    "runtime_queue_high_watermark": 8,
+    "runtime_waiting_short_high_watermark": 4,
+    "runtime_wait_us_high_watermark": 1000000.0,
+    "runtime_long_high_watermark": 3072,
+    "runtime_urgency_discount": 0.55,
+    "runtime_ema_alpha": 0.35,
+    "low_pressure_target_long_fraction": 0.50,
+    "high_pressure_target_long_fraction": 0.33,
+    "low_pressure_ingress_target_chunk": 1536,
+    "high_pressure_ingress_target_chunk": 768,
+    "low_pressure_phase2_min_hetero_ratio": 6.0,
+    "high_pressure_phase2_min_hetero_ratio": 4.0,
+    "low_pressure_phase2_min_pressure_ratio": 6.0,
+    "high_pressure_phase2_min_pressure_ratio": 4.0,
+    "low_pressure_phase2_min_long_prefill": 1024,
+    "high_pressure_phase2_min_long_prefill": 768,
+    "low_pressure_escape_spillover_cap": 1,
+    "high_pressure_escape_spillover_cap": 3,
+    "low_pressure_escape_max_active": 2,
+    "high_pressure_escape_max_active": 5,
+    "disable_execution_escape_below_pressure": 0.05,
+    "runtime_disable_execution_escape_below_pressure": 0.05
   },
   "phase12_soft_gate": {
     "phase2_gate_mode": "soft",
@@ -129,7 +175,6 @@
     "min_pressure_ratio": 4.0,
     "enable_scheduler_cashout": true,
     "enable_execution_escape": true,
-    "enable_v1_true_unbind": false,
     "execution_escape_mode": "bounded_spillover",
     "execution_escape_spillover_cap": 3,
     "execution_escape_max_active": 5

@@ -50,6 +50,17 @@ class WaveSlicePolicy:
     phase1_cohort_target_mass_factor: float = 1.0
     phase1_sticky_ttl: int = 4
     phase1_sticky_reuse_ratio: float = 0.85
+    phase1_runtime_adaptive_enabled: bool = False
+    phase1_runtime_aggressive_long_fraction: float = 0.33
+    phase1_runtime_conservative_long_fraction: float = 0.50
+    phase1_runtime_aggressive_ingress_target_chunk: int = 768
+    phase1_runtime_conservative_ingress_target_chunk: int = 1536
+    phase1_runtime_queue_high_watermark: int = 8
+    phase1_runtime_waiting_short_high_watermark: int = 4
+    phase1_runtime_wait_us_high_watermark: float = 1_000_000.0
+    phase1_runtime_long_high_watermark: int = 3072
+    phase1_runtime_urgency_discount: float = 0.55
+    phase1_runtime_ema_alpha: float = 0.35
 
     # Phase II (ModelRunner)
     enable_phase2_modelrunner: bool = False
@@ -61,7 +72,6 @@ class WaveSlicePolicy:
     phase2_consistency_mode: str = "balanced"  # balanced | strict
     phase2_dispatch_mode: str = "synchronized"  # synchronized | async_experimental
     phase2_max_inflight_events: int = 2
-    phase2_enable_v1_true_unbind: bool = False
     phase2_enable_scheduler_cashout: bool = False
     phase2_lora_rank_aware: bool = True
     phase2_min_lora_count: int = 2
@@ -120,6 +130,18 @@ class WaveSlicePolicy:
     phase2_execution_escape_mode: str = "bounded_spillover"  # broad_partition | beneficiary_only | bounded_spillover
     phase2_execution_escape_spillover_cap: int = 3
     phase2_execution_escape_max_active: int = 5
+    phase2_runtime_adaptive_enabled: bool = False
+    phase2_runtime_low_pressure_min_hetero_ratio: float = 6.0
+    phase2_runtime_high_pressure_min_hetero_ratio: float = 4.0
+    phase2_runtime_low_pressure_min_pressure_ratio: float = 6.0
+    phase2_runtime_high_pressure_min_pressure_ratio: float = 4.0
+    phase2_runtime_low_pressure_min_long_prefill: int = 1024
+    phase2_runtime_high_pressure_min_long_prefill: int = 768
+    phase2_runtime_low_pressure_escape_spillover_cap: int = 1
+    phase2_runtime_high_pressure_escape_spillover_cap: int = 3
+    phase2_runtime_low_pressure_escape_max_active: int = 2
+    phase2_runtime_high_pressure_escape_max_active: int = 5
+    phase2_runtime_disable_execution_escape_below_pressure: float = -1.0
     enable_vllm_lora_compat_patch: bool = True
     enable_v1_runtime_lifecycle_patch: bool = True
 

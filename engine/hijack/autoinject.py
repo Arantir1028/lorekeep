@@ -163,6 +163,28 @@ def merge_cross_process_metrics(report: dict[str, Any]) -> dict[str, Any]:
     phase1_cohort_target_sum = 0.0
     phase1_cohort_target_count = 0
     phase1_direct_wins = int(round(float(scheduler.get("proposal_direct_win_ratio") or 0.0) * float(sched_total)))
+    phase1_runtime_adapt_total = int(float(scheduler.get("runtime_adaptive_total") or 0.0))
+    phase1_runtime_effective_pressure_sum = (
+        float(scheduler.get("runtime_effective_pressure_avg") or 0.0) * float(phase1_runtime_adapt_total)
+    )
+    phase1_runtime_wall_pressure_sum = (
+        float(scheduler.get("runtime_wall_pressure_avg") or 0.0) * float(phase1_runtime_adapt_total)
+    )
+    phase1_runtime_short_urgency_sum = (
+        float(scheduler.get("runtime_short_urgency_avg") or 0.0) * float(phase1_runtime_adapt_total)
+    )
+    phase1_runtime_target_fraction_sum = (
+        float(scheduler.get("runtime_target_fraction_avg") or 0.0) * float(phase1_runtime_adapt_total)
+    )
+    phase1_runtime_target_chunk_sum = (
+        float(scheduler.get("runtime_target_chunk_avg") or 0.0) * float(phase1_runtime_adapt_total)
+    )
+    phase1_runtime_queue_sum = (
+        float(scheduler.get("runtime_queue_avg") or 0.0) * float(phase1_runtime_adapt_total)
+    )
+    phase1_runtime_waiting_short_sum = (
+        float(scheduler.get("runtime_waiting_short_avg") or 0.0) * float(phase1_runtime_adapt_total)
+    )
 
     baseline_chunk_avg = scheduler.get("baseline_chunk_avg")
     chosen_chunk_avg = scheduler.get("chosen_chunk_avg")
@@ -199,7 +221,6 @@ def merge_cross_process_metrics(report: dict[str, Any]) -> dict[str, Any]:
     phase1_explicit_total = int(round(float(scheduler.get("explicit_plan_ratio") or 0.0) * float(sched_total)))
     phase2_total = int(phase2.get("attempts") or 0)
     phase2_applied = int(phase2.get("applied") or 0)
-    phase2_v1_unbind_applied = int(phase2.get("v1_true_unbind_applied") or 0)
     lane_activations = int(escape_lane.get("activations") or 0)
     lane_active_sum = 0.0
     lane_active_count = 0
@@ -256,7 +277,6 @@ def merge_cross_process_metrics(report: dict[str, Any]) -> dict[str, Any]:
     execution_escape_exception_types = dict(debug.get("execution_escape_exception_types") or {})
     execution_escape_exception_messages = dict(debug.get("execution_escape_exception_messages") or {})
     phase2_debug_counters = dict(debug.get("counters") or {})
-    true_unbind_gate_reasons = dict(debug.get("true_unbind_gate_reasons") or {})
 
     for line in lines:
         try:
@@ -384,6 +404,15 @@ def merge_cross_process_metrics(report: dict[str, Any]) -> dict[str, Any]:
                 phase1_cohort_target_count += 1
             if bool(payload.get("direct_won")):
                 phase1_direct_wins += 1
+        elif kind == "phase1_runtime_adaptation":
+            phase1_runtime_adapt_total += 1
+            phase1_runtime_effective_pressure_sum += float(payload.get("effective_pressure") or 0.0)
+            phase1_runtime_wall_pressure_sum += float(payload.get("wall_pressure") or 0.0)
+            phase1_runtime_short_urgency_sum += float(payload.get("short_urgency") or 0.0)
+            phase1_runtime_target_fraction_sum += float(payload.get("target_fraction") or 0.0)
+            phase1_runtime_target_chunk_sum += float(payload.get("target_chunk") or 0.0)
+            phase1_runtime_queue_sum += float(payload.get("queue_len") or 0.0)
+            phase1_runtime_waiting_short_sum += float(payload.get("waiting_short_count") or 0.0)
         elif kind == "phase2_decision":
             phase2_total += 1
             if bool(payload.get("applied")):
@@ -429,8 +458,6 @@ def merge_cross_process_metrics(report: dict[str, Any]) -> dict[str, Any]:
                 apply_small_bonus_sum += float(payload.get("small_candidate_bonus") or 0.0)
                 apply_medium_penalty_sum += float(payload.get("medium_candidate_penalty") or 0.0)
                 apply_stats_count += 1
-        elif kind == "phase2_v1_unbind":
-            phase2_v1_unbind_applied += 1
         elif kind == "escape_lane_activation":
             lane_activations += 1
             lane_active_sum += float(payload.get("active_count") or 0.0)
@@ -469,10 +496,6 @@ def merge_cross_process_metrics(report: dict[str, Any]) -> dict[str, Any]:
             amount = int(payload.get("amount") or 0)
             if name and amount:
                 phase2_debug_counters[name] = int(phase2_debug_counters.get(name, 0)) + amount
-        elif kind == "phase2_true_unbind_gate":
-            reason = str(payload.get("reason") or "")
-            if reason:
-                true_unbind_gate_reasons[reason] = int(true_unbind_gate_reasons.get(reason, 0)) + 1
         elif kind == "schedule_hook_early_return":
             reason = str(payload.get("reason") or "")
             if reason:
@@ -610,6 +633,42 @@ def merge_cross_process_metrics(report: dict[str, Any]) -> dict[str, Any]:
         if sched_total
         else 0.0
     )
+    scheduler["runtime_adaptive_total"] = float(phase1_runtime_adapt_total)
+    scheduler["runtime_effective_pressure_avg"] = (
+        phase1_runtime_effective_pressure_sum / float(phase1_runtime_adapt_total)
+        if phase1_runtime_adapt_total
+        else None
+    )
+    scheduler["runtime_wall_pressure_avg"] = (
+        phase1_runtime_wall_pressure_sum / float(phase1_runtime_adapt_total)
+        if phase1_runtime_adapt_total
+        else None
+    )
+    scheduler["runtime_short_urgency_avg"] = (
+        phase1_runtime_short_urgency_sum / float(phase1_runtime_adapt_total)
+        if phase1_runtime_adapt_total
+        else None
+    )
+    scheduler["runtime_target_fraction_avg"] = (
+        phase1_runtime_target_fraction_sum / float(phase1_runtime_adapt_total)
+        if phase1_runtime_adapt_total
+        else None
+    )
+    scheduler["runtime_target_chunk_avg"] = (
+        phase1_runtime_target_chunk_sum / float(phase1_runtime_adapt_total)
+        if phase1_runtime_adapt_total
+        else None
+    )
+    scheduler["runtime_queue_avg"] = (
+        phase1_runtime_queue_sum / float(phase1_runtime_adapt_total)
+        if phase1_runtime_adapt_total
+        else None
+    )
+    scheduler["runtime_waiting_short_avg"] = (
+        phase1_runtime_waiting_short_sum / float(phase1_runtime_adapt_total)
+        if phase1_runtime_adapt_total
+        else None
+    )
     scheduler["probe_reasons"] = phase1_probe_reason_counter
 
     phase2["attempts"] = phase2_total
@@ -630,12 +689,6 @@ def merge_cross_process_metrics(report: dict[str, Any]) -> dict[str, Any]:
     escape_lane["last_active_ids"] = lane_last_active_ids
     escape_lane["last_deferred_ids"] = lane_last_deferred_ids
     phase2["escape_lane"] = escape_lane
-    phase2["v1_true_unbind_applied"] = phase2_v1_unbind_applied
-    phase2["v1_true_unbind_ratio"] = (
-        float(phase2_v1_unbind_applied) / float(phase2_total)
-        if phase2_total
-        else 0.0
-    )
     phase2["debug"] = {
         "schedule_hook_enter": schedule_hook_enter,
         "phase2_sched_pre_enter": phase2_sched_pre_enter,
@@ -694,7 +747,6 @@ def merge_cross_process_metrics(report: dict[str, Any]) -> dict[str, Any]:
         "execution_escape_exception_types": execution_escape_exception_types,
         "execution_escape_exception_messages": execution_escape_exception_messages,
         "counters": phase2_debug_counters,
-        "true_unbind_gate_reasons": true_unbind_gate_reasons,
     }
 
     report["scheduler"] = scheduler

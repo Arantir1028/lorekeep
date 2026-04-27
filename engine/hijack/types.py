@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import collections
 from dataclasses import dataclass, field
-from typing import Any, Callable, Deque, Optional
+from typing import Any, Callable, Optional
 
 from engine.base_slicer import SlicePlan, WaveBaseSlicer
 from engine.hijack.runtime_state import WaveSliceMetrics, WaveSlicePolicy
@@ -59,6 +58,9 @@ class _PatchState:
     phase12_recent_phase1_strength: float = 0.0
     phase12_recent_phase1_chunk: int = 0
     phase12_recent_phase2_cashout_cooldown: int = 0
+    phase1_runtime_pressure_ema: float = 0.0
+    phase1_runtime_wall_pressure_ema: float = 0.0
+    phase1_runtime_last_meta: dict[str, Any] = field(default_factory=dict)
     phase2_escape_active_ids: set[str] = field(default_factory=set)
     phase2_escape_deferred_ids: set[str] = field(default_factory=set)
     phase2_escape_lane_ttl: int = 0
@@ -69,23 +71,6 @@ class _PatchState:
     phase2_runtime_last_finished_request_ids: list[str] = field(default_factory=list)
     phase2_runtime_last_finished_status: Optional[str] = None
     v1_lifecycle_hooks_installed: bool = False
-
-
-@dataclass
-class _Phase2Decision:
-    apply: bool
-    reason: str
-    prefill_lens: list[int]
-    num_prefills: int
-    num_decode_tokens: int
-    lora_ranks: list[int] = field(default_factory=list)
-
-
-@dataclass
-class _RunnerStreamState:
-    device: Any
-    fast_stream: Any
-    inflight_events: Deque[Any] = field(default_factory=collections.deque)
 
 
 @dataclass(frozen=True)

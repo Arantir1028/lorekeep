@@ -2,9 +2,21 @@
 
 [English](./README.md) | [简体中文](./README.zh-CN.md)
 
-CUCUMIS is a runtime scheduling layer for heterogeneous LoRA serving on top of vLLM.
+CUCUMIS is a runtime scheduling layer for heterogeneous LLM serving on top of vLLM.
 
 ## Current Scope
+
+## Current Method Definition
+
+The current paper and experiment path is:
+
+- **Phase I:** control long-prefill chunk size so long requests return to the scheduler boundary earlier.
+- **Phase II:** use execution escape / priority promotion to reshape the next scheduled window after that boundary is exposed.
+- **Adaptation:** use runtime queue-pressure adaptation inside the scheduler to avoid over-triggering under low pressure while still reacting to live queues.
+
+This is not the abandoned `true_unbind` / dual-stream path. Current results and paper text should not describe execution-level long/short co-running.
+
+The adaptive policy is runtime queue-pressure adaptation. Configured density controls the workload, while live queue length, waiting short requests, wait urgency, long remaining tokens, and virtual-cap hits drive the active chunk/gate choice. See `docs/current_method.md` for the precise definition.
 
 Supported experiment entrypoints:
 
@@ -127,7 +139,7 @@ Relevant configs:
 Path convention:
 
 - Output roots, run roots, and example commands in this section use project-relative paths from the repository root.
-- The default Chapter 5 main config uses `python3` as `eval.python_bin`. If you need another interpreter, change that field or use a different config.
+- The default Chapter 5 main config uses the configured `eval.python_bin` from the suite config. On this machine the current v1 open-workload config points at the `sara` conda environment.
 
 Model and dataset configuration:
 
@@ -268,29 +280,6 @@ Supported prestudy cases:
 - `E3 Paper Case`: re-exports the stable beneficiary-rich figure from an existing result.
 - `E4 Density Sweep`: shows how TTFT inflation and slowdown evolve with contention.
 - `E5 LoRA Multi-Tenancy Relevance`: compares non-LoRA, homogeneous LoRA, and mixed-adapter LoRA.
-
-## Multi-Model Suites
-
-Synthetic multi-model suite:
-
-```bash
-python experiments/waveslice_a100_suite.py \
-  --repeats 3 \
-  --warmup-iters 2 \
-  --max-new-tokens 64 \
-  --include-phase12 \
-  --timeout-sec 240
-```
-
-Dataset-driven multi-model suite:
-
-```bash
-python experiments/waveslice_dataset_suite.py \
-  --repeats 3 \
-  --timeout-sec 240
-```
-
-Both suites emit per-model JSON results and a CSV summary with TTFT and wall-time fields.
 
 ## Outputs
 
