@@ -80,6 +80,8 @@ The LUT builder writes or refreshes:
 
 Use `--skip-preflight-lut-rebuild` only for debugging stale-LUT detection. With that flag, preflight refuses to write a usable resolved config when the selected LUTs do not match the current GPU fingerprint.
 
+Preflight also scales workload pressure for smaller GPUs. It writes the final values into `metadata/resolved_config.json` and records the decision in `metadata/workload_capacity.json`. The automatic adjustments cover `max_new_tokens`, `repeats`, `sample_count`, per-density request counts, arrival-rate scale, and dropping `peak` when capacity is too low.
+
 Run only the environment preflight:
 
 ```bash
@@ -165,6 +167,7 @@ Important preflight artifacts:
 - `metadata/resolved_environment.json`: detected Python, CUDA, package, and GPU information.
 - `metadata/model_preflight.json`: per-model smoke/capacity status.
 - `metadata/runtime_capacity.json`: selected runtime capacity settings.
+- `metadata/workload_capacity.json`: selected workload scale, decode length, repeats, sample count, and density/request-count changes.
 - `metadata/resolved_config.json`: config consumed by the Chapter 5 main stage.
 - `metadata/preflight_summary.json`: short machine-readable summary.
 

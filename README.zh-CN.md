@@ -80,6 +80,8 @@ LUT builder 会写入或刷新：
 
 `--skip-preflight-lut-rebuild` 只建议用于调试 stale-LUT 检测；如果选中的 LUT 和当前 GPU fingerprint 不匹配，preflight 在这个模式下不会写出可用的 resolved config。
 
+preflight 也会针对较小显存自动缩放 workload pressure。最终值会写进 `metadata/resolved_config.json`，决策记录在 `metadata/workload_capacity.json`。自动调整范围包括 `max_new_tokens`、`repeats`、`sample_count`、各 density 的请求数量、arrival-rate scale，以及在容量过低时丢掉 `peak`。
+
 只跑环境 preflight：
 
 ```bash
@@ -165,6 +167,7 @@ Preflight 关键产物：
 - `metadata/resolved_environment.json`：当前 Python、CUDA、依赖包和 GPU 信息。
 - `metadata/model_preflight.json`：每个模型的 smoke/capacity 探测状态。
 - `metadata/runtime_capacity.json`：选中的 runtime capacity 参数。
+- `metadata/workload_capacity.json`：选中的 workload scale、decode 长度、repeats、sample count，以及 density/request-count 调整。
 - `metadata/resolved_config.json`：后续 Chapter 5 主实验实际消费的配置。
 - `metadata/preflight_summary.json`：简短机器可读汇总。
 

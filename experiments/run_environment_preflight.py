@@ -696,26 +696,129 @@ def _derive_timeout_sec(config: dict[str, Any], model_preflight: list[dict[str, 
     return int(max(current, 60, round(observed * 20.0)))
 
 
+def _memory_workload_scale(memory_gb: float) -> float:
+    if memory_gb >= 24.0:
+        return 1.0
+    if memory_gb >= 18.0:
+        return 0.75
+    if memory_gb >= 12.0:
+        return 0.50
+    return 0.35
+
+
+def _bucketed_max_new_tokens(base: int, scale: float, memory_gb: float) -> int:
+    if memory_gb >= 24.0 and scale >= 0.95:
+        limit = int(base)
+    elif memory_gb >= 18.0 and scale >= 0.70:
+        limit = min(int(base), 48)
+    else:
+        limit = min(int(base), 32)
+    choices = [16, 32, 48, 64, 96, 128]
+    for value in choices:
+        if value >= limit:
+            return max(16, min(int(base), int(value)))
+    return max(16, min(int(base), int(limit)))
+
+
+def _scale_count(value: Any, scale: float, *, minimum: int) -> int:
+    try:
+        base = int(value)
+    except Exception:
+        base = int(minimum)
+    return max(int(minimum), int(round(float(base) * float(scale))))
+
+
+def _derive_workload_overrides(
+    *,
+    config: dict[str, Any],
+    runtime_cfg: dict[str, Any],
+    memory_gb: float,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    base_eval = dict(config.get("eval") or {})
+    base_workload = dict(config.get("workload") or {})
+    base_batched = max(1, int(base_eval.get("max_num_batched_tokens", 1536)))
+    current_batched = max(1, int(runtime_cfg.get("max_num_batched_tokens", base_batched)))
+    batch_scale = max(0.25, min(1.0, float(current_batched) / float(base_batched)))
+    memory_scale = _memory_workload_scale(float(memory_gb))
+    scale = max(0.25, min(1.0, batch_scale, memory_scale))
+
+    base_max_new = int(base_eval.get("max_new_tokens", 64))
+    max_new_tokens = _bucketed_max_new_tokens(base_max_new, scale, float(memory_gb))
+    repeats = int(base_eval.get("repeats", 2))
+    if scale < 0.50:
+        repeats = min(repeats, 1)
+    warmup_iters = int(base_eval.get("warmup_iters", 1))
+    sample_count = _scale_count(base_workload.get("sample_count", 256), scale, minimum=64)
+
+    eval_overrides = {
+        "max_new_tokens": int(max_new_tokens),
+        "repeats": int(repeats),
+        "warmup_iters": int(warmup_iters),
+    }
+    workload_overrides = {"sample_count": int(sample_count)}
+    meta = {
+        "scale": scale,
+        "memory_scale": memory_scale,
+        "batch_scale": batch_scale,
+        "memory_gb": memory_gb,
+        "base_max_num_batched_tokens": base_batched,
+        "resolved_max_num_batched_tokens": current_batched,
+        "base_max_new_tokens": base_max_new,
+        "resolved_max_new_tokens": max_new_tokens,
+        "base_repeats": int(base_eval.get("repeats", 2)),
+        "resolved_repeats": repeats,
+        "base_sample_count": int(base_workload.get("sample_count", 256)),
+        "resolved_sample_count": sample_count,
+        "density_policy": "scale_arrival_and_counts_drop_peak_when_capacity_is_low",
+    }
+    return {"eval": eval_overrides, "workload": workload_overrides}, meta
+
+
 def _derive_densities(
     densities: list[dict[str, Any]],
     runtime_cfg: dict[str, Any],
     base_eval: dict[str, Any],
+    workload_meta: dict[str, Any],
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     base_batched = max(1, int(base_eval.get("max_num_batched_tokens", 1536)))
     current_batched = max(1, int(runtime_cfg.get("max_num_batched_tokens", base_batched)))
-    scale = max(0.50, min(1.50, float(current_batched) / float(base_batched)))
+    rate_scale = max(0.35, min(1.50, float(current_batched) / float(base_batched)))
+    count_scale = max(0.25, min(1.0, float(workload_meta.get("scale") or 1.0)))
+    memory_gb = float(workload_meta.get("memory_gb") or 0.0)
+    dropped: list[str] = []
     resolved: list[dict[str, Any]] = []
     for density in densities:
+        name = str(density.get("name") or "")
+        if name == "peak" and (memory_gb < 18.0 or count_scale < 0.50):
+            dropped.append(name)
+            continue
         copied = dict(density)
         for key in ("phase1_arrival_rate", "phase2_arrival_rate"):
             if key in copied:
-                copied[key] = round(float(copied[key]) * scale, 3)
+                copied[key] = round(float(copied[key]) * rate_scale, 3)
+        for key, minimum in (
+            ("phase1_short_count", 8),
+            ("phase1_long_count", 3),
+            ("phase2_short_count", 8),
+            ("phase2_long_count", 4),
+        ):
+            if key in copied:
+                copied[key] = _scale_count(copied[key], count_scale, minimum=minimum)
         resolved.append(copied)
+    if not resolved and densities:
+        density = dict(densities[0])
+        for key in ("phase1_arrival_rate", "phase2_arrival_rate"):
+            if key in density:
+                density[key] = round(float(density[key]) * rate_scale, 3)
+        resolved.append(density)
     return resolved, {
-        "density_scale": scale,
-        "source": "global_batch_token_capacity",
+        "density_scale": rate_scale,
+        "request_count_scale": count_scale,
+        "source": "global_batch_token_capacity_and_memory_workload_capacity",
         "base_max_num_batched_tokens": base_batched,
         "resolved_max_num_batched_tokens": current_batched,
+        "dropped_densities": dropped,
+        "workload_capacity": workload_meta,
     }
 
 
@@ -727,6 +830,7 @@ def _build_resolved_config(
     densities: list[dict[str, Any]],
     runtime_cfg: dict[str, Any],
     policy_overrides: dict[str, Any],
+    workload_overrides: dict[str, Any],
     density_meta: dict[str, Any],
 ) -> dict[str, Any]:
     resolved = deepcopy(config)
@@ -734,6 +838,7 @@ def _build_resolved_config(
     resolved["datasets"] = datasets
     resolved.setdefault("workload", {})
     resolved["workload"] = dict(resolved.get("workload") or {})
+    resolved["workload"].update(workload_overrides.get("workload", {}))
     resolved["workload"]["densities"] = densities
     resolved["eval"] = dict(resolved.get("eval") or {})
     resolved["eval"].pop("python_bin", None)
@@ -744,6 +849,7 @@ def _build_resolved_config(
             "gpu_memory_utilization": float(runtime_cfg["gpu_memory_utilization"]),
         }
     )
+    resolved["eval"].update(workload_overrides.get("eval", {}))
     if runtime_cfg.get("timeout_sec") is not None:
         resolved["eval"]["timeout_sec"] = int(runtime_cfg["timeout_sec"])
     resolved["phase1"] = policy_overrides["phase1"]
@@ -864,10 +970,16 @@ def main() -> int:
             "inspect metadata/model_preflight.json"
         )
     selected_runtime["timeout_sec"] = _derive_timeout_sec(config, model_preflight)
+    workload_overrides, workload_meta = _derive_workload_overrides(
+        config=config,
+        runtime_cfg=selected_runtime,
+        memory_gb=_gpu_memory_gb(environment),
+    )
     resolved_densities, density_meta = _derive_densities(
         densities,
         selected_runtime,
         dict(config.get("eval") or {}),
+        workload_meta,
     )
     policy_overrides = _derive_policy_overrides(config, selected_runtime)
     resolved_config = _build_resolved_config(
@@ -877,6 +989,7 @@ def main() -> int:
         densities=resolved_densities,
         runtime_cfg=selected_runtime,
         policy_overrides=policy_overrides,
+        workload_overrides=workload_overrides,
         density_meta=density_meta,
     )
 
@@ -890,6 +1003,7 @@ def main() -> int:
         "lut_rebuild_needed_count": int(lut_preflight.get("rebuild_needed_count") or 0),
         "engine_smoke_ran": run_smoke,
         "runtime": selected_runtime,
+        "workload": workload_meta,
         "derived_policy": policy_overrides["derived"],
         "density": density_meta,
     }
@@ -905,6 +1019,7 @@ def main() -> int:
     write_json(metadata_dir / "dataset_selection_diagnostics.json", dataset_selection)
     write_json(metadata_dir / "model_preflight.json", model_preflight)
     write_json(metadata_dir / "runtime_capacity.json", {"selected": selected_runtime, "attempts": runtime_attempts})
+    write_json(metadata_dir / "workload_capacity.json", {"overrides": workload_overrides, "meta": workload_meta})
     write_json(metadata_dir / "resolved_config.json", resolved_config)
     write_json(metadata_dir / "preflight_summary.json", summary)
     print(f"[Preflight] run_root={summary['run_root']}")
