@@ -20,6 +20,8 @@ bootstrap_vllm_runtime()
 
 import torch
 from config import hw_config as cfg
+from experiments.lut_fingerprint import current_lut_fingerprint
+from experiments.model_assets import _hf_hub_dir
 from profiler import offline_profiler as offline_profiler_mod
 from profiler.lut_generator import generate_lut_for_model
 from profiler.offline_profiler import ModelProfiler
@@ -27,7 +29,7 @@ from tools.experiment_lock import gpu_experiment_lock
 
 
 def _discover_local_snapshots() -> list[tuple[str, Path]]:
-    hub = Path.home() / ".cache" / "huggingface" / "hub"
+    hub = _hf_hub_dir()
     out: list[tuple[str, Path]] = []
     for repo in sorted(hub.glob("models--*")):
         snaps = repo / "snapshots"
@@ -301,9 +303,10 @@ def _ensure_base_profile(
     batch_size: int,
     warmup_iters: int,
     active_iters: int,
+    force: bool = False,
 ) -> None:
     paths = cfg.get_lut_paths(lut_name)
-    if all(os.path.exists(paths[key]) for key in ("raw", "gain", "penalty")):
+    if not force and all(os.path.exists(paths[key]) for key in ("raw", "gain", "penalty")):
         return
     cfg.register_checkpoint_model(lut_name, aliases=[lut_name], **params)
     base_batch_size = int(cfg.BATCH_SIZE)
@@ -318,8 +321,8 @@ def _ensure_base_profile(
         cfg.BATCH_SIZE = base_batch_size
 
 
-def _backup_if_missing(src: str, dst: str) -> None:
-    if os.path.exists(src) and not os.path.exists(dst):
+def _backup_profile(src: str, dst: str, *, force: bool = False) -> None:
+    if os.path.exists(src) and (force or not os.path.exists(dst)):
         shutil.copy2(src, dst)
 
 
@@ -372,6 +375,7 @@ def main() -> None:
     parser.add_argument("--gpu-memory-utilization", type=float, default=0.80)
     parser.add_argument("--max-num-batched-tokens", type=int, default=1536)
     parser.add_argument("--gpu-lock-path", default="")
+    parser.add_argument("--force", action="store_true", help="Rebuild base and runtime LUT artifacts even if files already exist.")
     args = parser.parse_args()
 
     if not torch.cuda.is_available():
@@ -391,6 +395,7 @@ def main() -> None:
 
     registry_path = Path(cfg.DATA_DIR) / "hybrid_checkpoint_registry.json"
     rows: list[dict[str, Any]] = []
+    hardware_fingerprint = current_lut_fingerprint()
 
     with gpu_experiment_lock(label="hybrid_checkpoint_runtime_lut", enabled=True, lock_path=args.gpu_lock_path or None):
         for model_id, snap in targets:
@@ -426,6 +431,7 @@ def main() -> None:
                 "d_model": params["d_model"],
                 "base_batch_size": batch_size,
                 "calibration_buckets": calib_buckets,
+                "hardware_fingerprint": hardware_fingerprint,
                 "status": "pending",
             }
             print(f"[HybridLUT] start model={model_id} lut={lut_name}")
@@ -438,14 +444,15 @@ def main() -> None:
                     batch_size=batch_size,
                     warmup_iters=int(args.base_warmup_iters),
                     active_iters=int(args.base_active_iters),
+                    force=bool(args.force),
                 )
                 paths = cfg.get_lut_paths(lut_name)
                 base_raw_path = str(Path(cfg.DATA_DIR) / f"raw_profile_base_{lut_name}.json")
                 base_gain_path = str(Path(cfg.DATA_DIR) / f"lut_gain_base_{lut_name}.json")
                 base_penalty_path = str(Path(cfg.DATA_DIR) / f"lut_penalty_base_{lut_name}.json")
-                _backup_if_missing(paths["raw"], base_raw_path)
-                _backup_if_missing(paths["gain"], base_gain_path)
-                _backup_if_missing(paths["penalty"], base_penalty_path)
+                _backup_profile(paths["raw"], base_raw_path, force=bool(args.force))
+                _backup_profile(paths["gain"], base_gain_path, force=bool(args.force))
+                _backup_profile(paths["penalty"], base_penalty_path, force=bool(args.force))
 
                 runtime = _runtime_calibration(
                     model_id=model_id,
@@ -457,7 +464,9 @@ def main() -> None:
                     gpu_memory_utilization=float(args.gpu_memory_utilization),
                     repeats=int(args.runtime_repeats),
                 )
+                runtime["hardware_fingerprint"] = hardware_fingerprint
                 sanity = _runtime_sanity_check(runtime)
+                sanity["hardware_fingerprint"] = hardware_fingerprint
                 sanity_path = _runtime_sanity_path(lut_name)
                 sanity_path.write_text(json.dumps(sanity, indent=2, ensure_ascii=False), encoding="utf-8")
                 if not sanity["passed"]:

@@ -5,6 +5,8 @@
   "resource_selection": {
     "model_mode": "local_all_runnable",
     "dataset_mode": "local_supported_from_catalog",
+    "auto_download": true,
+    "offline": false,
     "require_runtime_sanity": true,
     "require_supported_extractors": true,
     "require_lora_support": true,
@@ -93,7 +95,6 @@
     ]
   },
   "eval": {
-    "python_bin": "/home/onceas/anaconda3/envs/sara/bin/python",
     "vllm_mode": "v1",
     "warmup_iters": 1,
     "repeats": 2,

@@ -7,6 +7,7 @@ from typing import Any, Optional
 
 from config import hw_config as hw_cfg
 from config.experiment_catalog import ExperimentModelSpec, get_model_specs, safe_key
+from experiments.lut_fingerprint import lut_fingerprint_status
 
 
 @dataclass(frozen=True)
@@ -76,6 +77,9 @@ def runtime_lut_is_valid(lut_name: str) -> tuple[bool, str]:
     except Exception as exc:
         return False, f"invalid runtime sanity file: {exc!r}"
     if bool(payload.get("passed", False)):
+        fingerprint = lut_fingerprint_status(lut_name)
+        if not fingerprint.get("ok"):
+            return False, str(fingerprint.get("reason") or "lut_hardware_fingerprint_mismatch")
         return True, ""
     reasons = payload.get("reasons") or []
     return False, f"runtime LUT sanity failed: {reasons}"

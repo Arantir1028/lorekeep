@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Any
 
 from experiments.openworkload_support import load_config as _load_config
+from experiments.openworkload_support import relative_to_repo as _relative_to_repo
+from experiments.openworkload_support import repo_root as _repo_root
 
 
 def _append_value(cmd: list[str], flag: str, value: Any) -> None:
@@ -29,6 +31,19 @@ def _append_bool_optional(cmd: list[str], flag: str, value: Any) -> None:
     if value is None:
         return
     cmd.append(f"--{flag}" if bool(value) else f"--no-{flag}")
+
+
+def _config_path_value(value: Any) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    path = Path(text).expanduser()
+    if path.is_absolute():
+        try:
+            return _relative_to_repo(path)
+        except Exception:
+            return str(path)
+    return text
 
 
 def build_eval_invocation(
@@ -54,11 +69,14 @@ def build_eval_invocation(
     ]
     _append_value(cmd, "model-name", model_cfg.get("name"))
     _append_value(cmd, "model-path", model_cfg.get("path"))
-    _append_value(cmd, "requests-json", workload_cfg.get("requests_json"))
-    _append_value(cmd, "lora-requests-json", workload_cfg.get("lora_requests_json"))
-    _append_value(cmd, "adapter-a", adapters_cfg.get("adapter_a"))
-    _append_value(cmd, "adapter-b", adapters_cfg.get("adapter_b"))
-    _append_store_true(cmd, "no-auto-build-adapters", True)
+    _append_value(cmd, "requests-json", _config_path_value(workload_cfg.get("requests_json")))
+    _append_value(cmd, "lora-requests-json", _config_path_value(workload_cfg.get("lora_requests_json")))
+    adapter_a = _config_path_value(adapters_cfg.get("adapter_a"))
+    adapter_b = _config_path_value(adapters_cfg.get("adapter_b"))
+    _append_value(cmd, "adapter-a", adapter_a)
+    _append_value(cmd, "adapter-b", adapter_b)
+    disable_auto_adapters = adapters_cfg.get("auto_build") is False or bool(adapter_a and adapter_b)
+    _append_store_true(cmd, "no-auto-build-adapters", disable_auto_adapters)
     include_phase12 = config.get("include_phase12")
     if include_phase12 is None:
         include_phase12 = True
@@ -140,7 +158,7 @@ def build_eval_invocation(
     _append_value(cmd, "phase2-runtime-high-pressure-escape-max-active", phase2_cfg.get("runtime_high_pressure_escape_max_active"))
     _append_value(cmd, "phase2-runtime-disable-execution-escape-below-pressure", phase2_cfg.get("runtime_disable_execution_escape_below_pressure"))
 
-    _append_value(cmd, "out-json", result_json)
+    _append_value(cmd, "out-json", _config_path_value(result_json))
 
     vllm_mode = str(runtime_cfg.get("vllm_mode") or "v0").strip().lower()
     if vllm_mode not in {"v0", "v1"}:
@@ -180,7 +198,7 @@ def main() -> int:
     if args.dry_run:
         return 0
 
-    completed = subprocess.run(cmd, env=env, check=False)
+    completed = subprocess.run(cmd, env=env, check=False, cwd=str(_repo_root()))
     return int(completed.returncode)
 
 

@@ -1,59 +1,20 @@
-# CUCUMIS
+# CUCUMIS Experiment Workflow
 
 [English](./README.md) | [简体中文](./README.zh-CN.md)
 
-CUCUMIS is a runtime scheduling layer for heterogeneous LLM serving on top of vLLM.
-
-## Current Scope
-
-## Current Method Definition
-
-The current paper and experiment path is:
-
-- **Phase I:** control long-prefill chunk size so long requests return to the scheduler boundary earlier.
-- **Phase II:** use execution escape / priority promotion to reshape the next scheduled window after that boundary is exposed.
-- **Adaptation:** use runtime queue-pressure adaptation inside the scheduler to avoid over-triggering under low pressure while still reacting to live queues.
-
-This is not the abandoned `true_unbind` / dual-stream path. Current results and paper text should not describe execution-level long/short co-running.
-
-The adaptive policy is runtime queue-pressure adaptation. Configured density controls the workload, while live queue length, waiting short requests, wait urgency, long remaining tokens, and virtual-cap hits drive the active chunk/gate choice. See `docs/current_method.md` for the precise definition.
-
-Supported experiment entrypoints:
-
-- `experiments/run_chapter5_suite.py`
-  - Chapter 5 pipeline driver. Can run the main suite, baseline variants, figure regeneration, or the full end-to-end workflow.
-- `experiments/chapter2_prestudy.py`
-  - Chapter 2 prestudy with public cases `E1`-`E5` plus `e3paper` for figure export.
-- `tests/evaluate_waveslice_claims.py`
-  - Core repeated evaluation harness that emits TTFT, slowdown, wall time, per-repeat metrics, and request-level timings.
-- `experiments/run_frozen_eval_config.py`
-  - Frozen single-case regression runner.
-- `experiments/run_openworkload_execescape_suite.py`
-  - Chapter 5 main dataset-backed open-workload suite for the current v1 path.
-- `experiments/run_chapter5_baseline_variants.py`
-  - Chapter 5 baseline and mechanism-ablation runner that reuses workloads from an existing main-suite run.
-- `scripts/regenerate_chapter5_main_outputs.py`
-  - Rebuilds the main Chapter 5 figures, tables, and summary markdown from a main run plus a baseline-variant run.
-- `scripts/regenerate_chapter5_partial_figures.py`
-  - Rebuilds the density-sweep and optional LoRA-latency-dispersion figures used alongside the Chapter 5 study.
-
-## Repository Layout
-
-- `engine/vllm_hijacker.py`: runtime injection entrypoint and vLLM hook coordination.
-- `engine/runtime_bootstrap.py`: runtime bootstrap for vLLM mode and CUDA platform fixes.
-- `tests/evaluate_waveslice_claims.py`: core harness for TTFT, slowdown, wall time, and mismatch reporting.
-- `experiments/run_chapter5_suite.py`: Chapter 5 all-in-one and stage-by-stage orchestrator.
-- `experiments/chapter2_prestudy.py`: current Chapter 2 prestudy driver.
-- `experiments/run_openworkload_execescape_suite.py`: current real-workload v1 suite.
-- `experiments/run_chapter5_baseline_variants.py`: Chapter 5 baseline and ablation runner.
-- `experiments/build_dataset_workload.py`: request builder used by the dataset-backed suites.
-- `config/experiment_catalog.py`: supported model catalog.
+This README only documents the paper experiment path: Chapter 2 prestudy runs and Chapter 5 evaluation runs.
 
 ## Environment
 
-Run all commands from the repository root.
+Run all commands from the repository root. Activate the target environment before running experiments, for example:
 
-Minimum software versions used by the current codebase:
+```bash
+conda activate sara
+```
+
+The experiment drivers use the active Python interpreter by default. Config files should use repository-relative paths and should not contain machine-local paths such as a user home directory, a Conda installation path, or a fixed Hugging Face cache path.
+
+The current experiment stack expects:
 
 - Python `3.10`
 - PyTorch `2.7.1+cu126`
@@ -66,90 +27,28 @@ Minimum software versions used by the current codebase:
 - NumPy `2.2.6`
 - tqdm `4.67.1`
 
-Typical setup:
+Install the repository package in the active environment:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 python -m pip install -e .
 ```
 
-You also need:
+Models and datasets are selected by config. With `resource_selection.auto_download=true`, missing Hugging Face assets are downloaded automatically. Set `resource_selection.offline=true` only when the target machine already has a complete local cache. If a gated model is not accessible, the Hugging Face or vLLM error should be handled by granting access or logging in with the right token.
 
-- a CUDA-visible GPU
-- a working CUDA/PyTorch installation compatible with your GPU
-- access to the target Hugging Face model weights, either as a local snapshot or a Hugging Face model ID
+## Chapter 5
 
-## Quick Start
-
-Validate that the hooks load correctly:
+On a new GPU, Chapter 5 preflight checks the hardware fingerprint stored in each LUT. Missing, stale, or mismatched LUTs are rebuilt automatically before the main experiment starts. The LUT builder uses the active Python environment and local Hugging Face snapshots; if a model is not cached, the normal model download policy in the config applies.
 
 ```bash
-python tests/validate_wave_slice.py
+python experiments/run_chapter5_suite.py \
+  --config experiments/configs/chapter5_pipeline_default.json \
+  --stages preflight \
+  --run-tag chapter5_demo
 ```
 
-Run the preferred frozen v1 regression target:
-
-```bash
-python experiments/run_frozen_eval_config.py \
-  --config experiments/configs/frozen_v1_gemma_mid_global_activity_repro.json
-```
-
-Run the current open-workload suite:
-
-```bash
-python experiments/run_openworkload_execescape_suite.py \
-  --config experiments/configs/openworkload_execescape_default.json
-```
-
-Run the core harness directly on a single case:
-
-```bash
-python tests/evaluate_waveslice_claims.py \
-  --model-name mistralai--Mistral-7B-v0.1 \
-  --model-path mistralai/Mistral-7B-v0.1 \
-  --max-new-tokens 64 \
-  --warmup-iters 2 \
-  --repeats 3 \
-  --max-model-len 3072 \
-  --max-num-batched-tokens 1536 \
-  --gpu-memory-utilization 0.6 \
-  --phase2-dispatch-mode synchronized \
-  --include-phase12 \
-  --out-json results/mistral_eval.json
-```
-
-## Chapter 5 Workflow
-
-Chapter 5 includes four stages:
-
-1. `main`: run the dataset-backed open-workload sweep across the selected models and densities.
-2. `baseline`: rerun the comparable baseline and mechanism-ablation variants on the exact workloads produced by `main`.
-3. `figures`: regenerate the main Chapter 5 figures, tables, and summary markdown from `main` + `baseline`.
-4. `partial-figures`: optionally regenerate the density sweep and LoRA latency dispersion figures.
-
-Relevant configs:
-
-- pipeline config: `experiments/configs/chapter5_pipeline_default.json`
-- main suite config: `experiments/configs/openworkload_v1_local_realworld_lora8.json`
-- baseline config: `experiments/configs/chapter5_baseline_variants_lora7.json`
-
-Path convention:
-
-- Output roots, run roots, and example commands in this section use project-relative paths from the repository root.
-- The default Chapter 5 main config uses the configured `eval.python_bin` from the suite config. On this machine the current v1 open-workload config points at the `sara` conda environment.
-
-Model and dataset configuration:
-
-- Edit the main-suite config for a persistent setup.
-  The most important fields are `resource_selection`, `models`, `datasets`, and `workload.densities`.
-- Or use CLI overrides:
-  `--model-keys`, `--dataset-keys`, and `--densities`.
-- The baseline stage needs a `source_run_root`, provided either by `--source-run-root` or by `experiments/run_chapter5_suite.py`.
-
-Run the full Chapter 5 workflow:
+After preflight succeeds, Chapter 5 is run through the same driver:
 
 ```bash
 python experiments/run_chapter5_suite.py \
@@ -157,10 +56,65 @@ python experiments/run_chapter5_suite.py \
   --run-tag chapter5_demo
 ```
 
-Run only the Chapter 5 main suite:
+The pipeline has five stages:
+
+- `preflight`: detect the current GPU/software environment, probe runnable model settings, and write a resolved config.
+- `main`: run the dataset-backed open-workload evaluation.
+- `baseline`: rerun baseline and ablation variants on the exact workloads produced by `main`.
+- `figures`: regenerate the main Chapter 5 figures, tables, and summary markdown.
+- `partial-figures`: regenerate optional density-sweep and LoRA-dispersion figures.
+
+Useful configs:
+
+- Pipeline config: `experiments/configs/chapter5_pipeline_default.json`
+- Main experiment config: `experiments/configs/openworkload_v1_local_realworld_lora8.json`
+- Baseline/ablation config: `experiments/configs/chapter5_baseline_variants_lora7.json`
+
+The LUT builder writes or refreshes:
+
+- `data/lut_tables/raw_profile_<lut_name>.json`
+- `data/lut_tables/lut_gain_<lut_name>.json`
+- `data/lut_tables/lut_penalty_<lut_name>.json`
+- `data/lut_tables/runtime_calibration_<lut_name>.json`
+- `data/lut_tables/runtime_sanity_<lut_name>.json`
+
+Use `--skip-preflight-lut-rebuild` only for debugging stale-LUT detection. With that flag, preflight refuses to write a usable resolved config when the selected LUTs do not match the current GPU fingerprint.
+
+Run only the environment preflight:
 
 ```bash
 python experiments/run_chapter5_suite.py \
+  --config experiments/configs/chapter5_pipeline_default.json \
+  --stages preflight \
+  --run-tag chapter5_demo
+```
+
+For a fast metadata/config check without loading a vLLM engine:
+
+```bash
+python experiments/run_chapter5_suite.py \
+  --config experiments/configs/chapter5_pipeline_default.json \
+  --stages preflight \
+  --run-tag chapter5_demo \
+  --skip-preflight-engine-smoke
+```
+
+Run a small trial before the full sweep:
+
+```bash
+python experiments/run_chapter5_suite.py \
+  --config experiments/configs/chapter5_pipeline_default.json \
+  --run-tag chapter5_trial \
+  --model-keys mistral-7b-v0.1 \
+  --dataset-keys ultrachat200k \
+  --densities mid
+```
+
+Run only the main stage:
+
+```bash
+python experiments/run_chapter5_suite.py \
+  --config experiments/configs/chapter5_pipeline_default.json \
   --stages main \
   --run-tag chapter5_demo \
   --model-keys mistral-7b-v0.1,gemma-7b-it \
@@ -168,10 +122,11 @@ python experiments/run_chapter5_suite.py \
   --densities mid,high
 ```
 
-Run the Chapter 5 baseline variants on an existing main run:
+Run only baseline/ablation variants from an existing main run:
 
 ```bash
 python experiments/run_chapter5_suite.py \
+  --config experiments/configs/chapter5_pipeline_default.json \
   --stages baseline \
   --main-run-root results/openworkload_v1_local_realworld_lora8/chapter5_demo_main \
   --run-tag chapter5_demo \
@@ -180,77 +135,47 @@ python experiments/run_chapter5_suite.py \
   --densities mid
 ```
 
-Regenerate the main Chapter 5 figures and tables from existing runs:
+Regenerate figures from existing runs:
 
 ```bash
 python experiments/run_chapter5_suite.py \
+  --config experiments/configs/chapter5_pipeline_default.json \
   --stages figures \
   --main-run-root results/openworkload_v1_local_realworld_lora8/chapter5_demo_main \
   --baseline-run-root results/chapter5_baseline_variants/chapter5_demo_baseline \
   --export-name chapter5_demo
 ```
 
-Regenerate the optional partial figures:
+Common filters:
 
-```bash
-python experiments/run_chapter5_suite.py \
-  --stages partial-figures \
-  --main-run-root results/openworkload_v1_local_realworld_lora8/chapter5_demo_main \
-  --e5-summary results/chapter2_prestudy_v1/<run_id>/E5_lora_multitenancy_relevance/summary_all_models.json \
-  --export-name chapter5_demo
-```
+- `--model-keys`: comma-separated model keys from the main config.
+- `--dataset-keys`: comma-separated dataset keys from the main config.
+- `--densities`: comma-separated workload densities.
+- `--variants`: comma-separated baseline/ablation variants for the `baseline` stage.
 
-You can also run each stage directly:
+Expected Chapter 5 paths:
 
-```bash
-python experiments/run_openworkload_execescape_suite.py \
-  --config experiments/configs/openworkload_v1_local_realworld_lora8.json \
-  --run-name chapter5_demo_main \
-  --model-keys mistral-7b-v0.1,gemma-7b-it \
-  --dataset-keys ultrachat200k,longbench \
-  --densities mid
-```
+- Preflight run: `results/openworkload_v1_local_realworld_lora8/<run_tag>_preflight/`
+- Main run: `results/openworkload_v1_local_realworld_lora8/<run_tag>_main/`
+- Baseline run: `results/chapter5_baseline_variants/<run_tag>_baseline/`
+- Figure/table export: `results/chapter5_exports/<run_tag>/`
 
-```bash
-python experiments/run_chapter5_baseline_variants.py \
-  --config experiments/configs/chapter5_baseline_variants_lora7.json \
-  --source-run-root results/openworkload_v1_local_realworld_lora8/chapter5_demo_main \
-  --run-name chapter5_demo_baseline \
-  --variants fixed_chunk_vs_sarathi \
-  --model-keys mistral-7b-v0.1 \
-  --densities mid
-```
+Important preflight artifacts:
 
-```bash
-python scripts/regenerate_chapter5_main_outputs.py \
-  --main-run results/openworkload_v1_local_realworld_lora8/chapter5_demo_main \
-  --baseline-run results/chapter5_baseline_variants/chapter5_demo_baseline \
-  --out-dir results/chapter5_exports/chapter5_demo
-```
+- `metadata/resolved_environment.json`: detected Python, CUDA, package, and GPU information.
+- `metadata/model_preflight.json`: per-model smoke/capacity status.
+- `metadata/runtime_capacity.json`: selected runtime capacity settings.
+- `metadata/resolved_config.json`: config consumed by the Chapter 5 main stage.
+- `metadata/preflight_summary.json`: short machine-readable summary.
 
-```bash
-python scripts/regenerate_chapter5_partial_figures.py \
-  --main-run results/openworkload_v1_local_realworld_lora8/chapter5_demo_main \
-  --out-dir results/chapter5_exports/chapter5_demo \
-  --e5-summary results/chapter2_prestudy_v1/<run_id>/E5_lora_multitenancy_relevance/summary_all_models.json
-```
+## Chapter 2
 
-Expected outputs:
+Chapter 2 prestudy runs use:
 
-- main suite: `<main out_root>/<run_tag>_main/`
-- baseline suite: `<baseline out_root>/<run_tag>_baseline/`
-- exported Chapter 5 figures/tables: `<figures_out_root>/<run_tag>/`
+- Driver: `experiments/chapter2_prestudy.py`
+- Config: `experiments/configs/chapter2_prestudy_v1.json`
 
-The export directory contains `chapter5_manifest.json`, `chapter5_summary.md`, per-repeat CSV/JSON exports, and the regenerated figures/tables.
-
-## Chapter 2 Prestudy
-
-Chapter 2 prestudy entrypoint:
-
-- `experiments/chapter2_prestudy.py`
-- config: `experiments/configs/chapter2_prestudy_v1.json`
-
-Run the full public prestudy set:
+Run the full retained prestudy set:
 
 ```bash
 python experiments/chapter2_prestudy.py all \
@@ -269,39 +194,25 @@ python experiments/chapter2_prestudy.py e4 --config experiments/configs/chapter2
 python experiments/chapter2_prestudy.py e5 --config experiments/configs/chapter2_prestudy_v1.json
 ```
 
-Supported prestudy cases:
+Retained Chapter 2 cases:
 
-- `E1 Motivating Microbenchmark`: long-first then short-arrivals motivating example.
-  Outputs include timelines, short-request TTFT/completion plots, wall-time plots, and `summary.json`.
-- `E2 Arrival-Order Sensitivity`: shows how arrival order changes interference severity.
-  Outputs include TTFT and completion-slowdown comparisons.
-- `E3 Fixed Chunking vs Online Control`: compares no chunking, fixed chunking, and online control.
-  Outputs include TTFT and wall-time comparisons.
-- `E3 Paper Case`: re-exports the stable beneficiary-rich figure from an existing result.
-- `E4 Density Sweep`: shows how TTFT inflation and slowdown evolve with contention.
-- `E5 LoRA Multi-Tenancy Relevance`: compares non-LoRA, homogeneous LoRA, and mixed-adapter LoRA.
+- `E1 Motivating Microbenchmark`: long-first and short-arrival motivating case.
+- `E2 Arrival-Order Sensitivity`: arrival-order sensitivity under contention.
+- `E3 Fixed Chunking vs Online Control`: no chunking, fixed chunking, and online control comparison.
+- `E3 Paper Case`: stable paper-facing export from an existing beneficiary-rich result.
+- `E4 Density Sweep`: TTFT and slowdown behavior as load increases.
+- `E5 LoRA Multi-Tenancy Relevance`: non-LoRA, homogeneous LoRA, and mixed-adapter LoRA comparison.
 
-## Outputs
+Expected Chapter 2 path:
 
-The core harness writes a summary JSON containing the metrics that matter for the current project:
+- `results/chapter2_prestudy_v1/<run_id>/`
 
-- `phase1`, `phase2`, `phase12`: aggregate TTFT, slowdown, wall-time, and error summaries
-- `per_repeat`: repeat-level raw metrics for the same blocks
-- `request_timings`: request-level first-token and finish latencies for each repeat
-- `hook_report`: runtime instrumentation exported from the hijacker
+The Chapter 2 output tree contains per-case summaries, request-level timing data, and figure files used for the paper motivation/observation section.
 
-The open-workload suite writes:
+## Path Rules
 
-- `metadata/`: resolved config, manifest CSV/JSON, and aggregated summaries
-- `raw/`: per-model per-density result JSONs
-- `workloads/`: generated request JSONs
-- `figures/`: suite-level plots
-
-## Reading Order
-
-If you want the shortest useful reading path, start with:
-
-1. `engine/vllm_hijacker.py`
-2. `tests/evaluate_waveslice_claims.py`
-3. `experiments/chapter2_prestudy.py`
-4. `experiments/run_openworkload_execescape_suite.py`
+- Run commands from the repository root.
+- Keep experiment paths repository-relative.
+- Configure persistent model/dataset choices in JSON configs.
+- Use CLI filters only for temporary subsets or smoke runs.
+- Let preflight produce the portable Chapter 5 resolved config on a new machine.

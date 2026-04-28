@@ -12,14 +12,18 @@ from pathlib import Path
 from typing import Any, Optional
 
 os.environ.setdefault("VLLM_NO_USAGE_STATS", "1")
-os.environ.setdefault("MPLCONFIGDIR", "/tmp/mplconfig_wave_slice")
+os.environ.setdefault(
+    "MPLCONFIGDIR",
+    str(Path(__file__).resolve().parents[1] / "results" / ".cache" / "mplconfig_wave_slice"),
+)
 
 import matplotlib.pyplot as plt
 
 from config.experiment_catalog import get_model_specs, safe_key
 from experiments.local_resources import select_local_dataset_entries, select_local_model_entries
-from experiments.model_assets import resolve_local_snapshot
+from experiments.model_assets import ensure_model_available
 from experiments.openworkload_models import ResolvedModel, resolve_model_entry
+from experiments.openworkload_support import apply_hf_resource_env, project_path, repo_root, resource_policy
 
 
 def _load_json(path: Path) -> Any:
@@ -136,7 +140,12 @@ def _resolve_model(config: dict[str, Any]) -> dict[str, Any]:
         resolved = resolve_model_entry(model_cfg)
     else:
         resolved = resolve_model_entry("gemma-7b-it")
-    local_snapshot = resolve_local_snapshot(resolved.model_id)
+    resources = resource_policy(config)
+    local_snapshot = ensure_model_available(
+        resolved.model_id,
+        auto_download=bool(resources["auto_download"]),
+        local_files_only=bool(resources["offline"]),
+    )
     if resolved.model_path_mode == "model_id":
         model_path = resolved.model_id
     elif resolved.model_path_mode == "local_snapshot_required":
@@ -394,8 +403,8 @@ def _make_lora_requests(
 
 def _resolve_out_root(config: dict[str, Any], cli_out_root: Optional[str]) -> Path:
     if cli_out_root:
-        return Path(cli_out_root)
-    return Path(str((config.get("paths") or {}).get("out_root") or "results/chapter2_prestudy"))
+        return project_path(cli_out_root)
+    return project_path(str((config.get("paths") or {}).get("out_root") or "results/chapter2_prestudy"))
 
 
 def _run_eval_case(
@@ -545,7 +554,8 @@ def _run_eval_case(
 
     env = os.environ.copy()
     env.setdefault("VLLM_NO_USAGE_STATS", "1")
-    proc = subprocess.run(cmd, capture_output=True, text=True, check=False, env=env)
+    env = apply_hf_resource_env(env, {"resource_selection": (eval_cfg.get("resource_selection") or {})})
+    proc = subprocess.run(cmd, capture_output=True, text=True, check=False, env=env, cwd=str(repo_root()))
     stdout_path.write_text(proc.stdout or "", encoding="utf-8")
     stderr_path.write_text(proc.stderr or "", encoding="utf-8")
     if proc.returncode != 0:
@@ -1118,7 +1128,7 @@ def _load_resource_catalog(config: dict[str, Any]) -> dict[str, Any]:
     catalog_path = str(config.get("resource_catalog_config") or "").strip()
     if not catalog_path:
         return {}
-    path = Path(catalog_path)
+    path = project_path(catalog_path)
     if not path.exists():
         raise FileNotFoundError(f"resource catalog config not found: {path}")
     return _load_json(path)
@@ -1184,6 +1194,7 @@ def _resolve_selected_models(config: dict[str, Any], model_keys_override: str) -
             require_runtime_sanity=bool(selection_cfg.get("require_runtime_sanity", True)),
             require_lora_support=bool(selection_cfg.get("require_lora_support", False)),
             exclude_name_substrings=list(selection_cfg.get("exclude_name_substrings") or []),
+            auto_download=bool(selection_cfg.get("auto_download", (config.get("resources") or {}).get("auto_download", True))),
         )
     raise ValueError(f"unknown model selection mode: {mode}")
 
@@ -1222,6 +1233,7 @@ def _resolve_selected_datasets(config: dict[str, Any], dataset_keys_override: st
         return select_local_dataset_entries(
             candidate_entries,
             require_supported_extractors=bool(selection_cfg.get("require_supported_extractors", True)),
+            auto_download=bool(selection_cfg.get("auto_download", (config.get("resources") or {}).get("auto_download", True))),
         )
     raise ValueError(f"unknown dataset selection mode: {mode}")
 
@@ -1310,7 +1322,8 @@ def _run_e4_density_suite(
         "--run-name",
         "suite",
     ]
-    proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    env = apply_hf_resource_env(os.environ.copy(), config)
+    proc = subprocess.run(cmd, capture_output=True, text=True, check=False, env=env, cwd=str(repo_root()))
     stdout_path.write_text(proc.stdout or "", encoding="utf-8")
     stderr_path.write_text(proc.stderr or "", encoding="utf-8")
     if proc.returncode != 0:

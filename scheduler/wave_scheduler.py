@@ -184,7 +184,7 @@ class WaveScheduler:
         if baseline_chunk is not None:
             baseline_chunk = int(baseline_chunk)
 
-        # Legacy positional pattern in e2e_simulator:
+        # Legacy positional pattern used by older simulator callers:
         # schedule(S_s, S_l, t_solo_s, t_solo_l, t_wait_us, rho_est)
         if queue_length is None and len(args) >= 4:
             t_wait_us = float(args[2])

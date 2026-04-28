@@ -1,5 +1,0 @@
-config
-data
-engine
-scheduler
-waveslice

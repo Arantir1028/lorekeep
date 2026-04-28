@@ -1,10 +1,10 @@
 # Run the full configurable supplement suite:
 #   python3 experiments/run_openworkload_execescape_suite.py \
-#     --config experiments/configs/openworkload_execescape_default.json
+#     --config experiments/configs/openworkload_v1_local_realworld_lora8.json
 #
 # Rebuild metadata and English figures from an existing CSV/JSON run without rerunning GPUs:
 #   python3 experiments/run_openworkload_execescape_suite.py \
-#     --config experiments/configs/openworkload_execescape_default.json \
+#     --config experiments/configs/openworkload_v1_local_realworld_lora8.json \
 #     --reuse-csv <existing-main-suite>/metadata/suite_results.csv \
 #     --reuse-results-dir <existing-main-suite>
 #
@@ -29,12 +29,15 @@ from pathlib import Path
 from typing import Any, Optional
 
 os.environ.setdefault("VLLM_NO_USAGE_STATS", "1")
-os.environ.setdefault("MPLCONFIGDIR", "/tmp/mplconfig_wave_slice")
+os.environ.setdefault(
+    "MPLCONFIGDIR",
+    str(Path(__file__).resolve().parents[1] / "results" / ".cache" / "mplconfig_wave_slice"),
+)
 
 from config.experiment_catalog import safe_key
 from experiments.local_resources import select_local_dataset_entries, select_local_model_entries
 from experiments.model_assets import ensure_adapters as _ensure_adapters
-from experiments.model_assets import resolve_local_snapshot as _resolve_local_snapshot
+from experiments.model_assets import ensure_model_available as _ensure_model_available
 from experiments.openworkload_models import (
     ResolvedModel,
     resolve_model_entry as _resolve_model_entry,
@@ -53,6 +56,7 @@ from experiments.openworkload_results import (
 )
 from experiments.run_frozen_eval_config import build_eval_invocation as _build_eval_invocation
 from experiments.openworkload_support import (
+    apply_hf_resource_env as _apply_hf_resource_env,
     build_dataset_source_payload as _build_dataset_source_payload,
     clear_gpu_lock as _clear_gpu_lock,
     completed_case_keys as _completed_case_keys,
@@ -62,11 +66,13 @@ from experiments.openworkload_support import (
     kill_process_group as _kill_process_group,
     load_config as _load_config,
     load_existing_rows as _load_existing_rows,
-    maybe_rel_to as _maybe_rel_to,
     pid_is_alive as _pid_is_alive,
+    project_path as _project_path,
     purge_experiment_processes as _purge_experiment_processes,
     resolve_existing_meta_json as _resolve_existing_meta_json,
     resolve_existing_result_json as _resolve_existing_result_json,
+    repo_root as _repo_root,
+    resource_policy as _resource_policy,
     wait_for_clean_gpu as _wait_for_clean_gpu,
     write_csv as _write_csv,
     write_json as _write_json,
@@ -74,7 +80,12 @@ from experiments.openworkload_support import (
 )
 
 
-_GPU_LOCK_PATH = Path(os.environ.get("WAVESLICE_GPU_LOCK_PATH", "/tmp/waveslice_gpu_experiment.lock"))
+_GPU_LOCK_PATH = Path(
+    os.environ.get(
+        "WAVESLICE_GPU_LOCK_PATH",
+        str(_repo_root() / "results" / ".locks" / "waveslice_gpu_experiment.lock"),
+    )
+)
 _EXPERIMENT_PROC_PATTERNS = (
     "run_openworkload_execescape_suite.py",
     "evaluate_waveslice_claims.py",
@@ -86,7 +97,7 @@ def _load_resource_catalog(config: dict[str, Any]) -> dict[str, Any]:
     catalog_path = str(config.get("resource_catalog_config") or "").strip()
     if not catalog_path:
         return {}
-    path = Path(catalog_path)
+    path = _project_path(catalog_path)
     if not path.exists():
         raise FileNotFoundError(f"resource catalog config not found: {path}")
     return _load_config(str(path))
@@ -155,6 +166,7 @@ def _resolve_selected_models(
             require_runtime_sanity=bool(selection_cfg.get("require_runtime_sanity", True)),
             require_lora_support=bool(selection_cfg.get("require_lora_support", False)),
             exclude_name_substrings=list(selection_cfg.get("exclude_name_substrings") or []),
+            auto_download=bool(selection_cfg.get("auto_download", (config.get("resources") or {}).get("auto_download", True))),
         )
     raise ValueError(f"unknown model selection mode: {mode}")
 
@@ -199,6 +211,7 @@ def _resolve_selected_datasets(
         return select_local_dataset_entries(
             candidate_entries,
             require_supported_extractors=bool(selection_cfg.get("require_supported_extractors", True)),
+            auto_download=bool(selection_cfg.get("auto_download", (config.get("resources") or {}).get("auto_download", True))),
         )
     raise ValueError(f"unknown dataset selection mode: {mode}")
 
@@ -548,13 +561,34 @@ def _run_single_case(
 ) -> dict[str, Any]:
     eval_cfg = config.get("eval", {})
     workload_cfg = config.get("workload", {})
+    resource_cfg = _resource_policy(config)
     gpu_guard_timeout_sec = int(eval_cfg.get("gpu_guard_timeout_sec", 1800))
     gpu_guard_poll_interval_s = float(eval_cfg.get("gpu_guard_poll_interval_s", 5.0))
 
-    local_snapshot = _resolve_local_snapshot(model.model_id)
+    local_snapshot = _ensure_model_available(
+        model.model_id,
+        auto_download=bool(resource_cfg["auto_download"]),
+        local_files_only=bool(resource_cfg["offline"]),
+    )
     if model.model_path_mode == "model_id":
         model_path = model.model_id
     elif model.model_path_mode == "local_snapshot_required":
+        if not local_snapshot and bool(resource_cfg["offline"]):
+            return {
+                "density": density["name"],
+                "density_phase1_arrival_rate": float(density["phase1_arrival_rate"]),
+                "density_phase2_arrival_rate": float(density["phase2_arrival_rate"]),
+                "density_scenario": str(density.get("scenario", "")),
+                "density_reason": str(density.get("reason", "")),
+                "model_key": model.key,
+                "model_label": model.label,
+                "model": model.model_id,
+                "lut_name": model.lut_name,
+                "model_reason": model.reason,
+                "model_path": model.model_id,
+                "status": "failed",
+                "error": f"local snapshot required but not found for {model.model_id}",
+            }
         model_path = local_snapshot or model.model_id
     else:
         model_path = local_snapshot or model.model_id
@@ -575,6 +609,7 @@ def _run_single_case(
     existing_lora_req_json = Path(f"{out_prefix}_lora_requests.json")
     existing_meta_json = Path(f"{out_prefix}_meta.json")
     reuse_pool_root = str(workload_cfg.get("reuse_workload_pool_root") or "").strip()
+    reuse_pool_path = _project_path(reuse_pool_root) if reuse_pool_root else None
     reuse_pool_prefix = None
     compatible_local_workload = (
         existing_req_json.exists()
@@ -589,8 +624,8 @@ def _run_single_case(
             require_density_match=True,
         )
     )
-    if reuse_pool_root:
-        candidate = Path(reuse_pool_root) / safe_key(model.key)
+    if reuse_pool_path is not None:
+        candidate = reuse_pool_path / safe_key(model.key)
         candidate_req = Path(f"{candidate}_requests.json")
         candidate_lora_req = Path(f"{candidate}_lora_requests.json")
         candidate_meta = Path(f"{candidate}_meta.json")
@@ -659,10 +694,15 @@ def _run_single_case(
         ]
         workload_env = os.environ.copy()
         workload_env.setdefault("HF_ENDPOINT", "https://huggingface.co")
-        workload_env.setdefault("HF_DATASETS_OFFLINE", "1")
-        workload_env.setdefault("HF_HUB_OFFLINE", "1")
-        workload_env.setdefault("TRANSFORMERS_OFFLINE", "1")
-        workload_proc = subprocess.run(workload_cmd, capture_output=True, text=True, check=False, env=workload_env)
+        workload_env = _apply_hf_resource_env(workload_env, config)
+        workload_proc = subprocess.run(
+            workload_cmd,
+            capture_output=True,
+            text=True,
+            check=False,
+            env=workload_env,
+            cwd=str(_repo_root()),
+        )
     else:
         longbench_cfgs: list[str] = []
         for ds in config.get("datasets", []):
@@ -717,10 +757,15 @@ def _run_single_case(
             workload_cmd.append("--trust-remote-code")
         workload_env = os.environ.copy()
         workload_env.setdefault("HF_ENDPOINT", "https://huggingface.co")
-        workload_env.setdefault("HF_DATASETS_OFFLINE", "1")
-        workload_env.setdefault("HF_HUB_OFFLINE", "1")
-        workload_env.setdefault("TRANSFORMERS_OFFLINE", "1")
-        workload_proc = subprocess.run(workload_cmd, capture_output=True, text=True, check=False, env=workload_env)
+        workload_env = _apply_hf_resource_env(workload_env, config)
+        workload_proc = subprocess.run(
+            workload_cmd,
+            capture_output=True,
+            text=True,
+            check=False,
+            env=workload_env,
+            cwd=str(_repo_root()),
+        )
 
     row: dict[str, Any] = {
         "density": density["name"],
@@ -801,9 +846,7 @@ def _run_single_case(
         out_json_override=str(out_json),
     )
     eval_cmd.append("--no-serialize-gpu-tests")
-    eval_env.setdefault("HF_DATASETS_OFFLINE", "1")
-    eval_env.setdefault("HF_HUB_OFFLINE", "1")
-    eval_env.setdefault("TRANSFORMERS_OFFLINE", "1")
+    eval_env = _apply_hf_resource_env(eval_env, config)
     logs_dir = _ensure_dir(run_root / "logs" / density["name"])
     eval_stdout_path = logs_dir / f"{safe_key(model.key)}_eval.stdout.log"
     eval_stderr_path = logs_dir / f"{safe_key(model.key)}_eval.stderr.log"
@@ -817,6 +860,7 @@ def _run_single_case(
             stderr=stderr_f,
             text=True,
             env=eval_env,
+            cwd=str(_repo_root()),
             start_new_session=True,
         )
         try:
@@ -877,7 +921,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    repo_root = Path.cwd()
+    repo_root = _repo_root()
     config = _load_config(args.config)
     resolved_models, model_diagnostics = _resolve_selected_models(config, args.model_keys)
     selected_datasets, dataset_diagnostics = _resolve_selected_datasets(config, args.dataset_keys)
@@ -904,7 +948,7 @@ def main() -> int:
         if isinstance(item, dict)
     ]
     run_name = args.run_name or time.strftime("%Y%m%d_%H%M%S")
-    out_root = Path(str(effective_config.get("out_root", "results/openworkload_execescape_tradeoff")))
+    out_root = _project_path(str(effective_config.get("out_root", "results/openworkload_execescape_tradeoff")))
     run_root = out_root / run_name
     metadata_dir = _ensure_dir(run_root / "metadata")
     figures_dir = _ensure_dir(run_root / "figures")

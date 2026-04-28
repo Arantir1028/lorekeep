@@ -7,10 +7,10 @@ import sys
 import time
 from pathlib import Path
 
-from experiments.openworkload_support import ensure_dir, load_config, write_json
+from experiments.openworkload_support import ensure_dir, load_config, project_path, relative_to_repo, repo_root, write_json
 
 
-_VALID_STAGES = ("main", "baseline", "figures", "partial-figures")
+_VALID_STAGES = ("preflight", "main", "baseline", "figures", "partial-figures")
 
 
 def _resolve_stages(spec: str) -> list[str]:
@@ -24,7 +24,7 @@ def _resolve_stages(spec: str) -> list[str]:
 
 
 def _repo_path(value: str) -> Path:
-    return Path(value).expanduser()
+    return project_path(value)
 
 
 def _resolved_output_root(config_path: Path) -> Path:
@@ -41,7 +41,7 @@ def _run_command(cmd: list[str], *, dry_run: bool) -> int:
     print("  " + shlex.join(cmd))
     if dry_run:
         return 0
-    completed = subprocess.run(cmd, check=False)
+    completed = subprocess.run(cmd, check=False, cwd=str(repo_root()))
     return int(completed.returncode)
 
 
@@ -52,6 +52,7 @@ def _write_manifest(
     stages: list[str],
     main_config: Path,
     baseline_config: Path,
+    preflight_run_root: Path | None,
     main_run_root: Path | None,
     baseline_run_root: Path | None,
     e5_summary: Path | None,
@@ -60,13 +61,14 @@ def _write_manifest(
     write_json(
         out_dir / "chapter5_pipeline_manifest.json",
         {
-            "pipeline_config": str(pipeline_config),
+            "pipeline_config": relative_to_repo(pipeline_config),
             "stages": stages,
-            "main_config": str(main_config),
-            "baseline_config": str(baseline_config),
-            "main_run_root": str(main_run_root) if main_run_root is not None else "",
-            "baseline_run_root": str(baseline_run_root) if baseline_run_root is not None else "",
-            "e5_summary": str(e5_summary) if e5_summary is not None else "",
+            "main_config": relative_to_repo(main_config),
+            "baseline_config": relative_to_repo(baseline_config),
+            "preflight_run_root": relative_to_repo(preflight_run_root) if preflight_run_root is not None else "",
+            "main_run_root": relative_to_repo(main_run_root) if main_run_root is not None else "",
+            "baseline_run_root": relative_to_repo(baseline_run_root) if baseline_run_root is not None else "",
+            "e5_summary": relative_to_repo(e5_summary) if e5_summary is not None else "",
         },
     )
 
@@ -81,11 +83,12 @@ def main() -> int:
     parser.add_argument(
         "--stages",
         default="all",
-        help="Comma-separated stages: main,baseline,figures,partial-figures or all.",
+        help="Comma-separated stages: preflight,main,baseline,figures,partial-figures or all.",
     )
     parser.add_argument("--run-tag", default="", help="Shared tag used to name the main run, baseline run, and export directory.")
     parser.add_argument("--main-run-root", default="", help="Reuse an existing main-suite run root instead of running the main stage.")
     parser.add_argument("--baseline-run-root", default="", help="Reuse an existing baseline-suite run root instead of running the baseline stage.")
+    parser.add_argument("--preflight-run-root", default="", help="Reuse an existing preflight run root and its metadata/resolved_config.json.")
     parser.add_argument("--main-config", default="", help="Override the main-suite config path.")
     parser.add_argument("--baseline-config", default="", help="Override the baseline-suite config path.")
     parser.add_argument("--baseline-out-root", default="", help="Override the baseline-suite output root.")
@@ -97,6 +100,9 @@ def main() -> int:
     parser.add_argument("--densities", default="", help="Optional comma-separated density names passed to the main and baseline stages.")
     parser.add_argument("--variants", default="", help="Optional comma-separated baseline variant keys.")
     parser.add_argument("--limit-baseline-cases", type=int, default=0, help="Optional cap on baseline case executions.")
+    parser.add_argument("--skip-preflight-engine-smoke", action="store_true", help="Run preflight metadata/config resolution without vLLM engine smoke tests.")
+    parser.add_argument("--skip-preflight-lut-rebuild", action="store_true", help="Do not rebuild stale/missing hardware-dependent LUTs during preflight.")
+    parser.add_argument("--force-preflight-lut-rebuild", action="store_true", help="Force preflight to rebuild hardware-dependent LUTs for selected models.")
     parser.add_argument("--write-rationale", action="store_true", help="Forwarded to the main stage.")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
@@ -114,6 +120,7 @@ def main() -> int:
 
     run_tag = args.run_tag.strip() or _default_run_tag()
     main_run_name = f"{run_tag}_main"
+    preflight_run_name = f"{run_tag}_preflight"
     baseline_run_name = f"{run_tag}_baseline"
     figures_out_root = _repo_path(
         str(args.figures_out_root or pipeline_config.get("figures_out_root") or "results/chapter5_exports")
@@ -121,13 +128,49 @@ def main() -> int:
     export_name = args.export_name.strip() or run_tag
     export_dir = figures_out_root / export_name
 
-    main_run_root = Path(args.main_run_root).expanduser().resolve() if args.main_run_root else None
-    baseline_run_root = Path(args.baseline_run_root).expanduser().resolve() if args.baseline_run_root else None
-    e5_summary = Path(args.e5_summary).expanduser().resolve() if args.e5_summary else None
+    main_run_root = project_path(args.main_run_root) if args.main_run_root else None
+    preflight_run_root = project_path(args.preflight_run_root) if args.preflight_run_root else None
+    baseline_run_root = project_path(args.baseline_run_root) if args.baseline_run_root else None
+    e5_summary = project_path(args.e5_summary) if args.e5_summary else None
     if e5_summary is None:
         partial_cfg = dict(pipeline_config.get("partial_figures") or {})
         if partial_cfg.get("e5_summary"):
             e5_summary = _repo_path(str(partial_cfg["e5_summary"])).resolve()
+
+    effective_main_config_path = main_config_path
+    if "preflight" in stages and preflight_run_root is None:
+        main_out_root = _resolved_output_root(main_config_path)
+        preflight_run_root = main_out_root / preflight_run_name
+        cmd = [
+            sys.executable,
+            "experiments/run_environment_preflight.py",
+            "--config",
+            relative_to_repo(main_config_path),
+            "--run-name",
+            preflight_run_name,
+        ]
+        if args.model_keys:
+            cmd.extend(["--model-keys", args.model_keys])
+        if args.dataset_keys:
+            cmd.extend(["--dataset-keys", args.dataset_keys])
+        if args.densities:
+            cmd.extend(["--densities", args.densities])
+        if args.skip_preflight_engine_smoke:
+            cmd.append("--skip-engine-smoke")
+        if args.skip_preflight_lut_rebuild:
+            cmd.append("--skip-lut-rebuild")
+        if args.force_preflight_lut_rebuild:
+            cmd.append("--force-lut-rebuild")
+        if args.dry_run:
+            cmd.append("--dry-run")
+        rc = _run_command(cmd, dry_run=args.dry_run)
+        if rc != 0:
+            return rc
+
+    if preflight_run_root is not None:
+        resolved_config = preflight_run_root / "metadata" / "resolved_config.json"
+        if resolved_config.exists() or not args.dry_run:
+            effective_main_config_path = resolved_config
 
     if "main" in stages and main_run_root is None:
         main_out_root = _resolved_output_root(main_config_path)
@@ -136,7 +179,7 @@ def main() -> int:
             sys.executable,
             "experiments/run_openworkload_execescape_suite.py",
             "--config",
-            str(main_config_path),
+            relative_to_repo(effective_main_config_path),
             "--run-name",
             main_run_name,
         ]
@@ -167,14 +210,14 @@ def main() -> int:
             sys.executable,
             "experiments/run_chapter5_baseline_variants.py",
             "--config",
-            str(baseline_config_path),
+            relative_to_repo(baseline_config_path),
             "--run-name",
             baseline_run_name,
             "--source-run-root",
-            str(main_run_root),
+            relative_to_repo(main_run_root),
         ]
         if args.baseline_out_root:
-            cmd.extend(["--out-root", str(baseline_out_root)])
+            cmd.extend(["--out-root", relative_to_repo(baseline_out_root)])
         if args.variants:
             cmd.extend(["--variants", args.variants])
         if args.model_keys:
@@ -198,11 +241,11 @@ def main() -> int:
             sys.executable,
             "scripts/regenerate_chapter5_main_outputs.py",
             "--main-run",
-            str(main_run_root),
+            relative_to_repo(main_run_root),
             "--baseline-run",
-            str(baseline_run_root),
+            relative_to_repo(baseline_run_root),
             "--out-dir",
-            str(export_dir),
+            relative_to_repo(export_dir),
         ]
         rc = _run_command(cmd, dry_run=args.dry_run)
         if rc != 0:
@@ -218,11 +261,11 @@ def main() -> int:
                 sys.executable,
                 "scripts/regenerate_chapter5_partial_figures.py",
                 "--main-run",
-                str(main_run_root),
+                relative_to_repo(main_run_root),
                 "--out-dir",
-                str(export_dir),
+                relative_to_repo(export_dir),
                 "--e5-summary",
-                str(e5_summary),
+                relative_to_repo(e5_summary),
             ]
             rc = _run_command(cmd, dry_run=args.dry_run)
             if rc != 0:
@@ -235,14 +278,16 @@ def main() -> int:
             stages=stages,
             main_config=main_config_path,
             baseline_config=baseline_config_path,
+            preflight_run_root=preflight_run_root,
             main_run_root=main_run_root,
             baseline_run_root=baseline_run_root,
             e5_summary=e5_summary,
         )
 
-    print(f"[Chapter5Suite] main_run_root={main_run_root}")
-    print(f"[Chapter5Suite] baseline_run_root={baseline_run_root}")
-    print(f"[Chapter5Suite] export_dir={export_dir}")
+    print(f"[Chapter5Suite] preflight_run_root={relative_to_repo(preflight_run_root) if preflight_run_root else None}")
+    print(f"[Chapter5Suite] main_run_root={relative_to_repo(main_run_root) if main_run_root else None}")
+    print(f"[Chapter5Suite] baseline_run_root={relative_to_repo(baseline_run_root) if baseline_run_root else None}")
+    print(f"[Chapter5Suite] export_dir={relative_to_repo(export_dir)}")
     return 0
 
 

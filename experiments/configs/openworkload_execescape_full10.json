@@ -15,32 +15,38 @@
     {
       "key": "mistral-7b-v0.1",
       "label": "Mistral-7B-v0.1",
+      "lora_supported": true,
       "reason": "Checkpoint-specific hybrid LUT passed sanity."
     },
     {
       "key": "mistral-7b-instruct-v0.2",
       "label": "Mistral-7B-Instruct-v0.2",
+      "lora_supported": true,
       "reason": "Checkpoint-specific hybrid LUT passed sanity."
     },
     {
       "key": "zephyr-7b-beta",
       "label": "Zephyr-7B-Beta",
+      "lora_supported": true,
       "reason": "Checkpoint-specific hybrid LUT passed sanity."
     },
     {
       "key": "openchat-3.5-0106",
       "label": "OpenChat-3.5-0106",
+      "lora_supported": true,
       "reason": "Checkpoint-specific hybrid LUT passed sanity."
     },
     {
       "key": "gemma-7b-it",
       "label": "Gemma-7B-IT",
+      "lora_supported": true,
       "reason": "Checkpoint-specific hybrid LUT passed sanity."
     },
     {
       "key": "baichuan2-7b-chat",
       "label": "Baichuan2-7B-Chat",
       "model_path_mode": "local_snapshot_required",
+      "lora_supported": true,
       "reason": "Checkpoint-specific hybrid LUT passed sanity."
     },
     {
@@ -50,6 +56,7 @@
       "model_path_mode": "model_id",
       "max_model_len_override": 2048,
       "label": "GPT-J-6B",
+      "lora_supported": false,
       "reason": "Checkpoint-specific hybrid LUT passed sanity."
     },
     {
@@ -58,6 +65,7 @@
       "lut_name": "EleutherAI--pythia-6.9b",
       "max_model_len_override": 2048,
       "label": "Pythia-6.9B",
+      "lora_supported": false,
       "reason": "Checkpoint-specific hybrid LUT passed sanity."
     },
     {
@@ -65,6 +73,7 @@
       "model_id": "Qwen/Qwen2.5-7B-Instruct",
       "lut_name": "Qwen--Qwen2.5-7B-Instruct",
       "label": "Qwen2.5-7B-Instruct",
+      "lora_supported": true,
       "reason": "Checkpoint-specific hybrid LUT passed sanity."
     },
     {
@@ -72,6 +81,7 @@
       "model_id": "google/gemma-2-9b-it",
       "lut_name": "google--gemma-2-9b-it",
       "label": "Gemma-2-9B-IT",
+      "lora_supported": true,
       "reason": "Checkpoint-specific hybrid LUT passed sanity."
     }
   ],

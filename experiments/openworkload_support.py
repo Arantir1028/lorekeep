@@ -10,9 +10,60 @@ from pathlib import Path
 from typing import Any, Optional
 
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def repo_root() -> Path:
+    return REPO_ROOT
+
+
+def project_path(value: str | Path, *, base: Optional[Path] = None) -> Path:
+    path = Path(value).expanduser()
+    if path.is_absolute():
+        return path
+    return (base or REPO_ROOT) / path
+
+
+def project_path_str(value: str | Path, *, base: Optional[Path] = None) -> str:
+    return str(project_path(value, base=base))
+
+
 def load_config(path: str) -> dict[str, Any]:
-    with open(path, "r", encoding="utf-8") as f:
+    resolved = project_path(path)
+    with resolved.open("r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def relative_to_repo(path: str | Path) -> str:
+    p = Path(path)
+    try:
+        return str(p.resolve().relative_to(REPO_ROOT))
+    except Exception:
+        return str(p)
+
+
+def resource_policy(config: dict[str, Any]) -> dict[str, Any]:
+    selection = dict(config.get("resource_selection") or {})
+    resources = dict(config.get("resources") or {})
+    auto_download = selection.get("auto_download", resources.get("auto_download", True))
+    offline = selection.get("offline", resources.get("offline", False))
+    return {
+        "auto_download": bool(auto_download),
+        "offline": bool(offline),
+    }
+
+
+def apply_hf_resource_env(env: dict[str, str], config: dict[str, Any]) -> dict[str, str]:
+    policy = resource_policy(config)
+    if policy["offline"]:
+        env["HF_DATASETS_OFFLINE"] = "1"
+        env["HF_HUB_OFFLINE"] = "1"
+        env["TRANSFORMERS_OFFLINE"] = "1"
+    elif policy["auto_download"]:
+        env.pop("HF_DATASETS_OFFLINE", None)
+        env.pop("HF_HUB_OFFLINE", None)
+        env.pop("TRANSFORMERS_OFFLINE", None)
+    return env
 
 
 def ensure_dir(path: Path) -> Path:

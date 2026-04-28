@@ -4,10 +4,9 @@ import json
 from pathlib import Path
 from typing import Any
 
-from experiments.model_assets import resolve_local_snapshot
+from experiments.model_assets import _hf_hub_dir, resolve_local_snapshot
 from experiments.openworkload_models import ResolvedModel, resolve_model_entry, runtime_lut_is_valid
 
-_HF_HUB_DIR = Path.home() / ".cache" / "huggingface" / "hub"
 _SUPPORTED_DATASET_EXTRACTORS = {"ultrachat", "longbench"}
 _FALLBACK_LORA_SUPPORTED_ARCHITECTURES = {
     "BaichuanForCausalLM",
@@ -24,6 +23,7 @@ _FALLBACK_LORA_SUPPORTED_ARCHITECTURES = {
 
 
 def _cached_repo_ids(prefix: str) -> set[str]:
+    _HF_HUB_DIR = _hf_hub_dir()
     if not _HF_HUB_DIR.exists():
         return set()
     ids: set[str] = set()
@@ -94,6 +94,7 @@ def select_local_model_entries(
     require_runtime_sanity: bool = True,
     require_lora_support: bool = False,
     exclude_name_substrings: list[str] | None = None,
+    auto_download: bool = False,
 ) -> tuple[list[ResolvedModel], list[dict[str, Any]]]:
     local_ids = set(list_local_model_repo_ids())
     selected: list[ResolvedModel] = []
@@ -118,10 +119,15 @@ def select_local_model_entries(
         local_cached = bool(local_snapshot) or model.model_id in local_ids
         runtime_ok, runtime_reason = runtime_lut_is_valid(model.lut_name)
         architectures = _read_local_model_architectures(model.model_id)
-        lora_ok = _supports_lora_architecture(architectures)
+        explicit_lora = entry.get("lora_supported") if isinstance(entry, dict) else None
+        if explicit_lora is not None:
+            lora_ok = bool(explicit_lora)
+        else:
+            lora_ok = _supports_lora_architecture(architectures)
         excluded_by_name = _matches_name_filters(model, deny_patterns)
+        downloadable = bool(auto_download and model.model_id and not excluded_by_name)
         selected_flag = (
-            bool(local_cached)
+            bool(local_cached or downloadable)
             and (runtime_ok or not require_runtime_sanity)
             and (lora_ok or not require_lora_support)
             and not excluded_by_name
@@ -135,6 +141,8 @@ def select_local_model_entries(
                 "model_path_mode": model.model_path_mode,
                 "local_cached": local_cached,
                 "local_snapshot": local_snapshot,
+                "downloadable": downloadable,
+                "auto_download": bool(auto_download),
                 "architectures": architectures,
                 "runtime_sanity_ok": runtime_ok,
                 "runtime_sanity_reason": runtime_reason,
@@ -154,6 +162,7 @@ def select_local_dataset_entries(
     entries: list[dict[str, Any]],
     *,
     require_supported_extractors: bool = True,
+    auto_download: bool = False,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     local_ids = set(list_local_dataset_repo_ids())
     selected: list[dict[str, Any]] = []
@@ -169,13 +178,16 @@ def select_local_dataset_entries(
         extractor = str(raw.get("extractor") or "").strip().lower()
         local_cached = bool(dataset_id) and dataset_id in local_ids
         extractor_ok = (not require_supported_extractors) or extractor in _SUPPORTED_DATASET_EXTRACTORS
-        selected_flag = bool(key and dataset_id and local_cached and extractor_ok)
+        downloadable = bool(auto_download and dataset_id and extractor_ok)
+        selected_flag = bool(key and dataset_id and (local_cached or downloadable) and extractor_ok)
         diagnostics.append(
             {
                 "key": key,
                 "dataset_id": dataset_id,
                 "extractor": extractor,
                 "local_cached": local_cached,
+                "downloadable": downloadable,
+                "auto_download": bool(auto_download),
                 "supported_extractor": extractor_ok,
                 "selected": selected_flag,
             }

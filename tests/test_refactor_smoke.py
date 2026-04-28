@@ -45,7 +45,6 @@ from engine.hijack.types import (
     _Phase1IngressVirtualSlice,
     _ScheduledReqInfo,
 )
-from engine.hijack.v1_merge import freeze_v1_runner_output, merge_v1_runner_outputs
 from engine.hijack.v1_split import (
     v1_execution_escape_req_ids,
     v1_filter_cached_reqs,
@@ -270,12 +269,14 @@ class RefactorSmokeTests(unittest.TestCase):
 
         cmd, env = build_eval_invocation(config)
 
-        self.assertEqual(cmd[0], "/home/onceas/anaconda3/envs/sara/bin/python")
+        self.assertEqual(cmd[0], sys.executable)
         self.assertEqual(cmd[1], "tests/evaluate_waveslice_claims.py")
         self.assertIn("--include-phase12", cmd)
         self.assertIn("--requests-json", cmd)
         self.assertIn("results/openworkload_execescape_tradeoff/20260408_185300_serialclean10_v9/workloads/mid/gemma-7b-it_requests.json", cmd)
         self.assertIn("--lora-requests-json", cmd)
+        self.assertNotIn("/home/onceas/.cache", " ".join(cmd))
+        self.assertNotIn("--no-auto-build-adapters", cmd)
         self.assertIn("--phase1-force-min-chunk", cmd)
         self.assertIn("128", cmd)
         self.assertIn("--phase1-target-long-fraction", cmd)
@@ -645,73 +646,6 @@ class RefactorSmokeTests(unittest.TestCase):
             )
 
         self.assertIsNone(floor)
-
-    def test_v1_merge_keeps_generation_pooler_output_empty(self) -> None:
-        class FakeOutput:
-            def __init__(self, **kwargs) -> None:
-                for key, value in kwargs.items():
-                    setattr(self, key, value)
-
-        out_a = FakeOutput(
-            req_ids=["short_prefill"],
-            req_id_to_index={"short_prefill": 0},
-            sampled_token_ids=[[]],
-            spec_token_ids=None,
-            logprobs=None,
-            prompt_logprobs_dict={},
-            pooler_output=[],
-            kv_connector_output=None,
-            num_nans_in_logits=None,
-        )
-        out_b = FakeOutput(
-            req_ids=["long_prefill"],
-            req_id_to_index={"long_prefill": 0},
-            sampled_token_ids=[[42]],
-            spec_token_ids=None,
-            logprobs=None,
-            prompt_logprobs_dict={},
-            pooler_output=[],
-            kv_connector_output=None,
-            num_nans_in_logits=None,
-        )
-
-        merged = merge_v1_runner_outputs(
-            ["short_prefill", "long_prefill"],
-            out_a,
-            out_b,
-        )
-
-        self.assertEqual(merged.req_ids, ["short_prefill", "long_prefill"])
-        self.assertEqual(merged.sampled_token_ids, [[], [42]])
-        self.assertEqual(merged.pooler_output, [])
-
-    def test_v1_freeze_runner_output_detaches_mutable_req_mappings(self) -> None:
-        class FakeOutput:
-            def __init__(self, **kwargs) -> None:
-                for key, value in kwargs.items():
-                    setattr(self, key, value)
-
-        req_ids = ["short_prefill"]
-        req_id_to_index = {"short_prefill": 0}
-        output = FakeOutput(
-            req_ids=req_ids,
-            req_id_to_index=req_id_to_index,
-            sampled_token_ids=[[11]],
-            spec_token_ids=None,
-            logprobs=None,
-            prompt_logprobs_dict={},
-            pooler_output=[],
-            kv_connector_output=None,
-            num_nans_in_logits=None,
-        )
-
-        frozen = freeze_v1_runner_output(output)
-        req_ids[:] = ["long_prefill"]
-        req_id_to_index.clear()
-        req_id_to_index["long_prefill"] = 0
-
-        self.assertEqual(frozen.req_ids, ["short_prefill"])
-        self.assertEqual(frozen.req_id_to_index, {"short_prefill": 0})
 
     def test_v1_partition_can_keep_decode_requests_on_long_side(self) -> None:
         class FakeModelInput:

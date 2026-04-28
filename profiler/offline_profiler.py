@@ -1,9 +1,26 @@
 # lorekeep/profiler/offline_profiler.py
 
 import argparse
+import contextlib
 import torch
 import torch.nn.functional as F
-from torch.nn.attention import sdpa_kernel, SDPBackend
+try:
+    from torch.nn.attention import sdpa_kernel, SDPBackend
+except ModuleNotFoundError:
+    class SDPBackend:
+        FLASH_ATTENTION = "flash"
+
+    @contextlib.contextmanager
+    def sdpa_kernel(backends=None):
+        if hasattr(torch.backends, "cuda") and hasattr(torch.backends.cuda, "sdp_kernel"):
+            with torch.backends.cuda.sdp_kernel(
+                enable_flash=True,
+                enable_math=False,
+                enable_mem_efficient=False,
+            ):
+                yield
+        else:
+            yield
 import json
 from tqdm import tqdm
 import sys

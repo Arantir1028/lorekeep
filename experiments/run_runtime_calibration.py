@@ -14,6 +14,7 @@ from engine.runtime_bootstrap import bootstrap_vllm_runtime
 
 bootstrap_vllm_runtime()
 
+from experiments.lut_fingerprint import current_lut_fingerprint
 from transformers import AutoTokenizer
 import torch
 from vllm.engine.arg_utils import EngineArgs
@@ -211,6 +212,7 @@ def main() -> None:
     result = {
         "model_ref": str(args.model_ref),
         "snapshot": str(args.snapshot),
+        "hardware_fingerprint": current_lut_fingerprint(),
         "max_model_len": int(args.max_model_len),
         "max_num_batched_tokens": int(args.max_num_batched_tokens),
         "gpu_memory_utilization": float(args.gpu_memory_utilization),

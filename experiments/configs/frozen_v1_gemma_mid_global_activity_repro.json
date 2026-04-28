@@ -5,15 +5,14 @@
   "result_json": "results/v1_gemma_mid_global_activity_repro.json",
   "model": {
     "name": "gemma-7b-it",
-    "path": "/home/onceas/.cache/huggingface/hub/models--google--gemma-7b-it/snapshots/9c5798d27f588501ce1e108079d2a19e4c3a2353"
+    "path": "google/gemma-7b-it"
   },
   "workload": {
     "requests_json": "results/openworkload_execescape_tradeoff/20260408_185300_serialclean10_v9/workloads/mid/gemma-7b-it_requests.json",
     "lora_requests_json": "results/openworkload_execescape_tradeoff/20260408_185300_serialclean10_v9/workloads/mid/gemma-7b-it_lora_requests.json"
   },
   "adapters": {
-    "adapter_a": "results/synthetic_adapters/_home_onceas_.cache_huggingface_hub_models--google--gemma-7b-it_snapshots_9c5798d27f588501ce1e108079d2a19e4c3a2353/adapter_rank8_seed7",
-    "adapter_b": "results/synthetic_adapters/_home_onceas_.cache_huggingface_hub_models--google--gemma-7b-it_snapshots_9c5798d27f588501ce1e108079d2a19e4c3a2353/adapter_rank16_seed11"
+    "auto_build": true
   },
   "runtime": {
     "vllm_mode": "v1",

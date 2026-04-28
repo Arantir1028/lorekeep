@@ -14,6 +14,8 @@ from experiments.openworkload_support import (
     ensure_dir as _ensure_dir,
     load_config as _load_config,
     load_existing_rows as _load_existing_rows,
+    project_path as _project_path,
+    repo_root as _repo_root,
     write_csv as _write_csv,
     write_json as _write_json,
 )
@@ -229,7 +231,7 @@ def _extract_variant_methods(
 
 
 def _load_source_context(config: dict[str, Any]) -> tuple[Path, dict[str, Any], list[dict[str, Any]], dict[str, ResolvedModel]]:
-    source_root = Path(str(config.get("source_run_root") or "")).expanduser()
+    source_root = _project_path(str(config.get("source_run_root") or ""))
     if not str(config.get("source_run_root") or "").strip():
         raise ValueError("missing source_run_root; pass --source-run-root or set it in the config")
     if not source_root.exists():
@@ -376,7 +378,7 @@ def main() -> int:
         raise RuntimeError("no baseline variants selected")
 
     run_name = args.run_name or time.strftime("%Y%m%d_%H%M%S")
-    run_root = _ensure_dir(Path(str(config.get("out_root") or "results/chapter5_baseline_variants")) / run_name)
+    run_root = _ensure_dir(_project_path(str(config.get("out_root") or "results/chapter5_baseline_variants")) / run_name)
     metadata_dir = _ensure_dir(run_root / "metadata")
     configs_dir = _ensure_dir(run_root / "configs")
     raw_dir = _ensure_dir(run_root / "raw")
@@ -482,6 +484,7 @@ def main() -> int:
                     text=True,
                     check=False,
                     env=env,
+                    cwd=str(_repo_root()),
                 )
             row["returncode"] = int(completed.returncode)
             if stdout_path.exists():
