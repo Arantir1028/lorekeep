@@ -1,25 +1,11 @@
 from __future__ import annotations
 
-import json
-from pathlib import Path
 from typing import Any
 
 from experiments.model_assets import _hf_hub_dir, resolve_local_snapshot
 from experiments.openworkload_models import ResolvedModel, resolve_model_entry, runtime_lut_is_valid
 
 _SUPPORTED_DATASET_EXTRACTORS = {"ultrachat", "longbench"}
-_FALLBACK_LORA_SUPPORTED_ARCHITECTURES = {
-    "BaichuanForCausalLM",
-    "BaiChuanForCausalLM",
-    "DeciLMForCausalLM",
-    "GemmaForCausalLM",
-    "Gemma2ForCausalLM",
-    "MistralForCausalLM",
-    "MixtralForCausalLM",
-    "PhiForCausalLM",
-    "QWenLMHeadModel",
-    "Qwen2ForCausalLM",
-}
 
 
 def _cached_repo_ids(prefix: str) -> set[str]:
@@ -39,45 +25,6 @@ def list_local_model_repo_ids() -> list[str]:
 
 def list_local_dataset_repo_ids() -> list[str]:
     return sorted(_cached_repo_ids("datasets"))
-
-
-def _read_local_model_architectures(model_id: str) -> list[str]:
-    local_snapshot = resolve_local_snapshot(model_id)
-    if not local_snapshot:
-        return []
-    config_path = Path(local_snapshot) / "config.json"
-    if not config_path.exists():
-        return []
-    try:
-        payload = json.loads(config_path.read_text(encoding="utf-8"))
-    except Exception:
-        return []
-    architectures = payload.get("architectures") or []
-    return [str(item).strip() for item in architectures if str(item).strip()]
-
-
-def _supports_lora_via_vllm(architectures: list[str]) -> bool | None:
-    if not architectures:
-        return None
-    try:
-        from vllm.model_executor.models import ModelRegistry, supports_lora
-    except Exception:
-        return None
-    for arch in architectures:
-        try:
-            model_cls = ModelRegistry._try_load_model_cls(arch)
-        except Exception:
-            continue
-        if model_cls is not None:
-            return bool(supports_lora(model_cls))
-    return None
-
-
-def _supports_lora_architecture(architectures: list[str]) -> bool:
-    detected = _supports_lora_via_vllm(architectures)
-    if detected is not None:
-        return detected
-    return any(arch in _FALLBACK_LORA_SUPPORTED_ARCHITECTURES for arch in architectures)
 
 
 def _matches_name_filters(model: ResolvedModel, patterns: list[str]) -> bool:
@@ -100,62 +47,49 @@ def select_local_model_entries(
     selected: list[ResolvedModel] = []
     diagnostics: list[dict[str, Any]] = []
     seen_keys: set[str] = set()
-    deny_patterns = [str(item).strip() for item in (exclude_name_substrings or []) if str(item).strip()]
-
+    deny_patterns = [
+        str(item).strip() for item in exclude_name_substrings or [] if str(item).strip()
+    ]
     for entry in entries:
         try:
             model = resolve_model_entry(entry)
         except Exception as exc:
             diagnostics.append(
-                {
-                    "entry": entry,
-                    "selected": False,
-                    "reason": f"resolve_failed:{exc}",
-                }
+                {"entry": entry, "selected": False, "reason": f"resolve_failed:{exc}"}
             )
             continue
-
         local_snapshot = resolve_local_snapshot(model.model_id)
         local_cached = bool(local_snapshot) or model.model_id in local_ids
-        runtime_ok, runtime_reason = runtime_lut_is_valid(model.lut_name)
-        architectures = _read_local_model_architectures(model.model_id)
+        (runtime_ok, runtime_reason) = runtime_lut_is_valid(model.lut_name)
         explicit_lora = entry.get("lora_supported") if isinstance(entry, dict) else None
-        if explicit_lora is not None:
-            lora_ok = bool(explicit_lora)
-        else:
-            lora_ok = _supports_lora_architecture(architectures)
+        lora_ok = bool(explicit_lora)
         excluded_by_name = _matches_name_filters(model, deny_patterns)
-        downloadable = bool(auto_download and model.model_id and not excluded_by_name)
+        downloadable = bool(auto_download and model.model_id and (not excluded_by_name))
         selected_flag = (
             bool(local_cached or downloadable)
             and (runtime_ok or not require_runtime_sanity)
             and (lora_ok or not require_lora_support)
-            and not excluded_by_name
+            and (not excluded_by_name)
         )
         diagnostics.append(
             {
                 "key": model.key,
                 "model_id": model.model_id,
                 "lut_name": model.lut_name,
-                "label": model.label,
-                "model_path_mode": model.model_path_mode,
                 "local_cached": local_cached,
                 "local_snapshot": local_snapshot,
                 "downloadable": downloadable,
-                "auto_download": bool(auto_download),
-                "architectures": architectures,
                 "runtime_sanity_ok": runtime_ok,
                 "runtime_sanity_reason": runtime_reason,
                 "lora_supported": lora_ok,
                 "excluded_by_name": excluded_by_name,
-                "exclude_name_substrings": deny_patterns,
                 "selected": selected_flag,
             }
         )
         if selected_flag and model.key not in seen_keys:
             selected.append(model)
             seen_keys.add(model.key)
-    return selected, diagnostics
+    return (selected, diagnostics)
 
 
 def select_local_dataset_entries(
@@ -168,7 +102,6 @@ def select_local_dataset_entries(
     selected: list[dict[str, Any]] = []
     diagnostics: list[dict[str, Any]] = []
     seen_keys: set[str] = set()
-
     for raw in entries:
         if not isinstance(raw, dict):
             diagnostics.append({"entry": raw, "selected": False, "reason": "invalid_dataset_entry"})
@@ -177,7 +110,9 @@ def select_local_dataset_entries(
         dataset_id = str(raw.get("dataset_id") or "").strip()
         extractor = str(raw.get("extractor") or "").strip().lower()
         local_cached = bool(dataset_id) and dataset_id in local_ids
-        extractor_ok = (not require_supported_extractors) or extractor in _SUPPORTED_DATASET_EXTRACTORS
+        extractor_ok = (
+            not require_supported_extractors or extractor in _SUPPORTED_DATASET_EXTRACTORS
+        )
         downloadable = bool(auto_download and dataset_id and extractor_ok)
         selected_flag = bool(key and dataset_id and (local_cached or downloadable) and extractor_ok)
         diagnostics.append(
@@ -187,7 +122,6 @@ def select_local_dataset_entries(
                 "extractor": extractor,
                 "local_cached": local_cached,
                 "downloadable": downloadable,
-                "auto_download": bool(auto_download),
                 "supported_extractor": extractor_ok,
                 "selected": selected_flag,
             }
@@ -195,4 +129,4 @@ def select_local_dataset_entries(
         if selected_flag and key not in seen_keys:
             selected.append(dict(raw))
             seen_keys.add(key)
-    return selected, diagnostics
+    return (selected, diagnostics)

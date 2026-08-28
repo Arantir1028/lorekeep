@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shlex
 import subprocess
@@ -8,198 +9,148 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from experiments.openworkload_support import load_config as _load_config
-from experiments.openworkload_support import relative_to_repo as _relative_to_repo
-from experiments.openworkload_support import repo_root as _repo_root
+from experiments.openworkload_support import load_config, repo_root
+from waveslice.policy import WaveSlicePolicy
+
+EVAL_CONFIG_ENV = "WAVESLICE_EVAL_CONFIG_JSON"
+_TOP_LEVEL_KEYS = {
+    "name",
+    "purpose",
+    "evaluator",
+    "result_json",
+    "runtime",
+    "phase1",
+    "phase12_soft_gate",
+    "phase2",
+    "model",
+    "workload",
+    "adapters",
+    "include_phase12",
+    "skip_phase2",
+    "baseline_only",
+    "ignore_eos",
+    "short_repeat",
+    "short_a_repeat",
+    "short_b_repeat",
+    "long_repeat",
+}
+_RUNTIME_KEYS = {
+    "python_bin",
+    "trust_remote_code",
+    "warmup_iters",
+    "repeats",
+    "timeout_sec",
+    "max_new_tokens",
+    "max_model_len",
+    "max_num_batched_tokens",
+    "max_num_partial_prefills",
+    "max_long_partial_prefills",
+    "gpu_memory_utilization",
+    "queue_reorder_mode",
+    "queue_reorder_aging_quantum_us",
+    "adapters_root",
+}
+_POLICY_KEYS = set(WaveSlicePolicy.__dataclass_fields__)
+_SECTION_KEYS = {
+    "runtime": _RUNTIME_KEYS,
+    "phase1": {name.removeprefix("phase1_") for name in _POLICY_KEYS if name.startswith("phase1_")}
+    | {"objective_mode", "baseline_mode", "gamma"},
+    "phase2": {name.removeprefix("phase2_") for name in _POLICY_KEYS if name.startswith("phase2_")}
+    | {"dispatch_mode", "baseline_enable_chunked_prefill", "enable_mixed_prefill_decode"},
+    "phase12_soft_gate": {
+        name.removeprefix("phase12_phase2_")
+        for name in _POLICY_KEYS
+        if name.startswith("phase12_phase2_")
+    }
+    | {"phase2_gate_mode"},
+    "model": {"name", "path"},
+    "workload": {"requests_json", "lora_requests_json"},
+    "adapters": {"adapter_a", "adapter_b", "auto_build"},
+}
 
 
-def _append_value(cmd: list[str], flag: str, value: Any) -> None:
-    if value is None:
-        return
-    text = str(value).strip()
-    if not text:
-        return
-    cmd.extend([f"--{flag}", text])
+def eval_section_keys(section: str) -> frozenset[str]:
+    return frozenset(_SECTION_KEYS[section])
 
 
-def _append_store_true(cmd: list[str], flag: str, value: Any) -> None:
-    if bool(value):
-        cmd.append(f"--{flag}")
+def validate_eval_config(config: dict[str, Any]) -> None:
+    unknown = set(config) - _TOP_LEVEL_KEYS
+    if unknown:
+        raise ValueError(f"unknown evaluation config keys: {sorted(unknown)}")
+    for section, allowed in _SECTION_KEYS.items():
+        values = config.get(section) or {}
+        if not isinstance(values, dict):
+            raise TypeError(f"evaluation config section {section!r} must be an object")
+        unknown = set(values) - allowed
+        if unknown:
+            raise ValueError(f"unknown evaluation config keys in {section}: {sorted(unknown)}")
 
 
-def _append_bool_optional(cmd: list[str], flag: str, value: Any) -> None:
-    if value is None:
-        return
-    cmd.append(f"--{flag}" if bool(value) else f"--no-{flag}")
-
-
-def _config_path_value(value: Any) -> str:
-    text = str(value or "").strip()
-    if not text:
-        return ""
-    path = Path(text).expanduser()
-    if path.is_absolute():
-        try:
-            return _relative_to_repo(path)
-        except Exception:
-            return str(path)
-    return text
+def apply_eval_config(args: Any, config: dict[str, Any]) -> Any:
+    validate_eval_config(config)
+    for section, prefix in (("runtime", ""), ("phase1", "phase1_"), ("phase2", "phase2_")):
+        for key, value in dict(config.get(section) or {}).items():
+            setattr(args, prefix + key, value)
+    for key, value in dict(config.get("phase12_soft_gate") or {}).items():
+        prefix = "phase12_" if key.startswith("phase2_") else "phase12_phase2_"
+        setattr(args, prefix + key, value)
+    for key, value in dict(config.get("model") or {}).items():
+        setattr(args, {"name": "model_name", "path": "model_path"}[key], value)
+    for section in ("workload", "adapters"):
+        for key, value in dict(config.get(section) or {}).items():
+            setattr(args, key, value)
+    for key in (
+        "include_phase12",
+        "skip_phase2",
+        "baseline_only",
+        "ignore_eos",
+        "short_repeat",
+        "short_a_repeat",
+        "short_b_repeat",
+        "long_repeat",
+    ):
+        if key in config:
+            setattr(args, key, config[key])
+    return args
 
 
 def build_eval_invocation(
-    config: dict[str, Any],
-    *,
-    out_json_override: str | None = None,
+    config: dict[str, Any], *, out_json_override: str | None = None
 ) -> tuple[list[str], dict[str, str]]:
+    validate_eval_config(config)
+    runtime = dict(config.get("runtime") or {})
     evaluator = str(config.get("evaluator") or "tests/evaluate_waveslice_claims.py")
-    model_cfg = dict(config.get("model") or {})
-    workload_cfg = dict(config.get("workload") or {})
-    adapters_cfg = dict(config.get("adapters") or {})
-    runtime_cfg = dict(config.get("runtime") or {})
-    phase1_cfg = dict(config.get("phase1") or {})
-    phase12_cfg = dict(config.get("phase12_soft_gate") or {})
-    phase2_cfg = dict(config.get("phase2") or {})
-    python_bin = str(runtime_cfg.get("python_bin") or sys.executable).strip()
-
-    result_json = out_json_override or str(config.get("result_json") or "").strip()
-
-    cmd: list[str] = [
-        python_bin,
-        evaluator,
-    ]
-    _append_value(cmd, "model-name", model_cfg.get("name"))
-    _append_value(cmd, "model-path", model_cfg.get("path"))
-    _append_value(cmd, "requests-json", _config_path_value(workload_cfg.get("requests_json")))
-    _append_value(cmd, "lora-requests-json", _config_path_value(workload_cfg.get("lora_requests_json")))
-    adapter_a = _config_path_value(adapters_cfg.get("adapter_a"))
-    adapter_b = _config_path_value(adapters_cfg.get("adapter_b"))
-    _append_value(cmd, "adapter-a", adapter_a)
-    _append_value(cmd, "adapter-b", adapter_b)
-    disable_auto_adapters = adapters_cfg.get("auto_build") is False or bool(adapter_a and adapter_b)
-    _append_store_true(cmd, "no-auto-build-adapters", disable_auto_adapters)
-    include_phase12 = config.get("include_phase12")
-    if include_phase12 is None:
-        include_phase12 = True
-    _append_store_true(cmd, "include-phase12", include_phase12)
-    _append_store_true(cmd, "include-phase1-lora-only", config.get("include_phase1_lora_only"))
-    _append_store_true(cmd, "include-strict", config.get("include_strict"))
-
-    _append_value(cmd, "warmup-iters", runtime_cfg.get("warmup_iters"))
-    _append_value(cmd, "repeats", runtime_cfg.get("repeats"))
-    _append_value(cmd, "timeout-sec", runtime_cfg.get("timeout_sec"))
-    _append_value(cmd, "max-new-tokens", runtime_cfg.get("max_new_tokens"))
-    _append_value(cmd, "max-model-len", runtime_cfg.get("max_model_len"))
-    _append_value(cmd, "max-num-batched-tokens", runtime_cfg.get("max_num_batched_tokens"))
-    _append_value(cmd, "gpu-memory-utilization", runtime_cfg.get("gpu_memory_utilization"))
-    _append_value(cmd, "queue-reorder-mode", runtime_cfg.get("queue_reorder_mode"))
-    _append_value(cmd, "queue-reorder-aging-quantum-us", runtime_cfg.get("queue_reorder_aging_quantum_us"))
-    _append_store_true(cmd, "trust-remote-code", runtime_cfg.get("trust_remote_code"))
-
-    _append_value(cmd, "phase1-objective-mode", phase1_cfg.get("objective_mode"))
-    _append_value(cmd, "phase1-baseline-mode", phase1_cfg.get("baseline_mode"))
-    _append_value(cmd, "phase1-gamma", phase1_cfg.get("gamma"))
-    _append_value(cmd, "phase1-ingress-target-chunk", phase1_cfg.get("ingress_target_chunk"))
-    _append_bool_optional(cmd, "phase1-ingress-direct-authoritative", phase1_cfg.get("ingress_direct_authoritative"))
-    _append_bool_optional(cmd, "phase1-ingress-exact-chunk", phase1_cfg.get("ingress_exact_chunk"))
-    _append_value(cmd, "phase1-force-min-chunk", phase1_cfg.get("force_min_chunk"))
-    _append_value(cmd, "phase1-target-long-fraction", phase1_cfg.get("target_long_fraction"))
-    _append_bool_optional(cmd, "phase1-runtime-adaptive-enabled", phase1_cfg.get("runtime_adaptive_enabled"))
-    _append_value(cmd, "phase1-runtime-aggressive-long-fraction", phase1_cfg.get("runtime_aggressive_long_fraction"))
-    _append_value(cmd, "phase1-runtime-conservative-long-fraction", phase1_cfg.get("runtime_conservative_long_fraction"))
-    _append_value(cmd, "phase1-runtime-aggressive-ingress-target-chunk", phase1_cfg.get("runtime_aggressive_ingress_target_chunk"))
-    _append_value(cmd, "phase1-runtime-conservative-ingress-target-chunk", phase1_cfg.get("runtime_conservative_ingress_target_chunk"))
-    _append_value(cmd, "phase1-runtime-queue-high-watermark", phase1_cfg.get("runtime_queue_high_watermark"))
-    _append_value(cmd, "phase1-runtime-waiting-short-high-watermark", phase1_cfg.get("runtime_waiting_short_high_watermark"))
-    _append_value(cmd, "phase1-runtime-wait-us-high-watermark", phase1_cfg.get("runtime_wait_us_high_watermark"))
-    _append_value(cmd, "phase1-runtime-long-high-watermark", phase1_cfg.get("runtime_long_high_watermark"))
-    _append_value(cmd, "phase1-runtime-urgency-discount", phase1_cfg.get("runtime_urgency_discount"))
-    _append_value(cmd, "phase1-runtime-ema-alpha", phase1_cfg.get("runtime_ema_alpha"))
-
-    _append_value(cmd, "phase12-phase2-gate-mode", phase12_cfg.get("phase2_gate_mode"))
-    _append_value(cmd, "phase12-phase2-soft-ratio-scale", phase12_cfg.get("soft_ratio_scale"))
-    _append_value(cmd, "phase12-phase2-soft-pressure-scale", phase12_cfg.get("soft_pressure_scale"))
-    _append_value(cmd, "phase12-phase2-soft-min-long-prefill", phase12_cfg.get("soft_min_long_prefill"))
-    _append_bool_optional(cmd, "phase12-phase2-soft-allow-mixed-decode", phase12_cfg.get("soft_allow_mixed_decode"))
-    _append_value(cmd, "phase12-phase2-soft-recent-strength-floor", phase12_cfg.get("soft_recent_strength_floor"))
-    _append_bool_optional(cmd, "phase12-phase2-soft-require-cashout-signal", phase12_cfg.get("soft_require_cashout_signal"))
-    _append_value(cmd, "phase12-phase2-soft-recent-chunk-match-scale", phase12_cfg.get("soft_recent_chunk_match_scale"))
-    _append_value(cmd, "phase12-phase2-soft-window-score-threshold", phase12_cfg.get("soft_window_score_threshold"))
-    _append_value(cmd, "phase12-phase2-soft-window-recent-weight", phase12_cfg.get("soft_window_recent_weight"))
-    _append_value(cmd, "phase12-phase2-soft-window-chunk-weight", phase12_cfg.get("soft_window_chunk_weight"))
-    _append_value(cmd, "phase12-phase2-soft-window-pressure-weight", phase12_cfg.get("soft_window_pressure_weight"))
-    _append_value(cmd, "phase12-phase2-soft-window-ratio-weight", phase12_cfg.get("soft_window_ratio_weight"))
-    _append_value(cmd, "phase12-phase2-soft-window-decode-bonus", phase12_cfg.get("soft_window_decode_bonus"))
-
-    _append_value(cmd, "phase2-dispatch-mode", phase2_cfg.get("dispatch_mode"))
-    _append_bool_optional(cmd, "phase2-enable-mixed-prefill-decode", phase2_cfg.get("enable_mixed_prefill_decode"))
-    _append_value(cmd, "phase2-min-hetero-ratio", phase2_cfg.get("min_hetero_ratio"))
-    _append_value(cmd, "phase2-min-long-prefill", phase2_cfg.get("min_long_prefill"))
-    _append_value(cmd, "phase2-min-pressure-ratio", phase2_cfg.get("min_pressure_ratio"))
-    _append_bool_optional(
-        cmd,
-        "phase2-baseline-enable-chunked-prefill",
-        phase2_cfg.get("baseline_enable_chunked_prefill"),
-    )
-    _append_bool_optional(cmd, "phase2-enable-scheduler-cashout", phase2_cfg.get("enable_scheduler_cashout"))
-    _append_bool_optional(cmd, "phase2-enable-execution-escape", phase2_cfg.get("enable_execution_escape"))
-    _append_value(cmd, "phase2-execution-escape-mode", phase2_cfg.get("execution_escape_mode"))
-    _append_value(cmd, "phase2-execution-escape-spillover-cap", phase2_cfg.get("execution_escape_spillover_cap"))
-    _append_value(cmd, "phase2-execution-escape-max-active", phase2_cfg.get("execution_escape_max_active"))
-    _append_bool_optional(cmd, "phase2-runtime-adaptive-enabled", phase2_cfg.get("runtime_adaptive_enabled"))
-    _append_value(cmd, "phase2-runtime-low-pressure-min-hetero-ratio", phase2_cfg.get("runtime_low_pressure_min_hetero_ratio"))
-    _append_value(cmd, "phase2-runtime-high-pressure-min-hetero-ratio", phase2_cfg.get("runtime_high_pressure_min_hetero_ratio"))
-    _append_value(cmd, "phase2-runtime-low-pressure-min-pressure-ratio", phase2_cfg.get("runtime_low_pressure_min_pressure_ratio"))
-    _append_value(cmd, "phase2-runtime-high-pressure-min-pressure-ratio", phase2_cfg.get("runtime_high_pressure_min_pressure_ratio"))
-    _append_value(cmd, "phase2-runtime-low-pressure-min-long-prefill", phase2_cfg.get("runtime_low_pressure_min_long_prefill"))
-    _append_value(cmd, "phase2-runtime-high-pressure-min-long-prefill", phase2_cfg.get("runtime_high_pressure_min_long_prefill"))
-    _append_value(cmd, "phase2-runtime-low-pressure-escape-spillover-cap", phase2_cfg.get("runtime_low_pressure_escape_spillover_cap"))
-    _append_value(cmd, "phase2-runtime-high-pressure-escape-spillover-cap", phase2_cfg.get("runtime_high_pressure_escape_spillover_cap"))
-    _append_value(cmd, "phase2-runtime-low-pressure-escape-max-active", phase2_cfg.get("runtime_low_pressure_escape_max_active"))
-    _append_value(cmd, "phase2-runtime-high-pressure-escape-max-active", phase2_cfg.get("runtime_high_pressure_escape_max_active"))
-    _append_value(cmd, "phase2-runtime-disable-execution-escape-below-pressure", phase2_cfg.get("runtime_disable_execution_escape_below_pressure"))
-
-    _append_value(cmd, "out-json", _config_path_value(result_json))
-
-    vllm_mode = str(runtime_cfg.get("vllm_mode") or "v0").strip().lower()
-    if vllm_mode not in {"v0", "v1"}:
-        raise ValueError(f"Unsupported runtime.vllm_mode: {vllm_mode}")
+    command = [str(runtime.get("python_bin") or sys.executable), evaluator]
+    result = out_json_override or str(config.get("result_json") or "")
+    if result:
+        command.extend(["--out-json", str(result)])
     env = os.environ.copy()
-    env["WAVESLICE_VLLM_MODE"] = vllm_mode
-    env["VLLM_USE_V1"] = "1" if vllm_mode == "v1" else "0"
-    env.setdefault("VLLM_NO_USAGE_STATS", "1")
-    return cmd, env
+    env.update(
+        {
+            EVAL_CONFIG_ENV: json.dumps(config, ensure_ascii=False),
+            "VLLM_USE_V1": "1",
+            "VLLM_NO_USAGE_STATS": "1",
+        }
+    )
+    root = str(repo_root())
+    env["PYTHONPATH"] = root + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
+    return command, env
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run a frozen single-case eval config through tests/evaluate_waveslice_claims.py.")
+    parser = argparse.ArgumentParser(description="Run one frozen WaveSlice evaluation.")
     parser.add_argument("--config", required=True)
     parser.add_argument("--out-json", default="")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
-
-    config = _load_config(args.config)
-    cmd, env = build_eval_invocation(
-        config,
-        out_json_override=args.out_json.strip() or None,
-    )
-
-    out_json = ""
-    if "--out-json" in cmd:
-        out_json = cmd[cmd.index("--out-json") + 1]
-        Path(out_json).parent.mkdir(parents=True, exist_ok=True)
-
-    print(f"[FrozenEval] config={args.config}")
-    if out_json:
-        print(f"[FrozenEval] out_json={out_json}")
-    print(f"[FrozenEval] env WAVESLICE_VLLM_MODE={env['WAVESLICE_VLLM_MODE']} VLLM_USE_V1={env['VLLM_USE_V1']}")
-    print("[FrozenEval] command:")
-    print("  " + shlex.join(cmd))
-
+    config = load_config(args.config)
+    command, env = build_eval_invocation(config, out_json_override=args.out_json or None)
+    if args.out_json:
+        Path(args.out_json).parent.mkdir(parents=True, exist_ok=True)
+    print("[FrozenEval] " + shlex.join(command))
     if args.dry_run:
         return 0
-
-    completed = subprocess.run(cmd, env=env, check=False, cwd=str(_repo_root()))
-    return int(completed.returncode)
+    return subprocess.run(command, env=env, cwd=repo_root(), check=False).returncode
 
 
 if __name__ == "__main__":

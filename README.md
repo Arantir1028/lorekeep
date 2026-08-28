@@ -1,8 +1,11 @@
-# CUCUMIS Experiment Workflow
+# WaveSlice
 
 [English](./README.md) | [简体中文](./README.zh-CN.md)
 
-This README only documents the paper experiment path: Chapter 2 prestudy runs and Chapter 5 evaluation runs.
+WaveSlice is a V1 scheduler extension for vLLM. It is installed as a normal
+Python package, leaves the vLLM source tree untouched, and is enabled
+declaratively through `EngineArgs`. This repository also contains the CUCUMIS
+paper's Chapter 2 and Chapter 5 experiment workflows.
 
 ## Environment
 
@@ -14,7 +17,9 @@ conda activate sara
 
 The experiment drivers use the active Python interpreter by default. Config files should use repository-relative paths and should not contain machine-local paths such as a user home directory, a Conda installation path, or a fixed Hugging Face cache path.
 
-The current experiment stack expects:
+The recorded experiment environment uses the following versions. The WaveSlice
+package itself does not enforce a vLLM version number; the current integration
+targets the V1 APIs present in this environment.
 
 - Python `3.10`
 - PyTorch `2.7.1+cu126`
@@ -34,6 +39,39 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 python -m pip install -e .
 ```
+
+## Python API
+
+WaveSlice extends vLLM's `EngineArgs`; it does not require a patched vLLM
+checkout or a separate injection call. WaveSlice currently supports the vLLM
+V1 engine only.
+
+```python
+from waveslice import EngineArgs, WaveSliceConfig
+from vllm.engine.llm_engine import LLMEngine
+
+engine_args = EngineArgs(
+    model="/models/Mistral-7B-v0.1",
+    enable_wave_slice=True,
+    wave_slice_config=WaveSliceConfig(
+        # Used to select LUT files; this is not the model checkpoint path.
+        lut_model="Mistral-7B-v0.1",
+        gamma=2.0,
+    ),
+    enable_chunked_prefill=True,
+    max_num_batched_tokens=1536,
+    max_num_partial_prefills=1,
+    max_long_partial_prefills=1,
+    max_model_len=4096,
+    enforce_eager=True,
+)
+engine = LLMEngine.from_engine_args(engine_args)
+```
+
+Set `enable_wave_slice=False` to use the native vLLM scheduler path. If
+`lut_model` is omitted, WaveSlice infers it from the last component of
+`model`. Runtime metrics remain available through
+`waveslice.get_wave_slice_metrics()`.
 
 Models and datasets are selected by config. With `resource_selection.auto_download=true`, missing Hugging Face assets are downloaded automatically. Set `resource_selection.offline=true` only when the target machine already has a complete local cache. If a gated model is not accessible, the Hugging Face or vLLM error should be handled by granting access or logging in with the right token.
 
@@ -72,11 +110,11 @@ Useful configs:
 
 The LUT builder writes or refreshes:
 
-- `data/lut_tables/raw_profile_<lut_name>.json`
-- `data/lut_tables/lut_gain_<lut_name>.json`
-- `data/lut_tables/lut_penalty_<lut_name>.json`
-- `data/lut_tables/runtime_calibration_<lut_name>.json`
-- `data/lut_tables/runtime_sanity_<lut_name>.json`
+- `waveslice/data/lut_tables/raw_profile_<lut_name>.json`
+- `waveslice/data/lut_tables/lut_gain_<lut_name>.json`
+- `waveslice/data/lut_tables/lut_penalty_<lut_name>.json`
+- `waveslice/data/lut_tables/runtime_calibration_<lut_name>.json`
+- `waveslice/data/lut_tables/runtime_sanity_<lut_name>.json`
 
 Use `--skip-preflight-lut-rebuild` only for debugging stale-LUT detection. With that flag, preflight refuses to write a usable resolved config when the selected LUTs do not match the current GPU fingerprint.
 
@@ -132,7 +170,7 @@ python experiments/run_chapter5_suite.py \
   --stages baseline \
   --main-run-root results/openworkload_v1_local_realworld_lora8/chapter5_demo_main \
   --run-tag chapter5_demo \
-  --variants strict_no_chunk \
+  --variants priority_no_chunk \
   --model-keys mistral-7b-v0.1 \
   --densities mid
 ```
@@ -173,44 +211,25 @@ Important preflight artifacts:
 
 ## Chapter 2
 
-Chapter 2 prestudy runs use:
+The maintained Chapter 2 path rebuilds fixed-vLLM observations without loading
+CUCUMIS hooks:
 
-- Driver: `experiments/chapter2_prestudy.py`
-- Config: `experiments/configs/chapter2_prestudy_v1.json`
+- Driver: `experiments/run_chapter2_observations.py`
+- Config: `experiments/configs/chapter2_observations_v2.json`
 
-Run the full retained prestudy set:
-
-```bash
-python experiments/chapter2_prestudy.py all \
-  --config experiments/configs/chapter2_prestudy_v1.json \
-  --out-root results/chapter2_prestudy_v1/<run_id>
-```
-
-Run one case at a time:
+Run both retained observations:
 
 ```bash
-python experiments/chapter2_prestudy.py e1 --config experiments/configs/chapter2_prestudy_v1.json
-python experiments/chapter2_prestudy.py e2 --config experiments/configs/chapter2_prestudy_v1.json
-python experiments/chapter2_prestudy.py e3 --config experiments/configs/chapter2_prestudy_v1.json
-python experiments/chapter2_prestudy.py e3paper --config experiments/configs/chapter2_prestudy_v1.json
-python experiments/chapter2_prestudy.py e4 --config experiments/configs/chapter2_prestudy_v1.json
-python experiments/chapter2_prestudy.py e5 --config experiments/configs/chapter2_prestudy_v1.json
+python experiments/run_chapter2_observations.py \
+  --config experiments/configs/chapter2_observations_v2.json \
+  --observations all \
+  --run-name chapter2_demo
 ```
 
-Retained Chapter 2 cases:
-
-- `E1 Motivating Microbenchmark`: long-first and short-arrival motivating case.
-- `E2 Arrival-Order Sensitivity`: arrival-order sensitivity under contention.
-- `E3 Fixed Chunking vs Online Control`: no chunking, fixed chunking, and online control comparison.
-- `E3 Paper Case`: stable paper-facing export from an existing beneficiary-rich result.
-- `E4 Density Sweep`: TTFT and slowdown behavior as load increases.
-- `E5 LoRA Multi-Tenancy Relevance`: non-LoRA, homogeneous LoRA, and mixed-adapter LoRA comparison.
-
-Expected Chapter 2 path:
-
-- `results/chapter2_prestudy_v1/<run_id>/`
-
-The Chapter 2 output tree contains per-case summaries, request-level timing data, and figure files used for the paper motivation/observation section.
+Use `--observations obs1` for the one-vs-two-long comparison or `obs2` for the
+fixed-token-budget sweep. Outputs are written below
+`results/chapter2_observations_v2/<run_name>/` with a manifest, workloads, raw
+request timings, logs, and `summary.json`.
 
 ## Path Rules
 

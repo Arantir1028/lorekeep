@@ -1,7 +1,7 @@
 {
   "suite_name": "openworkload_v1_local_realworld_lora8",
   "out_root": "results/openworkload_v1_local_realworld_lora8",
-  "resource_catalog_config": "experiments/configs/openworkload_execescape_full10.json",
+  "resource_catalog_config": "experiments/configs/openworkload_resources_full10.json",
   "resource_selection": {
     "model_mode": "local_all_runnable",
     "dataset_mode": "local_supported_from_catalog",
@@ -16,7 +16,7 @@
   },
   "real_world_scenario": {
     "name": "V1 Open-Workload Mixed Arrival Regression (LoRA 8-model sweep)",
-    "description": "This suite re-runs the Chapter 5 Wave-Slice open-workload study on the V1 engine using all locally available non-Llama LoRA-capable models and locally cached open datasets. Each case mixes short conversational turns with long-context document tasks, orders short and long requests in a beneficiary-rich sequence, and assigns Poisson arrival times so that overlap and queueing are created by the workload rather than by a synthetic all-at-once burst.",
+    "description": "This suite re-runs the Chapter 5 WaveSlice open-workload study on the V1 engine using all locally available non-Llama LoRA-capable models and locally cached open datasets. Each case mixes short conversational turns with long-context document tasks, orders short and long requests in a beneficiary-rich sequence, and assigns Poisson arrival times so that overlap and queueing are created by the workload rather than by a synthetic all-at-once burst.",
     "why_real": [
       "UltraChat supplies short interactive prompts that resemble assistant turns and follow-up questions.",
       "LongBench supplies long-context prompts such as report summarization and long-document QA.",
@@ -26,9 +26,9 @@
     ]
   },
   "method_definition": {
-    "current_method": "phase1_chunk_boundary_plus_phase2_execution_escape",
+    "current_method": "phase1_chunk_boundary_plus_phase2_scheduler_priority_cashout",
     "phase1": "Use chunk-size control to return from long prefills to the scheduler boundary earlier.",
-    "phase2": "Use execution escape and scheduler-side priority promotion to reshape the next scheduled window.",
+    "phase2": "Use scheduler-side priority cashout to defer lower-value work before the next scheduled window is formed.",
     "adaptation": "Use runtime queue-pressure adaptation inside the scheduler; configured density only selects the workload, not the active chunk policy.",
     "inactive_paths": [
       "true_unbind",
@@ -95,7 +95,6 @@
     ]
   },
   "eval": {
-    "vllm_mode": "v1",
     "warmup_iters": 1,
     "repeats": 2,
     "timeout_sec": 240,
@@ -135,38 +134,17 @@
     "runtime_long_high_watermark": 3072,
     "runtime_urgency_discount": 0.55,
     "runtime_ema_alpha": 0.35,
-    "low_pressure_target_long_fraction": 0.50,
-    "high_pressure_target_long_fraction": 0.33,
-    "low_pressure_ingress_target_chunk": 1536,
-    "high_pressure_ingress_target_chunk": 768,
-    "low_pressure_phase2_min_hetero_ratio": 6.0,
-    "high_pressure_phase2_min_hetero_ratio": 4.0,
-    "low_pressure_phase2_min_pressure_ratio": 6.0,
-    "high_pressure_phase2_min_pressure_ratio": 4.0,
-    "low_pressure_phase2_min_long_prefill": 1024,
-    "high_pressure_phase2_min_long_prefill": 768,
-    "low_pressure_escape_spillover_cap": 1,
-    "high_pressure_escape_spillover_cap": 3,
-    "low_pressure_escape_max_active": 2,
-    "high_pressure_escape_max_active": 5,
-    "disable_execution_escape_below_pressure": 0.05,
-    "runtime_disable_execution_escape_below_pressure": 0.05
+    "runtime_low_pressure_min_hetero_ratio": 6.0,
+    "runtime_high_pressure_min_hetero_ratio": 4.0,
+    "runtime_low_pressure_min_pressure_ratio": 6.0,
+    "runtime_high_pressure_min_pressure_ratio": 4.0,
+    "runtime_low_pressure_min_long_prefill": 1024,
+    "runtime_high_pressure_min_long_prefill": 768
   },
   "phase12_soft_gate": {
     "phase2_gate_mode": "soft",
-    "soft_ratio_scale": 1.15,
-    "soft_pressure_scale": 1.1,
     "soft_min_long_prefill": 512,
-    "soft_allow_mixed_decode": true,
-    "soft_recent_strength_floor": 0.08,
-    "soft_require_cashout_signal": true,
-    "soft_recent_chunk_match_scale": 1.5,
-    "soft_window_score_threshold": 0.95,
-    "soft_window_recent_weight": 0.4,
-    "soft_window_chunk_weight": 0.25,
-    "soft_window_pressure_weight": 0.2,
-    "soft_window_ratio_weight": 0.1,
-    "soft_window_decode_bonus": 0.1
+    "soft_allow_mixed_decode": true
   },
   "phase2": {
     "dispatch_mode": "synchronized",
@@ -174,10 +152,6 @@
     "min_hetero_ratio": 4.0,
     "min_long_prefill": 768,
     "min_pressure_ratio": 4.0,
-    "enable_scheduler_cashout": true,
-    "enable_execution_escape": true,
-    "execution_escape_mode": "bounded_spillover",
-    "execution_escape_spillover_cap": 3,
-    "execution_escape_max_active": 5
+    "enable_scheduler_cashout": true
   }
 }

@@ -1,8 +1,4 @@
-"""Build dataset-driven request JSON files for Wave-Slice evaluation.
-
-The goal is to reuse the existing repeated evaluation harness while swapping
-the synthetic prompts for prompts sampled from open datasets.
-"""
+"""Build the two dataset-backed request files used by WaveSlice evaluations."""
 
 from __future__ import annotations
 
@@ -12,146 +8,108 @@ import math
 import os
 import random
 import sys
-from typing import Any, Optional
+from pathlib import Path
+from typing import Any
 
-from config.experiment_catalog import (
-    DEFAULT_DATASET_SOURCES,
-    DEFAULT_LONG_BENCH_CONFIGS,
-)
+from experiments.catalog import DEFAULT_DATASET_SOURCES, DEFAULT_LONG_BENCH_CONFIGS
 
 
-def _load_dataset_sources(config_path: Optional[str]) -> dict[str, Any]:
+def _load_dataset_sources(config_path: str | None) -> dict[str, Any]:
     if not config_path:
         return dict(DEFAULT_DATASET_SOURCES)
-    with open(config_path, "r", encoding="utf-8") as f:
-        payload = json.load(f)
-    if isinstance(payload, dict) and "datasets" in payload:
-        payload = payload["datasets"]
-    if isinstance(payload, dict):
-        entries = list(payload.values())
-    elif isinstance(payload, list):
-        entries = list(payload)
-    else:
+    payload = json.loads(Path(config_path).read_text(encoding="utf-8"))
+    payload = payload.get("datasets", payload) if isinstance(payload, dict) else payload
+    entries = (
+        payload.values()
+        if isinstance(payload, dict)
+        else payload
+        if isinstance(payload, list)
+        else None
+    )
+    if entries is None:
         raise ValueError("dataset source config must be a list or dict")
-    loaded: dict[str, Any] = {}
+    output = {}
     for raw in entries:
         if not isinstance(raw, dict):
             continue
-        key = str(raw.get("key", "")).strip().lower()
-        dataset_id = str(raw.get("dataset_id", "")).strip()
-        split = str(raw.get("split", "")).strip()
-        extractor = str(raw.get("extractor", "")).strip().lower()
-        if not key or not dataset_id or not split or not extractor:
-            raise ValueError(f"invalid dataset source entry: {raw!r}")
-        loaded[key] = {
-            "key": key,
-            "dataset_id": dataset_id,
-            "split": split,
-            "extractor": extractor,
-            "streaming": bool(raw.get("streaming", False)),
+        entry = {
+            key: str(raw.get(key, "")).strip().lower()
+            if key in {"key", "extractor"}
+            else str(raw.get(key, "")).strip()
+            for key in ("key", "dataset_id", "split", "extractor")
         }
-    if not loaded:
+        if not all(entry.values()):
+            raise ValueError(f"invalid dataset source entry: {raw!r}")
+        entry["streaming"] = bool(raw.get("streaming", False))
+        output[entry["key"]] = entry
+    if not output:
         raise ValueError("dataset source config produced no usable entries")
-    return loaded
+    return output
 
 
 def _source_field(source: Any, name: str, default: Any = None) -> Any:
-    if isinstance(source, dict):
-        return source.get(name, default)
-    return getattr(source, name, default)
+    return source.get(name, default) if isinstance(source, dict) else getattr(source, name, default)
 
 
-def _extract_longbench_prompt(example: dict[str, Any]) -> Optional[str]:
-    pieces: list[str] = []
-    for key in ("context", "input", "question", "instruction"):
-        value = example.get(key)
-        if isinstance(value, str) and value.strip():
-            pieces.append(value.strip())
-    if not pieces:
-        return None
-    return "\n\n".join(pieces)
+def _extract_longbench_prompt(example: dict[str, Any]) -> str | None:
+    pieces = [
+        str(example[key]).strip()
+        for key in ("context", "input", "question", "instruction")
+        if isinstance(example.get(key), str) and str(example[key]).strip()
+    ]
+    return "\n\n".join(pieces) or None
 
 
-def _extract_ultrachat_prompt(example: dict[str, Any]) -> Optional[str]:
+def _extract_ultrachat_prompt(example: dict[str, Any]) -> str | None:
     messages = example.get("messages")
-    if isinstance(messages, list):
-        user_turns = []
-        for turn in messages:
-            if not isinstance(turn, dict):
-                continue
-            if str(turn.get("role", "")).lower() != "user":
-                continue
-            content = turn.get("content")
-            if isinstance(content, str) and content.strip():
-                user_turns.append(content.strip())
-        if user_turns:
-            return "\n\n".join(user_turns)
-    return None
+    if not isinstance(messages, list):
+        return None
+    pieces = [
+        str(turn["content"]).strip()
+        for turn in messages
+        if isinstance(turn, dict)
+        and str(turn.get("role", "")).lower() == "user"
+        and isinstance(turn.get("content"), str)
+        and str(turn["content"]).strip()
+    ]
+    return "\n\n".join(pieces) or None
 
 
 def _pick_by_quantile(items: list[dict[str, Any]], q: float) -> dict[str, Any]:
     if not items:
         raise ValueError("cannot pick from empty list")
-    ordered = sorted(items, key=lambda x: x["tokens"])
-    idx = int(round((len(ordered) - 1) * q))
-    idx = max(0, min(idx, len(ordered) - 1))
-    return ordered[idx]
+    ordered = sorted(items, key=lambda item: item["tokens"])
+    return ordered[max(0, min(round((len(ordered) - 1) * q), len(ordered) - 1))]
 
 
 def _pick_many_by_quantiles(
-    items: list[dict[str, Any]],
-    quantiles: list[float],
+    items: list[dict[str, Any]], quantiles: list[float]
 ) -> list[dict[str, Any]]:
-    ordered = sorted(items, key=lambda x: x["tokens"])
-    if not ordered:
-        return []
-    chosen: list[dict[str, Any]] = []
-    used: set[int] = set()
+    ordered = sorted(items, key=lambda item: item["tokens"])
+    used, output = set(), []
     for q in quantiles:
-        idx = int(round((len(ordered) - 1) * q))
-        idx = max(0, min(idx, len(ordered) - 1))
-        if idx in used:
-            left = idx - 1
-            right = idx + 1
-            picked = None
-            while left >= 0 or right < len(ordered):
-                if left >= 0 and left not in used:
-                    picked = left
-                    break
-                if right < len(ordered) and right not in used:
-                    picked = right
-                    break
-                left -= 1
-                right += 1
-            idx = picked if picked is not None else idx
-        used.add(idx)
-        chosen.append(ordered[idx])
-    return chosen
+        index = max(0, min(round((len(ordered) - 1) * q), len(ordered) - 1))
+        if index in used:
+            alternatives = sorted(
+                (candidate for candidate in range(len(ordered)) if candidate not in used),
+                key=lambda candidate: (abs(candidate - index), candidate > index),
+            )
+            index = alternatives[0] if alternatives else index
+        used.add(index)
+        output.append(ordered[index])
+    return output
 
 
 def _assign_poisson_arrivals(
-    items: list[dict[str, Any]],
-    *,
-    rate_per_s: float,
-    seed: int,
+    items: list[dict[str, Any]], *, rate_per_s: float, seed: int
 ) -> list[dict[str, Any]]:
     if rate_per_s <= 0:
         raise ValueError("rate_per_s must be > 0 for poisson arrivals")
-    rng = random.Random(seed)
-    cur = 0.0
-    assigned: list[dict[str, Any]] = []
+    rng, current, output = random.Random(seed), 0.0, []
     for item in items:
-        cur += rng.expovariate(rate_per_s)
-        enriched = dict(item)
-        enriched["arrival_offset_s"] = round(cur, 6)
-        assigned.append(enriched)
-    return assigned
-
-
-def _shuffle_items(items: list[dict[str, Any]], rng: random.Random) -> list[dict[str, Any]]:
-    copied = list(items)
-    rng.shuffle(copied)
-    return copied
+        current += rng.expovariate(rate_per_s)
+        output.append(dict(item, arrival_offset_s=round(current, 6)))
+    return output
 
 
 def _mixed_arrival_order(
@@ -162,39 +120,20 @@ def _mixed_arrival_order(
     early_short_frac: float,
     post_long_short_bias: float,
 ) -> list[dict[str, Any]]:
-    rng = random.Random(seed)
-    short_pool = _shuffle_items(shorts, rng)
-    long_pool = _shuffle_items(longs, rng)
-    if not short_pool:
-        return long_pool
-    if not long_pool:
-        return short_pool
-
-    early_short_frac = max(0.0, min(0.95, float(early_short_frac)))
-    post_long_short_bias = max(0.0, min(1.0, float(post_long_short_bias)))
-
-    # Keep a small number of shorts ahead of the first long, then force a long
-    # to arrive early so later shorts can benefit from Phase-I.
-    max_prefix = max(0, len(short_pool) - 1)
-    prefix_n = min(max_prefix, int(round(len(short_pool) * early_short_frac)))
-    ordered: list[dict[str, Any]] = []
-    ordered.extend(short_pool[:prefix_n])
-    short_pool = short_pool[prefix_n:]
-
-    ordered.append(long_pool.pop(0))
-
-    while short_pool or long_pool:
-        if short_pool and long_pool:
-            pick_short = rng.random() < post_long_short_bias
-            if pick_short:
-                ordered.append(short_pool.pop(0))
-            else:
-                ordered.append(long_pool.pop(0))
-        elif short_pool:
-            ordered.append(short_pool.pop(0))
-        else:
-            ordered.append(long_pool.pop(0))
-    return ordered
+    rng, shorts, longs = random.Random(seed), list(shorts), list(longs)
+    rng.shuffle(shorts)
+    rng.shuffle(longs)
+    if not shorts or not longs:
+        return shorts + longs
+    prefix = min(len(shorts) - 1, round(len(shorts) * max(0.0, min(0.95, early_short_frac))))
+    output, shorts = shorts[:prefix] + [longs.pop(0)], shorts[prefix:]
+    while shorts and longs:
+        output.append(
+            shorts.pop(0)
+            if rng.random() < max(0.0, min(1.0, post_long_short_bias))
+            else longs.pop(0)
+        )
+    return output + shorts + longs
 
 
 def _arrival_order(
@@ -207,17 +146,14 @@ def _arrival_order(
 ) -> list[dict[str, Any]]:
     if layout == "grouped":
         return list(items)
-    shorts = [dict(item) for item in items if bool(item.get("is_short"))]
-    longs = [dict(item) for item in items if not bool(item.get("is_short"))]
     if layout == "mixed":
-        rng = random.Random(seed)
-        shuffled = list(items)
-        rng.shuffle(shuffled)
-        return shuffled
+        output, rng = list(items), random.Random(seed)
+        rng.shuffle(output)
+        return output
     if layout == "beneficiary_rich":
         return _mixed_arrival_order(
-            shorts,
-            longs,
+            [dict(item) for item in items if item.get("is_short")],
+            [dict(item) for item in items if not item.get("is_short")],
             seed=seed,
             early_short_frac=early_short_frac,
             post_long_short_bias=post_long_short_bias,
@@ -225,265 +161,251 @@ def _arrival_order(
     raise ValueError(f"unknown arrival layout: {layout}")
 
 
-def main() -> int:
+def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Build dataset request json files.")
     parser.add_argument("--model-path", required=True)
     parser.add_argument("--out-prefix", required=True)
     parser.add_argument("--trust-remote-code", action="store_true")
-    parser.add_argument("--max-prompt-tokens", type=int, default=3072)
-    parser.add_argument("--sample-count", type=int, default=256)
-    parser.add_argument("--phase1-short-count", type=int, default=24)
-    parser.add_argument("--phase1-long-count", type=int, default=8)
-    parser.add_argument("--phase2-short-count", type=int, default=24)
-    parser.add_argument("--phase2-long-count", type=int, default=12)
-    parser.add_argument(
-        "--arrival-mode",
-        choices=["burst", "poisson"],
-        default="poisson",
-        help="Whether requests arrive all at once or according to a Poisson process.",
-    )
-    parser.add_argument("--phase1-arrival-rate", type=float, default=6.0, help="Poisson arrival rate (req/s) for Phase-I requests.")
-    parser.add_argument("--phase2-arrival-rate", type=float, default=6.0, help="Poisson arrival rate (req/s) for Phase-II requests.")
-    parser.add_argument("--arrival-seed", type=int, default=7)
-    parser.add_argument(
-        "--phase1-arrival-layout",
-        choices=["grouped", "mixed", "beneficiary_rich"],
-        default="beneficiary_rich",
-        help="How Phase-I request types are ordered before arrival timestamps are assigned.",
-    )
-    parser.add_argument(
-        "--phase2-arrival-layout",
-        choices=["grouped", "mixed", "beneficiary_rich"],
-        default="beneficiary_rich",
-        help="How Phase-II request types are ordered before arrival timestamps are assigned.",
-    )
-    parser.add_argument("--phase1-early-short-frac", type=float, default=0.25)
-    parser.add_argument("--phase2-early-short-frac", type=float, default=0.20)
-    parser.add_argument("--phase1-post-long-short-bias", type=float, default=0.70)
-    parser.add_argument("--phase2-post-long-short-bias", type=float, default=0.60)
-    parser.add_argument(
-        "--datasets",
-        default="ultrachat200k,longbench",
-        help="Comma-separated dataset source keys.",
-    )
-    parser.add_argument(
-        "--longbench-configs",
-        default=",".join(DEFAULT_LONG_BENCH_CONFIGS),
-        help="Comma-separated LongBench config names.",
-    )
-    parser.add_argument(
-        "--dataset-source-config",
-        default="",
-        help="Optional JSON file overriding dataset source definitions.",
-    )
-    args = parser.parse_args()
+    for name, default in (
+        ("max-prompt-tokens", 3072),
+        ("sample-count", 256),
+        ("phase1-short-count", 24),
+        ("phase1-long-count", 8),
+        ("phase2-short-count", 24),
+        ("phase2-long-count", 12),
+        ("arrival-seed", 7),
+    ):
+        parser.add_argument("--" + name, type=int, default=default)
+    for name, default in (
+        ("phase1-arrival-rate", 6.0),
+        ("phase2-arrival-rate", 6.0),
+        ("phase1-early-short-frac", 0.25),
+        ("phase2-early-short-frac", 0.20),
+        ("phase1-post-long-short-bias", 0.70),
+        ("phase2-post-long-short-bias", 0.60),
+    ):
+        parser.add_argument("--" + name, type=float, default=default)
+    parser.add_argument("--arrival-mode", choices=["burst", "poisson"], default="poisson")
+    for phase in (1, 2):
+        parser.add_argument(
+            f"--phase{phase}-arrival-layout",
+            choices=["grouped", "mixed", "beneficiary_rich"],
+            default="beneficiary_rich",
+        )
+    parser.add_argument("--datasets", default="ultrachat200k,longbench")
+    parser.add_argument("--longbench-configs", default=",".join(DEFAULT_LONG_BENCH_CONFIGS))
+    parser.add_argument("--dataset-source-config", default="")
+    return parser
 
+
+def _collect(
+    load_dataset: Any,
+    tokenizer: Any,
+    source: Any,
+    *,
+    configs: list[str | None],
+    limit: int,
+    max_tokens: int,
+    offline: bool,
+) -> list[dict[str, Any]]:
+    extractor = (
+        _extract_ultrachat_prompt
+        if _source_field(source, "extractor") == "ultrachat"
+        else _extract_longbench_prompt
+    )
+    output, per_config = [], max(1, math.ceil(limit / len(configs)))
+    for config in configs:
+        positional = [_source_field(source, "dataset_id")] + ([config] if config else [])
+        dataset = load_dataset(
+            *positional,
+            split=_source_field(source, "split"),
+            streaming=False if offline else bool(_source_field(source, "streaming", False)),
+        )
+        taken = 0
+        for example in dataset:
+            prompt = extractor(example)
+            if not prompt:
+                continue
+            tokens = len(tokenizer(prompt, add_special_tokens=True).input_ids)
+            if 8 <= tokens <= max_tokens:
+                item = {"prompt": prompt, "tokens": tokens}
+                if config:
+                    item["config"] = config
+                item["source"] = _source_field(source, "key")
+                output.append(item)
+                taken += 1
+            if taken >= per_config or len(output) >= limit:
+                break
+        if len(output) >= limit:
+            break
+    return output
+
+
+def _quantiles(count: int, low: float, span: float) -> list[float]:
+    return [low + span * index / max(1, count - 1) for index in range(count)]
+
+
+def _request(
+    item: dict[str, Any], request_id: str, short: bool, lora: str | None = None
+) -> dict[str, Any]:
+    output = {"req_id": request_id, "prompt": item["prompt"], "is_short": short}
+    if lora:
+        output["lora_tag"] = lora
+    output.update(source="UltraChat200k" if short else "LongBench", tokens=item["tokens"])
+    return output
+
+
+def main() -> int:
+    args = _parser().parse_args()
     from datasets import load_dataset
     from transformers import AutoTokenizer
 
-    offline_mode = any(
+    offline = any(
         str(os.environ.get(name, "")).strip().lower() in {"1", "true", "yes", "on"}
         for name in ("HF_DATASETS_OFFLINE", "HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE")
     )
-
-    tok = AutoTokenizer.from_pretrained(
-        args.model_path,
-        trust_remote_code=args.trust_remote_code,
+    tokenizer = AutoTokenizer.from_pretrained(
+        args.model_path, trust_remote_code=args.trust_remote_code
     )
-
-    dataset_sources = _load_dataset_sources(args.dataset_source_config or None)
-    dataset_keys = [k.strip().lower() for k in args.datasets.split(",") if k.strip()]
-    selected_sources = [dataset_sources[k] for k in dataset_keys if k in dataset_sources]
-    if len(selected_sources) != len(dataset_keys):
-        missing = sorted(set(dataset_keys) - set(dataset_sources))
+    sources = _load_dataset_sources(args.dataset_source_config or None)
+    dataset_keys = [key.strip().lower() for key in args.datasets.split(",") if key.strip()]
+    missing = sorted(set(dataset_keys) - set(sources))
+    if missing:
         raise ValueError(f"unknown dataset source keys: {missing}")
-
-    ultrachat_prompts: list[dict[str, Any]] = []
-    if "ultrachat200k" in dataset_keys:
-        source = dataset_sources["ultrachat200k"]
-        ds_uc = load_dataset(
-            _source_field(source, "dataset_id"),
-            split=_source_field(source, "split"),
-            streaming=(False if offline_mode else bool(_source_field(source, "streaming", False))),
+    ultra = (
+        _collect(
+            load_dataset,
+            tokenizer,
+            sources["ultrachat200k"],
+            configs=[None],
+            limit=args.sample_count,
+            max_tokens=args.max_prompt_tokens,
+            offline=offline,
         )
-        for ex in ds_uc:
-            prompt = _extract_ultrachat_prompt(ex)
-            if not prompt:
-                continue
-            tokens = len(tok(prompt, add_special_tokens=True).input_ids)
-            if 8 <= tokens <= args.max_prompt_tokens:
-                ultrachat_prompts.append({"prompt": prompt, "tokens": tokens, "source": _source_field(source, "key")})
-            if len(ultrachat_prompts) >= args.sample_count:
-                break
-
-    longbench_prompts: list[dict[str, Any]] = []
-    if "longbench" in dataset_keys:
-        source = dataset_sources["longbench"]
-        longbench_configs = [c.strip() for c in args.longbench_configs.split(",") if c.strip()]
-        per_config = max(1, int(math.ceil(args.sample_count / float(len(longbench_configs)))))
-        for cfg in longbench_configs:
-            ds_lb = load_dataset(
-                _source_field(source, "dataset_id"),
-                cfg,
-                split=_source_field(source, "split"),
-                streaming=(False if offline_mode else bool(_source_field(source, "streaming", False))),
-            )
-            taken = 0
-            for ex in ds_lb:
-                prompt = _extract_longbench_prompt(ex)
-                if not prompt:
-                    continue
-                tokens = len(tok(prompt, add_special_tokens=True).input_ids)
-                if 8 <= tokens <= args.max_prompt_tokens:
-                    longbench_prompts.append({"prompt": prompt, "tokens": tokens, "config": cfg, "source": _source_field(source, "key")})
-                    taken += 1
-                if taken >= per_config or len(longbench_prompts) >= args.sample_count:
-                    break
-            if len(longbench_prompts) >= args.sample_count:
-                break
-
-    if len(ultrachat_prompts) < 4 or len(longbench_prompts) < 4:
+        if "ultrachat200k" in dataset_keys
+        else []
+    )
+    configs = [value.strip() for value in args.longbench_configs.split(",") if value.strip()]
+    long = (
+        _collect(
+            load_dataset,
+            tokenizer,
+            sources["longbench"],
+            configs=configs,
+            limit=args.sample_count,
+            max_tokens=args.max_prompt_tokens,
+            offline=offline,
+        )
+        if "longbench" in dataset_keys
+        else []
+    )
+    if len(ultra) < 4 or len(long) < 4:
         raise RuntimeError("insufficient dataset prompts collected")
-
-    phase1_short_count = max(2, int(args.phase1_short_count))
-    phase1_long_count = max(1, int(args.phase1_long_count))
-    phase2_short_count = max(2, int(args.phase2_short_count))
-    phase2_long_count = max(2, int(args.phase2_long_count))
-
-    short_anchor_a = _pick_by_quantile(ultrachat_prompts, 0.15)
-    short_anchor_b = _pick_by_quantile(ultrachat_prompts, 0.55)
-    long_anchor_a = _pick_by_quantile(longbench_prompts, 0.50)
-    long_anchor_b = _pick_by_quantile(longbench_prompts, 0.90)
-
-    phase1_short_qs = [0.10 + (0.55 * i / max(1, phase1_short_count - 1)) for i in range(phase1_short_count)]
-    phase1_long_qs = [0.45 + (0.45 * i / max(1, phase1_long_count - 1)) for i in range(phase1_long_count)]
-    phase2_short_qs = [0.10 + (0.60 * i / max(1, phase2_short_count - 1)) for i in range(phase2_short_count)]
-    phase2_long_qs = [0.45 + (0.50 * i / max(1, phase2_long_count - 1)) for i in range(phase2_long_count)]
-
-    phase1_shorts = _pick_many_by_quantiles(ultrachat_prompts, phase1_short_qs)
-    phase1_longs = _pick_many_by_quantiles(longbench_prompts, phase1_long_qs)
-    phase2_shorts = _pick_many_by_quantiles(ultrachat_prompts, phase2_short_qs)
-    phase2_longs = _pick_many_by_quantiles(longbench_prompts, phase2_long_qs)
-
-    reqs = [
-        {"req_id": "short_a", "prompt": short_anchor_a["prompt"], "is_short": True, "source": "UltraChat200k", "tokens": short_anchor_a["tokens"]},
-        {"req_id": "short_b", "prompt": short_anchor_b["prompt"], "is_short": True, "source": "UltraChat200k", "tokens": short_anchor_b["tokens"]},
+    counts = {
+        "phase1_short": max(2, args.phase1_short_count),
+        "phase1_long": max(1, args.phase1_long_count),
+        "phase2_short": max(2, args.phase2_short_count),
+        "phase2_long": max(2, args.phase2_long_count),
+    }
+    short_a, short_b = _pick_by_quantile(ultra, 0.15), _pick_by_quantile(ultra, 0.55)
+    long_a, long_b = _pick_by_quantile(long, 0.50), _pick_by_quantile(long, 0.90)
+    p1_shorts = _pick_many_by_quantiles(ultra, _quantiles(counts["phase1_short"], 0.10, 0.55))
+    p1_longs = _pick_many_by_quantiles(long, _quantiles(counts["phase1_long"], 0.45, 0.45))
+    p2_shorts = _pick_many_by_quantiles(ultra, _quantiles(counts["phase2_short"], 0.10, 0.60))
+    p2_longs = _pick_many_by_quantiles(long, _quantiles(counts["phase2_long"], 0.45, 0.50))
+    requests = [_request(short_a, "short_a", True), _request(short_b, "short_b", True)]
+    requests += [_request(item, f"short_{index:02d}", True) for index, item in enumerate(p1_shorts)]
+    requests += [_request(long_b, "long_b", False)] + [
+        _request(item, f"long_{index:02d}", False) for index, item in enumerate(p1_longs)
     ]
-    for i, item in enumerate(phase1_shorts):
-        reqs.append(
-            {
-                "req_id": f"short_{i:02d}",
-                "prompt": item["prompt"],
-                "is_short": True,
-                "source": "UltraChat200k",
-                "tokens": item["tokens"],
-            }
-        )
-    reqs.append({"req_id": "long_b", "prompt": long_anchor_b["prompt"], "is_short": False, "source": "LongBench", "tokens": long_anchor_b["tokens"]})
-    for i, item in enumerate(phase1_longs):
-        reqs.append(
-            {
-                "req_id": f"long_{i:02d}",
-                "prompt": item["prompt"],
-                "is_short": False,
-                "source": "LongBench",
-                "tokens": item["tokens"],
-            }
-        )
-
-    lora_reqs = [
-        {"req_id": "short_a", "prompt": short_anchor_a["prompt"], "is_short": True, "lora_tag": "A", "source": "UltraChat200k", "tokens": short_anchor_a["tokens"]},
-        {"req_id": "mid_b", "prompt": short_anchor_b["prompt"], "is_short": True, "lora_tag": "B", "source": "UltraChat200k", "tokens": short_anchor_b["tokens"]},
-        {"req_id": "long_a", "prompt": long_anchor_a["prompt"], "is_short": False, "lora_tag": "A", "source": "LongBench", "tokens": long_anchor_a["tokens"]},
-        {"req_id": "long_b", "prompt": long_anchor_b["prompt"], "is_short": False, "lora_tag": "B", "source": "LongBench", "tokens": long_anchor_b["tokens"]},
+    lora_requests = [
+        _request(short_a, "short_a", True, "A"),
+        _request(short_b, "mid_b", True, "B"),
+        _request(long_a, "long_a", False, "A"),
+        _request(long_b, "long_b", False, "B"),
     ]
-    for i, item in enumerate(phase2_shorts):
-        lora_reqs.append(
-            {
-                "req_id": f"short_extra_{i:02d}",
-                "prompt": item["prompt"],
-                "is_short": True,
-                "lora_tag": "A" if i % 2 == 0 else "B",
-                "source": "UltraChat200k",
-                "tokens": item["tokens"],
-            }
-        )
-    for i, item in enumerate(phase2_longs):
-        lora_reqs.append(
-            {
-                "req_id": f"long_extra_{i:02d}",
-                "prompt": item["prompt"],
-                "is_short": False,
-                "lora_tag": "A" if i % 2 == 0 else "B",
-                "source": "LongBench",
-                "tokens": item["tokens"],
-            }
-        )
-
-    reqs = _arrival_order(
-        reqs,
-        seed=int(args.arrival_seed) + 17,
-        layout=str(args.phase1_arrival_layout),
-        early_short_frac=float(args.phase1_early_short_frac),
-        post_long_short_bias=float(args.phase1_post_long_short_bias),
+    lora_requests += [
+        _request(item, f"short_extra_{index:02d}", True, "A" if index % 2 == 0 else "B")
+        for index, item in enumerate(p2_shorts)
+    ]
+    lora_requests += [
+        _request(item, f"long_extra_{index:02d}", False, "A" if index % 2 == 0 else "B")
+        for index, item in enumerate(p2_longs)
+    ]
+    requests = _arrival_order(
+        requests,
+        seed=args.arrival_seed + 17,
+        layout=args.phase1_arrival_layout,
+        early_short_frac=args.phase1_early_short_frac,
+        post_long_short_bias=args.phase1_post_long_short_bias,
     )
-    lora_reqs = _arrival_order(
-        lora_reqs,
-        seed=int(args.arrival_seed) + 1017,
-        layout=str(args.phase2_arrival_layout),
-        early_short_frac=float(args.phase2_early_short_frac),
-        post_long_short_bias=float(args.phase2_post_long_short_bias),
+    lora_requests = _arrival_order(
+        lora_requests,
+        seed=args.arrival_seed + 1017,
+        layout=args.phase2_arrival_layout,
+        early_short_frac=args.phase2_early_short_frac,
+        post_long_short_bias=args.phase2_post_long_short_bias,
     )
-
     if args.arrival_mode == "poisson":
-        reqs = _assign_poisson_arrivals(
-            reqs,
-            rate_per_s=float(args.phase1_arrival_rate),
-            seed=int(args.arrival_seed),
+        requests = _assign_poisson_arrivals(
+            requests, rate_per_s=args.phase1_arrival_rate, seed=args.arrival_seed
         )
-        lora_reqs = _assign_poisson_arrivals(
-            lora_reqs,
-            rate_per_s=float(args.phase2_arrival_rate),
-            seed=int(args.arrival_seed) + 1009,
+        lora_requests = _assign_poisson_arrivals(
+            lora_requests, rate_per_s=args.phase2_arrival_rate, seed=args.arrival_seed + 1009
         )
     else:
-        reqs = [dict(item, arrival_offset_s=0.0) for item in reqs]
-        lora_reqs = [dict(item, arrival_offset_s=0.0) for item in lora_reqs]
-
-    os.makedirs(os.path.dirname(args.out_prefix) or ".", exist_ok=True)
-    req_path = f"{args.out_prefix}_requests.json"
-    lora_req_path = f"{args.out_prefix}_lora_requests.json"
-    meta_path = f"{args.out_prefix}_meta.json"
-    with open(req_path, "w", encoding="utf-8") as f:
-        json.dump(reqs, f, ensure_ascii=False, indent=2)
-    with open(lora_req_path, "w", encoding="utf-8") as f:
-        json.dump(lora_reqs, f, ensure_ascii=False, indent=2)
-    with open(meta_path, "w", encoding="utf-8") as f:
-        json.dump(
-            {
-                "model_path": args.model_path,
-                "trust_remote_code": args.trust_remote_code,
-                "short_a_tokens": short_anchor_a["tokens"],
-                "short_b_tokens": short_anchor_b["tokens"],
-                "long_a_tokens": long_anchor_a["tokens"],
-                "long_b_tokens": long_anchor_b["tokens"],
-                "phase1_request_count": len(reqs),
-                "phase2_request_count": len(lora_reqs),
-                "arrival_mode": args.arrival_mode,
-                "phase1_arrival_layout": args.phase1_arrival_layout,
-                "phase2_arrival_layout": args.phase2_arrival_layout,
-                "phase1_arrival_rate": args.phase1_arrival_rate,
-                "phase2_arrival_rate": args.phase2_arrival_rate,
-                "phase1_last_arrival_s": max((float(item.get("arrival_offset_s", 0.0)) for item in reqs), default=0.0),
-                "phase2_last_arrival_s": max((float(item.get("arrival_offset_s", 0.0)) for item in lora_reqs), default=0.0),
-            },
-            f,
-            ensure_ascii=False,
-            indent=2,
-        )
-    print(f"[Saved] {req_path}")
-    print(f"[Saved] {lora_req_path}")
-    print(f"[Saved] {meta_path}")
+        requests = [dict(item, arrival_offset_s=0.0) for item in requests]
+        lora_requests = [dict(item, arrival_offset_s=0.0) for item in lora_requests]
+    prefix = Path(args.out_prefix)
+    prefix.parent.mkdir(parents=True, exist_ok=True)
+    paths = [
+        Path(str(prefix) + suffix)
+        for suffix in ("_requests.json", "_lora_requests.json", "_meta.json")
+    ]
+    actual = {
+        "phase1_short": sum(bool(item["is_short"]) for item in requests),
+        "phase2_short": sum(bool(item["is_short"]) for item in lora_requests),
+    }
+    actual.update(
+        phase1_long=len(requests) - actual["phase1_short"],
+        phase2_long=len(lora_requests) - actual["phase2_short"],
+    )
+    metadata = {
+        "model_path": args.model_path,
+        "trust_remote_code": args.trust_remote_code,
+        "short_a_tokens": short_a["tokens"],
+        "short_b_tokens": short_b["tokens"],
+        "long_a_tokens": long_a["tokens"],
+        "long_b_tokens": long_b["tokens"],
+    }
+    for phase in (1, 2):
+        for kind in ("short", "long"):
+            metadata[f"phase{phase}_config_{kind}_count"] = counts[f"phase{phase}_{kind}"]
+            metadata[f"phase{phase}_{kind}_count"] = actual[f"phase{phase}_{kind}"]
+    metadata.update(
+        {
+            "phase1_long_fraction": actual["phase1_long"] / len(requests) if requests else 0.0,
+            "phase2_long_fraction": actual["phase2_long"] / len(lora_requests)
+            if lora_requests
+            else 0.0,
+            "phase1_request_count": len(requests),
+            "phase2_request_count": len(lora_requests),
+            "arrival_mode": args.arrival_mode,
+            "phase1_arrival_layout": args.phase1_arrival_layout,
+            "phase2_arrival_layout": args.phase2_arrival_layout,
+            "phase1_arrival_rate": args.phase1_arrival_rate,
+            "phase2_arrival_rate": args.phase2_arrival_rate,
+            "phase1_last_arrival_s": max(
+                (float(item.get("arrival_offset_s", 0.0)) for item in requests), default=0.0
+            ),
+            "phase2_last_arrival_s": max(
+                (float(item.get("arrival_offset_s", 0.0)) for item in lora_requests), default=0.0
+            ),
+        }
+    )
+    for path, payload in zip(paths, (requests, lora_requests, metadata), strict=False):
+        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"[Saved] {path}")
     return 0
 
 

@@ -3,11 +3,11 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
-from config import hw_config as hw_cfg
-from config.experiment_catalog import ExperimentModelSpec, get_model_specs, safe_key
+from experiments.catalog import ExperimentModelSpec, get_model_specs, safe_key
 from experiments.lut_fingerprint import lut_fingerprint_status
+from waveslice.lut import config as hw_cfg
 
 
 @dataclass(frozen=True)
@@ -16,7 +16,7 @@ class ResolvedModel:
     model_id: str
     lut_name: str
     trust_remote_code: bool
-    max_model_len_override: Optional[int]
+    max_model_len_override: int | None
     model_path_mode: str
     label: str
     reason: str
@@ -38,14 +38,9 @@ def resolve_model_entry(entry: Any) -> ResolvedModel:
     if not isinstance(entry, dict):
         raise ValueError(f"invalid model entry: {entry!r}")
     key = str(entry.get("key", "")).strip()
-    spec: Optional[ExperimentModelSpec] = None
-    if key:
-        try:
-            candidates = get_model_specs(key)
-        except Exception:
-            candidates = []
-        if candidates:
-            spec = candidates[0]
+    spec: ExperimentModelSpec | None = next(
+        (item for item in get_model_specs() if item.key == key), None
+    )
     model_id = str(entry.get("model_id") or (spec.model_id if spec else "")).strip()
     lut_name = str(entry.get("lut_name") or (spec.lut_name if spec else "")).strip()
     if not key:
@@ -56,7 +51,9 @@ def resolve_model_entry(entry: Any) -> ResolvedModel:
         key=key,
         model_id=model_id,
         lut_name=lut_name,
-        trust_remote_code=bool(entry.get("trust_remote_code", spec.trust_remote_code if spec else False)),
+        trust_remote_code=bool(
+            entry.get("trust_remote_code", spec.trust_remote_code if spec else False)
+        ),
         max_model_len_override=(
             int(entry["max_model_len_override"])
             if entry.get("max_model_len_override") is not None

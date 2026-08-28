@@ -1,0 +1,208 @@
+{
+  "models": [
+    {
+      "model_id": "Qwen/Qwen2.5-7B-Instruct",
+      "lut_name": "Qwen--Qwen2.5-7B-Instruct",
+      "snapshot": "/home/onceas/.cache/huggingface/hub/models--Qwen--Qwen2.5-7B-Instruct/snapshots/a09a35458c702b33eeacc393d103063234e8bc28",
+      "aliases": [
+        "Qwen/Qwen2.5-7B-Instruct",
+        "Qwen2.5-7B-Instruct",
+        "Qwen--Qwen2.5-7B-Instruct"
+      ],
+      "q_heads": 28,
+      "kv_heads": 4,
+      "head_dim": 128,
+      "d_model": 3584,
+      "base_batch_size": 116,
+      "calibration_buckets": [
+        256,
+        512,
+        1024,
+        1536
+      ],
+      "hardware_fingerprint": {
+        "schema_version": 1,
+        "fingerprint_id": "19bc4bec61a2a2e278de3fcd051057e0dc70a098aff94c19cc0223eb9bc1e8e4",
+        "components": {
+          "gpus": [
+            {
+              "name": "NVIDIA A100-SXM4-80GB",
+              "total_memory_bytes": 84987740160,
+              "capability": [
+                8,
+                0
+              ]
+            }
+          ],
+          "torch_version": "2.7.1+cu126",
+          "torch_cuda": "12.6",
+          "vllm_version": "0.10.1",
+          "driver_version": null,
+          "nvidia_smi_cuda_version": null
+        }
+      },
+      "status": "ok",
+      "runtime_meta": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/runtime_calibration_Qwen--Qwen2.5-7B-Instruct.json",
+      "runtime_sanity": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/runtime_sanity_Qwen--Qwen2.5-7B-Instruct.json",
+      "base_raw_profile": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/raw_profile_base_Qwen--Qwen2.5-7B-Instruct.json",
+      "base_gain": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/lut_gain_base_Qwen--Qwen2.5-7B-Instruct.json",
+      "base_penalty": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/lut_penalty_base_Qwen--Qwen2.5-7B-Instruct.json",
+      "hybrid_raw_profile": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/raw_profile_Qwen--Qwen2.5-7B-Instruct.json",
+      "hybrid_gain": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/lut_gain_Qwen--Qwen2.5-7B-Instruct.json",
+      "hybrid_penalty": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/lut_penalty_Qwen--Qwen2.5-7B-Instruct.json"
+    },
+    {
+      "model_id": "google/gemma-2-9b-it",
+      "lut_name": "google--gemma-2-9b-it",
+      "snapshot": "/home/onceas/.cache/huggingface/hub/models--google--gemma-2-9b-it/snapshots/11c9b309abf73637e4b6f9a3fa1e92e615547819",
+      "aliases": [
+        "google/gemma-2-9b-it",
+        "gemma-2-9b-it",
+        "google--gemma-2-9b-it"
+      ],
+      "q_heads": 16,
+      "kv_heads": 8,
+      "head_dim": 224,
+      "d_model": 3584,
+      "base_batch_size": 96,
+      "calibration_buckets": [
+        256,
+        512,
+        1024,
+        1536
+      ],
+      "hardware_fingerprint": {
+        "schema_version": 1,
+        "fingerprint_id": "19bc4bec61a2a2e278de3fcd051057e0dc70a098aff94c19cc0223eb9bc1e8e4",
+        "components": {
+          "gpus": [
+            {
+              "name": "NVIDIA A100-SXM4-80GB",
+              "total_memory_bytes": 84987740160,
+              "capability": [
+                8,
+                0
+              ]
+            }
+          ],
+          "torch_version": "2.7.1+cu126",
+          "torch_cuda": "12.6",
+          "vllm_version": "0.10.1",
+          "driver_version": null,
+          "nvidia_smi_cuda_version": null
+        }
+      },
+      "status": "ok",
+      "runtime_meta": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/runtime_calibration_google--gemma-2-9b-it.json",
+      "runtime_sanity": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/runtime_sanity_google--gemma-2-9b-it.json",
+      "base_raw_profile": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/raw_profile_base_google--gemma-2-9b-it.json",
+      "base_gain": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/lut_gain_base_google--gemma-2-9b-it.json",
+      "base_penalty": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/lut_penalty_base_google--gemma-2-9b-it.json",
+      "hybrid_raw_profile": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/raw_profile_google--gemma-2-9b-it.json",
+      "hybrid_gain": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/lut_gain_google--gemma-2-9b-it.json",
+      "hybrid_penalty": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/lut_penalty_google--gemma-2-9b-it.json"
+    },
+    {
+      "model_id": "google/gemma-7b-it",
+      "lut_name": "google--gemma-7b-it",
+      "snapshot": "/home/onceas/.cache/huggingface/hub/models--google--gemma-7b-it/snapshots/9c5798d27f588501ce1e108079d2a19e4c3a2353",
+      "aliases": [
+        "google/gemma-7b-it",
+        "gemma-7b-it",
+        "google--gemma-7b-it"
+      ],
+      "q_heads": 16,
+      "kv_heads": 16,
+      "head_dim": 192,
+      "d_model": 3072,
+      "base_batch_size": 89,
+      "calibration_buckets": [
+        256,
+        512,
+        1024,
+        1536
+      ],
+      "hardware_fingerprint": {
+        "schema_version": 1,
+        "fingerprint_id": "19bc4bec61a2a2e278de3fcd051057e0dc70a098aff94c19cc0223eb9bc1e8e4",
+        "components": {
+          "gpus": [
+            {
+              "name": "NVIDIA A100-SXM4-80GB",
+              "total_memory_bytes": 84987740160,
+              "capability": [
+                8,
+                0
+              ]
+            }
+          ],
+          "torch_version": "2.7.1+cu126",
+          "torch_cuda": "12.6",
+          "vllm_version": "0.10.1",
+          "driver_version": null,
+          "nvidia_smi_cuda_version": null
+        }
+      },
+      "status": "ok",
+      "runtime_meta": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/runtime_calibration_google--gemma-7b-it.json",
+      "runtime_sanity": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/runtime_sanity_google--gemma-7b-it.json",
+      "base_raw_profile": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/raw_profile_base_google--gemma-7b-it.json",
+      "base_gain": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/lut_gain_base_google--gemma-7b-it.json",
+      "base_penalty": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/lut_penalty_base_google--gemma-7b-it.json",
+      "hybrid_raw_profile": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/raw_profile_google--gemma-7b-it.json",
+      "hybrid_gain": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/lut_gain_google--gemma-7b-it.json",
+      "hybrid_penalty": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/lut_penalty_google--gemma-7b-it.json"
+    },
+    {
+      "model_id": "mistralai/Mistral-7B-Instruct-v0.2",
+      "lut_name": "mistralai--Mistral-7B-Instruct-v0.2",
+      "snapshot": "/home/onceas/.cache/huggingface/hub/models--mistralai--Mistral-7B-Instruct-v0.2/snapshots/3ad372fc79158a2148299e3318516c786aeded6c",
+      "aliases": [
+        "mistralai/Mistral-7B-Instruct-v0.2",
+        "Mistral-7B-Instruct-v0.2",
+        "mistralai--Mistral-7B-Instruct-v0.2"
+      ],
+      "q_heads": 32,
+      "kv_heads": 8,
+      "head_dim": 128,
+      "d_model": 4096,
+      "base_batch_size": 96,
+      "calibration_buckets": [
+        256,
+        512,
+        1024,
+        1536
+      ],
+      "hardware_fingerprint": {
+        "schema_version": 1,
+        "fingerprint_id": "19bc4bec61a2a2e278de3fcd051057e0dc70a098aff94c19cc0223eb9bc1e8e4",
+        "components": {
+          "gpus": [
+            {
+              "name": "NVIDIA A100-SXM4-80GB",
+              "total_memory_bytes": 84987740160,
+              "capability": [
+                8,
+                0
+              ]
+            }
+          ],
+          "torch_version": "2.7.1+cu126",
+          "torch_cuda": "12.6",
+          "vllm_version": "0.10.1",
+          "driver_version": null,
+          "nvidia_smi_cuda_version": null
+        }
+      },
+      "status": "ok",
+      "runtime_meta": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/runtime_calibration_mistralai--Mistral-7B-Instruct-v0.2.json",
+      "runtime_sanity": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/runtime_sanity_mistralai--Mistral-7B-Instruct-v0.2.json",
+      "base_raw_profile": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/raw_profile_base_mistralai--Mistral-7B-Instruct-v0.2.json",
+      "base_gain": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/lut_gain_base_mistralai--Mistral-7B-Instruct-v0.2.json",
+      "base_penalty": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/lut_penalty_base_mistralai--Mistral-7B-Instruct-v0.2.json",
+      "hybrid_raw_profile": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/raw_profile_mistralai--Mistral-7B-Instruct-v0.2.json",
+      "hybrid_gain": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/lut_gain_mistralai--Mistral-7B-Instruct-v0.2.json",
+      "hybrid_penalty": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/waveslice/data/lut_tables/lut_penalty_mistralai--Mistral-7B-Instruct-v0.2.json"
+    }
+  ]
+}

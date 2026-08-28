@@ -1,5 +1,9 @@
 # Open-Workload V1 LoRA8 Runtime-Adaptive Result Snapshot
 
+> Historical snapshot: these 2026-04 numbers were produced by the retired
+> execution-escape implementation. They are retained for provenance and must
+> not be attributed to the current scheduler-bound Phase II implementation.
+
 This snapshot fixes the current full 8-model open-workload result after the
 V1 RUNNING-state queue reconciliation fix.
 
@@ -7,7 +11,7 @@ V1 RUNNING-state queue reconciliation fix.
 
 - Run root: `results/openworkload_v1_local_realworld_lora8/runtime_adaptive_full8_20260427_143128`
 - Config: `experiments/configs/openworkload_v1_local_realworld_lora8.json`
-- Runner: `experiments/run_openworkload_execescape_suite.py`
+- Runner: `experiments/run_openworkload_suite.py`
 - Dataset keys: `ultrachat200k,longbench`
 - Densities: `low,mid,high,peak`
 - Status: `32/32` cases completed successfully
@@ -44,8 +48,8 @@ V1 RUNNING-state queue reconciliation fix.
 
 ## Notes
 
-- The current method is Phase I chunk-size boundary control plus Phase II
-  execution escape / priority promotion with runtime queue-pressure adaptation.
+- The method used by this historical run was Phase I chunk-size boundary
+  control plus the now-retired Phase II execution-escape path.
 - The result directory itself is ignored by git through `results/`; this
   document is the repository-tracked result snapshot.
 - The two previously failing cases were rerun successfully after adding V1

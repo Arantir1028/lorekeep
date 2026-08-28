@@ -11,7 +11,6 @@
       "label": "Fixed chunk vs Sarathi-style",
       "enabled": true,
       "include_phase12": false,
-      "include_strict": false,
       "method_labels": {
         "baseline": "Chunked prefill",
         "wave": "Sarathi-style baseline"
@@ -19,25 +18,21 @@
       "phase2": {
         "baseline_enable_chunked_prefill": true,
         "enable_scheduler_cashout": true,
-        "enable_execution_escape": false,
         "enable_mixed_prefill_decode": false
       }
     },
     {
-      "key": "strict_no_chunk",
-      "label": "Strict vs no chunk",
+      "key": "priority_no_chunk",
+      "label": "Scheduler priority vs no chunk",
       "enabled": true,
       "include_phase12": false,
-      "include_strict": true,
       "method_labels": {
         "baseline": "Continuous batching",
-        "wave": "CUCUMIS-II",
-        "strict": "CUCUMIS-Strict"
+        "wave": "CUCUMIS-II"
       },
       "phase2": {
         "baseline_enable_chunked_prefill": false,
         "enable_scheduler_cashout": true,
-        "enable_execution_escape": true,
         "enable_mixed_prefill_decode": false
       }
     }

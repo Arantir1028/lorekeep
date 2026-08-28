@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from config import hw_config as hw_cfg
+from waveslice.lut import config as hw_cfg
 
 FINGERPRINT_SCHEMA_VERSION = 1
 
@@ -39,19 +39,15 @@ def _torch_gpu_components() -> tuple[bool, str | None, list[dict[str, Any]]]:
                         "capability": list(torch.cuda.get_device_capability(idx)),
                     }
                 )
-        return cuda_available, torch_cuda, gpus
+        return (cuda_available, torch_cuda, gpus)
     except Exception:
-        return False, None, []
+        return (False, None, [])
 
 
 def _nvidia_smi_versions() -> dict[str, str]:
     try:
         proc = subprocess.run(
-            [
-                "nvidia-smi",
-                "--query-gpu=driver_version,cuda_version",
-                "--format=csv,noheader",
-            ],
+            ["nvidia-smi", "--query-gpu=driver_version,cuda_version", "--format=csv,noheader"],
             capture_output=True,
             text=True,
             check=False,
@@ -69,7 +65,7 @@ def _nvidia_smi_versions() -> dict[str, str]:
 
 def current_lut_fingerprint(environment: dict[str, Any] | None = None) -> dict[str, Any]:
     if environment is None:
-        cuda_available, torch_cuda, gpus = _torch_gpu_components()
+        (cuda_available, torch_cuda, gpus) = _torch_gpu_components()
         environment = {
             "python_version": sys.version.split()[0],
             "platform": platform.platform(),
@@ -80,7 +76,6 @@ def current_lut_fingerprint(environment: dict[str, Any] | None = None) -> dict[s
             "gpus": gpus,
         }
         environment.update(_nvidia_smi_versions())
-
     components = {
         "gpus": [
             {
@@ -126,9 +121,7 @@ def read_lut_fingerprint(lut_name: str) -> dict[str, Any] | None:
 
 
 def lut_fingerprint_status(
-    lut_name: str,
-    *,
-    environment: dict[str, Any] | None = None,
+    lut_name: str, *, environment: dict[str, Any] | None = None
 ) -> dict[str, Any]:
     current = current_lut_fingerprint(environment)
     stored = read_lut_fingerprint(lut_name)
@@ -141,7 +134,7 @@ def lut_fingerprint_status(
         }
     current_id = str(current.get("fingerprint_id") or "")
     stored_id = str(stored.get("fingerprint_id") or "")
-    ok = bool(current_id and stored_id and current_id == stored_id)
+    ok = bool(current_id and stored_id and (current_id == stored_id))
     return {
         "ok": ok,
         "reason": "" if ok else "lut_hardware_fingerprint_mismatch",

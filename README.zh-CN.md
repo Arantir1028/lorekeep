@@ -1,8 +1,10 @@
-# CUCUMIS 实验运行手册
+# WaveSlice
 
 [English](./README.md) | [简体中文](./README.zh-CN.md)
 
-这份 README 只保留论文实验主路径：Chapter 2 预实验/动机实验，以及 Chapter 5 主评测。和实验路径无关的项目介绍、方法解释、仓库导览和零散调试入口不再放在这里。
+WaveSlice 是面向 vLLM V1 的调度扩展。它作为普通 Python 包安装，不修改 vLLM
+源码，并通过 `EngineArgs` 声明式启用。本仓库同时保留 CUCUMIS 论文的 Chapter 2
+与 Chapter 5 实验工作流。
 
 ## 环境
 
@@ -14,7 +16,8 @@ conda activate sara
 
 实验脚本默认使用当前已经激活的 Python 解释器。配置文件里不应该写机器本地路径，例如用户 home、Conda 安装目录、固定 Hugging Face cache 目录等；实验输出、资源目录和 run root 都应使用仓库相对路径。
 
-当前实验栈使用：
+已有实验记录使用下面这组环境版本。WaveSlice 包本身不固定 vLLM 版本号；当前实现
+针对这套环境中的 V1 API。
 
 - Python `3.10`
 - PyTorch `2.7.1+cu126`
@@ -34,6 +37,37 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 python -m pip install -e .
 ```
+
+## Python API
+
+WaveSlice 扩展了 vLLM 的 `EngineArgs`，不要求修改 vLLM 源码，也不需要额外调用
+注入函数。WaveSlice 目前只支持 vLLM V1 引擎。
+
+```python
+from waveslice import EngineArgs, WaveSliceConfig
+from vllm.engine.llm_engine import LLMEngine
+
+engine_args = EngineArgs(
+    model="/models/Mistral-7B-v0.1",
+    enable_wave_slice=True,
+    wave_slice_config=WaveSliceConfig(
+        # 用于选择 LUT 文件，不是模型权重路径。
+        lut_model="Mistral-7B-v0.1",
+        gamma=2.0,
+    ),
+    enable_chunked_prefill=True,
+    max_num_batched_tokens=1536,
+    max_num_partial_prefills=1,
+    max_long_partial_prefills=1,
+    max_model_len=4096,
+    enforce_eager=True,
+)
+engine = LLMEngine.from_engine_args(engine_args)
+```
+
+设置 `enable_wave_slice=False` 时会走原生 vLLM 调度路径。若省略
+`lut_model`，WaveSlice 会从 `model` 的最后一级名称推断 LUT 名称。运行时指标仍可
+通过 `waveslice.get_wave_slice_metrics()` 获取。
 
 模型和数据集由配置文件选择。`resource_selection.auto_download=true` 时，本地缺失的 Hugging Face 资源会自动下载；只有目标机器已经有完整 cache 时，才把 `resource_selection.offline` 设为 `true`。如果模型需要授权但当前账号没有权限，Hugging Face 或 vLLM 会直接报错，需要用户自己处理授权或 token。
 
@@ -72,11 +106,11 @@ python experiments/run_chapter5_suite.py \
 
 LUT builder 会写入或刷新：
 
-- `data/lut_tables/raw_profile_<lut_name>.json`
-- `data/lut_tables/lut_gain_<lut_name>.json`
-- `data/lut_tables/lut_penalty_<lut_name>.json`
-- `data/lut_tables/runtime_calibration_<lut_name>.json`
-- `data/lut_tables/runtime_sanity_<lut_name>.json`
+- `waveslice/data/lut_tables/raw_profile_<lut_name>.json`
+- `waveslice/data/lut_tables/lut_gain_<lut_name>.json`
+- `waveslice/data/lut_tables/lut_penalty_<lut_name>.json`
+- `waveslice/data/lut_tables/runtime_calibration_<lut_name>.json`
+- `waveslice/data/lut_tables/runtime_sanity_<lut_name>.json`
 
 `--skip-preflight-lut-rebuild` 只建议用于调试 stale-LUT 检测；如果选中的 LUT 和当前 GPU fingerprint 不匹配，preflight 在这个模式下不会写出可用的 resolved config。
 
@@ -132,7 +166,7 @@ python experiments/run_chapter5_suite.py \
   --stages baseline \
   --main-run-root results/openworkload_v1_local_realworld_lora8/chapter5_demo_main \
   --run-tag chapter5_demo \
-  --variants strict_no_chunk \
+  --variants priority_no_chunk \
   --model-keys mistral-7b-v0.1 \
   --densities mid
 ```
@@ -171,46 +205,25 @@ Preflight 关键产物：
 - `metadata/resolved_config.json`：后续 Chapter 5 主实验实际消费的配置。
 - `metadata/preflight_summary.json`：简短机器可读汇总。
 
-## Chapter 2 预实验
+## Chapter 2 观察实验
 
-Chapter 2 使用：
+当前维护的 Chapter 2 路径只重建固定 vLLM 观察，不加载 CUCUMIS hook：
 
-- 入口：`experiments/chapter2_prestudy.py`
-- 配置：`experiments/configs/chapter2_prestudy_v1.json`
+- 入口：`experiments/run_chapter2_observations.py`
+- 配置：`experiments/configs/chapter2_observations_v2.json`
 
-运行当前保留的整套预实验：
-
-```bash
-python experiments/chapter2_prestudy.py all \
-  --config experiments/configs/chapter2_prestudy_v1.json \
-  --out-root results/chapter2_prestudy_v1/<run_id>
-```
-
-单独运行某个实验：
+运行两个保留观察：
 
 ```bash
-python experiments/chapter2_prestudy.py e1 --config experiments/configs/chapter2_prestudy_v1.json
-python experiments/chapter2_prestudy.py e2 --config experiments/configs/chapter2_prestudy_v1.json
-python experiments/chapter2_prestudy.py e3 --config experiments/configs/chapter2_prestudy_v1.json
-python experiments/chapter2_prestudy.py e3paper --config experiments/configs/chapter2_prestudy_v1.json
-python experiments/chapter2_prestudy.py e4 --config experiments/configs/chapter2_prestudy_v1.json
-python experiments/chapter2_prestudy.py e5 --config experiments/configs/chapter2_prestudy_v1.json
+python experiments/run_chapter2_observations.py \
+  --config experiments/configs/chapter2_observations_v2.json \
+  --observations all \
+  --run-name chapter2_demo
 ```
 
-当前保留的 Chapter 2 实验：
-
-- `E1 Motivating Microbenchmark`：长请求先到、短请求后到的动机实验。
-- `E2 Arrival-Order Sensitivity`：展示到达顺序如何改变干扰强度。
-- `E3 Fixed Chunking vs Online Control`：比较 no chunking、fixed chunking 和 online control。
-- `E3 Paper Case`：从已有 beneficiary-rich 结果中导出稳定正文图。
-- `E4 Density Sweep`：展示负载上升时 TTFT 和 slowdown 的变化。
-- `E5 LoRA Multi-Tenancy Relevance`：比较 non-LoRA、homogeneous LoRA、mixed-adapter LoRA。
-
-Chapter 2 输出路径：
-
-- `results/chapter2_prestudy_v1/<run_id>/`
-
-输出目录中包含每个 case 的 summary、request-level timing 数据和论文动机/观察部分使用的图。
+`--observations obs1` 只运行一个/两个长请求对比，`obs2` 只运行固定 token budget
+sweep。输出位于 `results/chapter2_observations_v2/<run_name>/`，包含 manifest、
+workload、原始请求时延、日志与 `summary.json`。
 
 ## 路径规则
 

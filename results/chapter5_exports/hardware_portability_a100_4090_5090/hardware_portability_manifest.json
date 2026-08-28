@@ -1,0 +1,38 @@
+{
+  "generated_at_utc": "2026-07-07T03:14:28.489300+00:00",
+  "export_root": "results/chapter5_exports/hardware_portability_a100_4090_5090",
+  "profiles": [
+    "a100",
+    "rtx4090",
+    "rtx5090"
+  ],
+  "sources": {
+    "a100": {
+      "root": "results/hardware_portability_remote_mirror/a100/results/hardware_portability_supervised_full5/a100/unified_distserve_cucumis_2gpu_lb",
+      "comparison_csv": "results/hardware_portability_remote_mirror/a100/results/hardware_portability_supervised_full5/a100/unified_distserve_cucumis_2gpu_lb/cucumis_2a100/distserve_equal_resource_real_comparison.csv",
+      "metadata_json": "results/hardware_portability_remote_mirror/a100/results/hardware_portability_supervised_full5/a100/unified_distserve_cucumis_2gpu_lb/metadata/hardware_profile.json",
+      "status": "ok",
+      "host_label": "supervised-a100-full5-gmu07",
+      "elapsed_sec": 24383.875262737274
+    },
+    "rtx4090": {
+      "root": "results/hardware_portability_remote_mirror/rtx4090/results/hardware_portability_supervised_full5/rtx4090/unified_distserve_cucumis_2gpu_lb",
+      "comparison_csv": "results/hardware_portability_remote_mirror/rtx4090/results/hardware_portability_supervised_full5/rtx4090/unified_distserve_cucumis_2gpu_lb/cucumis_2a100/distserve_equal_resource_real_comparison.csv",
+      "metadata_json": "results/hardware_portability_remote_mirror/rtx4090/results/hardware_portability_supervised_full5/rtx4090/unified_distserve_cucumis_2gpu_lb/metadata/hardware_profile.json",
+      "status": "ok",
+      "host_label": "supervised-rtx4090-full5-gmu075",
+      "elapsed_sec": 17884.43717432022
+    },
+    "rtx5090": {
+      "root": "results/hardware_portability_remote_mirror/rtx5090/results/hardware_portability_supervised_full5/rtx5090/unified_distserve_cucumis_2gpu_lb",
+      "comparison_csv": "results/hardware_portability_remote_mirror/rtx5090/results/hardware_portability_supervised_full5/rtx5090/unified_distserve_cucumis_2gpu_lb/cucumis_2a100/distserve_equal_resource_real_comparison.csv",
+      "metadata_json": "results/hardware_portability_remote_mirror/rtx5090/results/hardware_portability_supervised_full5/rtx5090/unified_distserve_cucumis_2gpu_lb/metadata/hardware_profile.json",
+      "status": "ok",
+      "host_label": "supervised-rtx5090-full5-gmu08",
+      "elapsed_sec": 3072.789388656616
+    }
+  },
+  "ratio_definition": "DistServe / CUCUMIS",
+  "latency_ratio_interpretation": "larger than 1 favors CUCUMIS",
+  "throughput_ratio_interpretation": "smaller than 1 favors CUCUMIS"
+}

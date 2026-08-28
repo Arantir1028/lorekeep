@@ -3,7 +3,7 @@
     "out_root": "results/chapter2_prestudy_v1",
     "density_suite_root": ""
   },
-  "resource_catalog_config": "experiments/configs/openworkload_execescape_full10.json",
+  "resource_catalog_config": "experiments/configs/openworkload_resources_full10.json",
   "resource_selection": {
     "model_mode": "local_all_runnable",
     "dataset_mode": "local_supported_from_catalog",
@@ -40,19 +40,8 @@
   },
   "phase12_soft_gate": {
     "phase2_gate_mode": "soft",
-    "soft_ratio_scale": 1.15,
-    "soft_pressure_scale": 1.1,
     "soft_min_long_prefill": 512,
-    "soft_allow_mixed_decode": true,
-    "soft_recent_strength_floor": 0.08,
-    "soft_require_cashout_signal": true,
-    "soft_recent_chunk_match_scale": 1.5,
-    "soft_window_score_threshold": 0.95,
-    "soft_window_recent_weight": 0.4,
-    "soft_window_chunk_weight": 0.25,
-    "soft_window_pressure_weight": 0.2,
-    "soft_window_ratio_weight": 0.1,
-    "soft_window_decode_bonus": 0.1
+    "soft_allow_mixed_decode": true
   },
   "phase2": {
     "dispatch_mode": "synchronized",
@@ -60,11 +49,7 @@
     "min_hetero_ratio": 4.0,
     "min_long_prefill": 768,
     "min_pressure_ratio": 4.0,
-    "enable_scheduler_cashout": true,
-    "enable_execution_escape": true,
-    "execution_escape_mode": "bounded_spillover",
-    "execution_escape_spillover_cap": 3,
-    "execution_escape_max_active": 5
+    "enable_scheduler_cashout": true
   },
   "characterization": {
     "short_leq_tokens": 256,

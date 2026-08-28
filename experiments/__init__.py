@@ -1,2 +1,1 @@
-"""Experiment runners for Wave-Slice."""
-
+"""Experiment runners for WaveSlice."""

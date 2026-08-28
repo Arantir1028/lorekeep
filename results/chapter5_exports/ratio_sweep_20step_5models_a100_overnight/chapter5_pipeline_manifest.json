@@ -1,0 +1,14 @@
+{
+  "pipeline_config": "experiments/configs/chapter5_pipeline_ratio_sweep.json",
+  "stages": [
+    "preflight",
+    "main",
+    "baseline"
+  ],
+  "main_config": "experiments/configs/openworkload_ratio_sweep_lora8.json",
+  "baseline_config": "experiments/configs/chapter5_baseline_variants_lora7.json",
+  "preflight_run_root": "results/openworkload_ratio_sweep_lora8/ratio_sweep_20step_5models_a100_overnight_preflight",
+  "main_run_root": "results/openworkload_ratio_sweep_lora8/ratio_sweep_20step_5models_a100_overnight_main",
+  "baseline_run_root": "results/chapter5_baseline_variants/ratio_sweep_20step_5models_a100_overnight_baseline",
+  "e5_summary": ""
+}

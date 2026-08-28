@@ -1,0 +1,88 @@
+{
+  "suite_name": "distserve_functional_repro_ratio_sweep",
+  "source_main_run": "results/openworkload_ratio_sweep_lora8/ratio_sweep_20step_5models_a100_overnight_main",
+  "source_baseline_run": "results/chapter5_baseline_variants/ratio_sweep_20step_5models_a100_overnight_baseline",
+  "source_method_metrics": "results/chapter5_exports/ratio_sweep_20step_5models_a100_overnight/ratio_sweep_method_metrics.csv",
+  "calibration_root": "waveslice/data/lut_tables",
+  "out_dir": "results/chapter5_exports/distserve_functional_repro_ratio_sweep",
+  "models": [
+    "baichuan2-7b-chat",
+    "gemma-2-9b-it",
+    "gemma-7b-it",
+    "mistral-7b-instruct-v0.2",
+    "qwen2.5-7b-instruct"
+  ],
+  "densities": [
+    "mid_l10",
+    "mid_l30",
+    "mid_l50",
+    "mid_l70",
+    "mid_l90",
+    "high_l10",
+    "high_l30",
+    "high_l50",
+    "high_l70",
+    "high_l90"
+  ],
+  "simulation": {
+    "output_tokens": 64,
+    "prefill_batch_window_ms": 0.5,
+    "prefill_batch_token_cap": 8192,
+    "decode_batch_window_ms": 0.5,
+    "decode_batch_size": 16,
+    "decode_batch_alpha": 0.08,
+    "decode_estimator_quantile": 0.25,
+    "decode_default_token_ms": 8.0,
+    "decode_min_token_ms": 0.2,
+    "paper_default_ttft_mode": "prefill_finish",
+    "ttft_sensitivity_modes": [
+      "prefill_finish",
+      "decode_ready",
+      "decode_first_token",
+      "decode_queue_first_token"
+    ],
+    "paper_default_short_prefill_mode": "linear_to_zero",
+    "short_prefill_sensitivity_modes": [
+      "linear_to_zero",
+      "floor_to_min"
+    ],
+    "cucumis_replica_dispatchers": [
+      "round_robin",
+      "least_backlog"
+    ],
+    "dtype_bytes": 2,
+    "resource_profiles": [
+      {
+        "key": "distserve_2a100",
+        "label": "DistServe-2GPU",
+        "method_label": "DistServe",
+        "prefill_workers": 1,
+        "decode_workers": 1,
+        "prefill_service_scale": 1.0,
+        "decode_service_scale": 1.0,
+        "gpu_count": 2
+      }
+    ],
+    "kv_profiles": [
+      {
+        "key": "optimistic_nvlink",
+        "label": "optimistic NVLink",
+        "bandwidth_gbps": 150.0,
+        "fixed_ms": 0.02
+      },
+      {
+        "key": "realistic_pcie",
+        "label": "realistic PCIe",
+        "bandwidth_gbps": 32.0,
+        "fixed_ms": 0.10,
+        "paper_default": true
+      },
+      {
+        "key": "pessimistic_pcie",
+        "label": "pessimistic PCIe",
+        "bandwidth_gbps": 16.0,
+        "fixed_ms": 0.50
+      }
+    ]
+  }
+}

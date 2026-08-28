@@ -1,0 +1,9 @@
+{
+  "suite_name": "chapter5_pipeline_ratio_sweep",
+  "main_config": "experiments/configs/openworkload_ratio_sweep_lora8.json",
+  "baseline_config": "experiments/configs/chapter5_baseline_variants_lora7.json",
+  "figures_out_root": "results/chapter5_exports",
+  "partial_figures": {
+    "e5_summary": ""
+  }
+}

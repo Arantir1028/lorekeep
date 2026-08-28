@@ -1,92 +1,208 @@
-"""Remix an existing dataset workload with a new arrival layout and schedule."""
+"""Remix a frozen dataset workload into a new size and arrival schedule."""
 
 from __future__ import annotations
 
 import argparse
-import json
-import os
+import random
+from pathlib import Path
 
 from experiments.build_dataset_workload import _arrival_order, _assign_poisson_arrivals
+from experiments.result_io import read_json, write_json
 
 
-def _load(path: str):
-    with open(path, 'r', encoding='utf-8') as f:
-        return json.load(f)
+def _typed_pool(items: list[dict], *, is_short: bool) -> list[dict]:
+    return sorted(
+        (dict(item) for item in items if bool(item.get("is_short")) is is_short),
+        key=lambda item: (int(item.get("tokens") or 0), str(item.get("req_id") or "")),
+    )
+
+
+def _cycle_sample(pool: list[dict], count: int, *, seed: int) -> list[dict]:
+    if count <= 0:
+        return []
+    if not pool:
+        raise ValueError("cannot sample from an empty request pool")
+    rng, order, output = random.Random(seed), list(pool), []
+    while len(output) < count:
+        rng.shuffle(order)
+        output.extend(dict(item) for item in order[: count - len(output)])
+    return output
+
+
+def _copy_request(item: dict, request_id: str, short: bool, lora: str | None = None) -> dict:
+    output = {"req_id": request_id, "prompt": item["prompt"], "is_short": short}
+    if lora:
+        output["lora_tag"] = lora
+    output.update(source=item.get("source", ""), tokens=item.get("tokens"))
+    return output
+
+
+def _phase1_from_pool(
+    requests: list[dict], *, short_count: int, long_count: int, seed: int
+) -> list[dict]:
+    shorts, longs = _typed_pool(requests, is_short=True), _typed_pool(requests, is_short=False)
+    if len(shorts) < 2 or not longs:
+        raise ValueError(
+            "source phase1 workload must include at least two short and one long requests"
+        )
+    output = [_copy_request(shorts[0], "short_a", True), _copy_request(shorts[1], "short_b", True)]
+    output += [
+        _copy_request(item, f"short_{index:02d}", True)
+        for index, item in enumerate(_cycle_sample(shorts, max(0, short_count), seed=seed + 11))
+    ]
+    output += [_copy_request(longs[-1], "long_b", False)]
+    output += [
+        _copy_request(item, f"long_{index:02d}", False)
+        for index, item in enumerate(_cycle_sample(longs, max(0, long_count), seed=seed + 23))
+    ]
+    return output
+
+
+def _phase2_from_pool(
+    requests: list[dict], *, short_count: int, long_count: int, seed: int
+) -> list[dict]:
+    shorts, longs = _typed_pool(requests, is_short=True), _typed_pool(requests, is_short=False)
+    if len(shorts) < 2 or len(longs) < 2:
+        raise ValueError(
+            "source phase2 workload must include at least two short and two long requests"
+        )
+    output = [
+        _copy_request(shorts[0], "short_a", True, "A"),
+        _copy_request(shorts[1], "mid_b", True, "B"),
+        _copy_request(longs[0], "long_a", False, "A"),
+        _copy_request(longs[-1], "long_b", False, "B"),
+    ]
+    output += [
+        _copy_request(item, f"short_extra_{index:02d}", True, "A" if index % 2 == 0 else "B")
+        for index, item in enumerate(_cycle_sample(shorts, max(0, short_count), seed=seed + 101))
+    ]
+    output += [
+        _copy_request(item, f"long_extra_{index:02d}", False, "A" if index % 2 == 0 else "B")
+        for index, item in enumerate(_cycle_sample(longs, max(0, long_count), seed=seed + 211))
+    ]
+    return output
+
+
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--src-prefix", required=True)
+    parser.add_argument("--out-prefix", required=True)
+    for phase in (1, 2):
+        parser.add_argument(f"--phase{phase}-short-count", type=int)
+        parser.add_argument(f"--phase{phase}-long-count", type=int)
+        parser.add_argument(f"--phase{phase}-arrival-rate", type=float, default=6.0)
+        parser.add_argument(
+            f"--phase{phase}-arrival-layout",
+            choices=["grouped", "mixed", "beneficiary_rich"],
+            default="beneficiary_rich",
+        )
+        parser.add_argument(
+            f"--phase{phase}-early-short-frac", type=float, default=0.25 if phase == 1 else 0.20
+        )
+        parser.add_argument(
+            f"--phase{phase}-post-long-short-bias", type=float, default=0.70 if phase == 1 else 0.60
+        )
+    parser.add_argument("--arrival-mode", choices=["burst", "poisson"], default="poisson")
+    parser.add_argument("--arrival-seed", type=int, default=7)
+    return parser
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description='Remix an existing workload prefix into a new arrival stream.')
-    parser.add_argument('--src-prefix', required=True)
-    parser.add_argument('--out-prefix', required=True)
-    parser.add_argument('--arrival-mode', choices=['burst', 'poisson'], default='poisson')
-    parser.add_argument('--phase1-arrival-rate', type=float, default=6.0)
-    parser.add_argument('--phase2-arrival-rate', type=float, default=6.0)
-    parser.add_argument('--arrival-seed', type=int, default=7)
-    parser.add_argument('--phase1-arrival-layout', choices=['grouped', 'mixed', 'beneficiary_rich'], default='beneficiary_rich')
-    parser.add_argument('--phase2-arrival-layout', choices=['grouped', 'mixed', 'beneficiary_rich'], default='beneficiary_rich')
-    parser.add_argument('--phase1-early-short-frac', type=float, default=0.25)
-    parser.add_argument('--phase2-early-short-frac', type=float, default=0.20)
-    parser.add_argument('--phase1-post-long-short-bias', type=float, default=0.70)
-    parser.add_argument('--phase2-post-long-short-bias', type=float, default=0.60)
-    args = parser.parse_args()
-
-    src_req = f'{args.src_prefix}_requests.json'
-    src_lora = f'{args.src_prefix}_lora_requests.json'
-    src_meta = f'{args.src_prefix}_meta.json'
-    reqs = _load(src_req)
-    lora_reqs = _load(src_lora)
-    meta = _load(src_meta) if os.path.exists(src_meta) else {}
-
-    reqs = _arrival_order(
-        reqs,
-        seed=int(args.arrival_seed) + 17,
-        layout=str(args.phase1_arrival_layout),
-        early_short_frac=float(args.phase1_early_short_frac),
-        post_long_short_bias=float(args.phase1_post_long_short_bias),
+    args = _parser().parse_args()
+    source, output = Path(args.src_prefix), Path(args.out_prefix)
+    requests = read_json(Path(str(source) + "_requests.json"))
+    lora_requests = read_json(Path(str(source) + "_lora_requests.json"))
+    meta_path = Path(str(source) + "_meta.json")
+    metadata = read_json(meta_path) if meta_path.exists() else {}
+    workloads = [requests, lora_requests]
+    for phase, key, minimum in ((1, "phase1", (2, 1)), (2, "phase2", (2, 2))):
+        short_arg, long_arg = (
+            getattr(args, f"{key}_short_count"),
+            getattr(args, f"{key}_long_count"),
+        )
+        if short_arg is not None or long_arg is not None:
+            short_count = max(
+                minimum[0],
+                int(
+                    short_arg
+                    if short_arg is not None
+                    else metadata.get(f"{key}_config_short_count", 24)
+                ),
+            )
+            long_count = max(
+                minimum[1],
+                int(
+                    long_arg
+                    if long_arg is not None
+                    else metadata.get(f"{key}_config_long_count", 8 if phase == 1 else 12)
+                ),
+            )
+            workloads[phase - 1] = (_phase1_from_pool if phase == 1 else _phase2_from_pool)(
+                workloads[phase - 1],
+                short_count=short_count,
+                long_count=long_count,
+                seed=args.arrival_seed,
+            )
+        workloads[phase - 1] = _arrival_order(
+            workloads[phase - 1],
+            seed=args.arrival_seed + (17 if phase == 1 else 1017),
+            layout=getattr(args, f"{key}_arrival_layout"),
+            early_short_frac=getattr(args, f"{key}_early_short_frac"),
+            post_long_short_bias=getattr(args, f"{key}_post_long_short_bias"),
+        )
+        if args.arrival_mode == "poisson":
+            workloads[phase - 1] = _assign_poisson_arrivals(
+                workloads[phase - 1],
+                rate_per_s=getattr(args, f"{key}_arrival_rate"),
+                seed=args.arrival_seed + (0 if phase == 1 else 1009),
+            )
+        else:
+            workloads[phase - 1] = [
+                dict(item, arrival_offset_s=0.0) for item in workloads[phase - 1]
+            ]
+    requests, lora_requests = workloads
+    actual = {}
+    for phase, items in ((1, requests), (2, lora_requests)):
+        short = sum(bool(item.get("is_short")) for item in items)
+        actual[phase] = (short, len(items) - short)
+    metadata.update(
+        {
+            "arrival_mode": args.arrival_mode,
+            "phase1_arrival_layout": args.phase1_arrival_layout,
+            "phase2_arrival_layout": args.phase2_arrival_layout,
+            "phase1_arrival_rate": args.phase1_arrival_rate,
+            "phase2_arrival_rate": args.phase2_arrival_rate,
+        }
     )
-    lora_reqs = _arrival_order(
-        lora_reqs,
-        seed=int(args.arrival_seed) + 1017,
-        layout=str(args.phase2_arrival_layout),
-        early_short_frac=float(args.phase2_early_short_frac),
-        post_long_short_bias=float(args.phase2_post_long_short_bias),
-    )
-
-    if args.arrival_mode == 'poisson':
-        reqs = _assign_poisson_arrivals(reqs, rate_per_s=float(args.phase1_arrival_rate), seed=int(args.arrival_seed))
-        lora_reqs = _assign_poisson_arrivals(lora_reqs, rate_per_s=float(args.phase2_arrival_rate), seed=int(args.arrival_seed) + 1009)
-    else:
-        reqs = [dict(item, arrival_offset_s=0.0) for item in reqs]
-        lora_reqs = [dict(item, arrival_offset_s=0.0) for item in lora_reqs]
-
-    os.makedirs(os.path.dirname(args.out_prefix) or '.', exist_ok=True)
-    req_path = f'{args.out_prefix}_requests.json'
-    lora_path = f'{args.out_prefix}_lora_requests.json'
-    meta_path = f'{args.out_prefix}_meta.json'
-    with open(req_path, 'w', encoding='utf-8') as f:
-        json.dump(reqs, f, ensure_ascii=False, indent=2)
-    with open(lora_path, 'w', encoding='utf-8') as f:
-        json.dump(lora_reqs, f, ensure_ascii=False, indent=2)
-    meta.update({
-        'arrival_mode': args.arrival_mode,
-        'phase1_arrival_layout': args.phase1_arrival_layout,
-        'phase2_arrival_layout': args.phase2_arrival_layout,
-        'phase1_arrival_rate': args.phase1_arrival_rate,
-        'phase2_arrival_rate': args.phase2_arrival_rate,
-        'phase1_request_count': len(reqs),
-        'phase2_request_count': len(lora_reqs),
-        'phase1_last_arrival_s': max((float(item.get('arrival_offset_s', 0.0)) for item in reqs), default=0.0),
-        'phase2_last_arrival_s': max((float(item.get('arrival_offset_s', 0.0)) for item in lora_reqs), default=0.0),
-        'source_workload_prefix': args.src_prefix,
-    })
-    with open(meta_path, 'w', encoding='utf-8') as f:
-        json.dump(meta, f, ensure_ascii=False, indent=2)
-
-    print(f'[Saved] {req_path}')
-    print(f'[Saved] {lora_path}')
-    print(f'[Saved] {meta_path}')
+    for phase, items in ((1, requests), (2, lora_requests)):
+        key = f"phase{phase}"
+        metadata.update(
+            {
+                f"{key}_config_short_count": getattr(args, f"{key}_short_count")
+                if getattr(args, f"{key}_short_count") is not None
+                else metadata.get(f"{key}_config_short_count"),
+                f"{key}_config_long_count": getattr(args, f"{key}_long_count")
+                if getattr(args, f"{key}_long_count") is not None
+                else metadata.get(f"{key}_config_long_count"),
+                f"{key}_short_count": actual[phase][0],
+                f"{key}_long_count": actual[phase][1],
+                f"{key}_long_fraction": actual[phase][1] / len(items) if items else 0.0,
+                f"{key}_request_count": len(items),
+                f"{key}_last_arrival_s": max(
+                    (float(item.get("arrival_offset_s", 0.0)) for item in items), default=0.0
+                ),
+            }
+        )
+    metadata["source_workload_prefix"] = args.src_prefix
+    paths = [
+        Path(str(output) + suffix)
+        for suffix in ("_requests.json", "_lora_requests.json", "_meta.json")
+    ]
+    for path, payload in zip(paths, (requests, lora_requests, metadata), strict=False):
+        write_json(path, payload)
+        print(f"[Saved] {path}")
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     raise SystemExit(main())

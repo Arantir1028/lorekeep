@@ -1,2 +1,0 @@
-"""Wave-Slice engine utilities."""
-
