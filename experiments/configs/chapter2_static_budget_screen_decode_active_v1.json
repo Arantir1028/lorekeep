@@ -1,0 +1,50 @@
+{
+  "schema_version": "waveslice-chapter2-study-v1",
+  "paths": {
+    "out_root": "results/chapter2_static_budget_screens_v1"
+  },
+  "study": {
+    "purpose": "Third and final mechanism-based screen. Two long requests begin first; short requests arrive at 0.50--0.55 s, after the initial long request is expected to enter decode. A forced 256-token decode keeps the long requests active, testing fixed budgets under prefill--decode coexistence rather than only prefill contention.",
+    "decision_rule": "Promote this trace to a full ten-budget confirmation only if its best tested fixed budget differs materially from the delayed-short two-long trace. If not, report that these screened contention states did not establish a trace-dependent static optimum and do not add a second Figure 3 curve."
+  },
+  "resource_selection": {
+    "auto_download": false,
+    "offline": true
+  },
+  "model": {
+    "key": "mistral-7b-v0.1",
+    "max_model_len": 4096,
+    "model_path_mode": "local_snapshot_required",
+    "reason": "Match the cached Mistral-7B-v0.1 checkpoint used for the rebuilt Figure 3 observations."
+  },
+  "evaluation": {
+    "warmup_iters": 1,
+    "repeats": 3,
+    "timeout_sec": 720,
+    "max_new_tokens": 256,
+    "ignore_eos": true,
+    "gpu_memory_utilization": 0.6,
+    "max_num_partial_prefills": 1,
+    "max_long_partial_prefills": 1
+  },
+  "workload": {
+    "pattern": "long_first",
+    "short_count": 6,
+    "short_prompt_repeat": 2,
+    "long_prompt_repeat": 70,
+    "short_start_s": 0.50,
+    "short_gap_s": 0.01,
+    "long_gap_s": 0.0,
+    "sequential_delay_s": 6.0
+  },
+  "observation2": {
+    "long_count": 2,
+    "fixed_token_budgets": [
+      256,
+      512,
+      768,
+      1536,
+      2048
+    ]
+  }
+}

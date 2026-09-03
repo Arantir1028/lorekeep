@@ -1,0 +1,47 @@
+{
+  "schema_version": "waveslice-result-bundles-v1",
+  "digest_algorithm": "sha256(path_length || path || content_length || content)",
+  "included_suffixes": [".csv", ".json", ".tex"],
+  "bundles": [
+    {
+      "key": "ratio_sweep_20step_5models_a100_overnight",
+      "root": "results/chapter5_exports/ratio_sweep_20step_5models_a100_overnight",
+      "analysis_level": "aggregate_and_case",
+      "source_manifest": "chapter5_pipeline_manifest.json",
+      "source_commit_recorded": false,
+      "file_count": 10,
+      "byte_count": 1920470,
+      "tree_sha256": "14846ff5981835ed582dd2d74f4cb01701ba761f3654f681e937b5c20d1f0563"
+    },
+    {
+      "key": "unified_distserve_continuous_cucumis_2a100_replay",
+      "root": "results/openworkload_ratio_sweep_lora8/unified_distserve_continuous_cucumis_2a100_replay",
+      "analysis_level": "request",
+      "source_manifest": "metadata/manifest.json",
+      "source_commit_recorded": false,
+      "file_count": 72,
+      "byte_count": 25016195,
+      "tree_sha256": "9594a7a553cbfc6e894e6986ac65e8dce1d43c8e39093ef28117913f8433d779"
+    },
+    {
+      "key": "hardware_portability_a100_4090_5090",
+      "root": "results/chapter5_exports/hardware_portability_a100_4090_5090",
+      "analysis_level": "aggregate_and_case",
+      "source_manifest": "hardware_portability_manifest.json",
+      "source_commit_recorded": false,
+      "file_count": 6,
+      "byte_count": 59206,
+      "tree_sha256": "7792686b329d1d34e337de09dbf37b9d37141a1d8fc6684fe18ed5e76548f80f"
+    }
+  ],
+  "external_data": {
+    "full_chapter5_run_trees": {
+      "tracked": false,
+      "download_url": null
+    },
+    "hardware_source_mirrors": {
+      "tracked": false,
+      "download_url": null
+    }
+  }
+}

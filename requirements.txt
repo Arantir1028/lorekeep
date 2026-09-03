@@ -1,0 +1,11 @@
+-c constraints/validated-vllm.txt
+
+torch
+vllm
+transformers
+datasets
+peft
+safetensors
+huggingface_hub
+numpy
+tqdm

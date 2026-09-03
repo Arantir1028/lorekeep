@@ -1,0 +1,90 @@
+{
+  "schema_version": "waveslice-scheduler-scenarios-v1",
+  "phase1": [
+    {
+      "name": "one_short_one_long",
+      "policy": {},
+      "requests": [
+        {"request_id": "short", "remaining_tokens": 128},
+        {"request_id": "long", "remaining_tokens": 2048}
+      ],
+      "expected": {
+        "eligible": true,
+        "representative_short_len": 128,
+        "long_len": 2048,
+        "long_request_id": "long"
+      }
+    },
+    {
+      "name": "homogeneous_prefills",
+      "policy": {},
+      "requests": [
+        {"request_id": "request_a", "remaining_tokens": 512},
+        {"request_id": "request_b", "remaining_tokens": 640}
+      ],
+      "expected": {"eligible": false}
+    }
+  ],
+  "phase2": [
+    {
+      "name": "rank_and_length_heterogeneity",
+      "policy": {"phase2_min_hetero_ratio": 2.0},
+      "requests": [
+        {
+          "request_id": "short",
+          "scheduled_tokens": 64,
+          "remaining_tokens": 64,
+          "expected_chunk_tokens": 64,
+          "input_tokens": 64,
+          "arrival_s": null,
+          "is_short": true,
+          "lora_rank": 4
+        },
+        {
+          "request_id": "long",
+          "scheduled_tokens": 1024,
+          "remaining_tokens": 1024,
+          "expected_chunk_tokens": 256,
+          "input_tokens": 1024,
+          "arrival_s": null,
+          "is_short": false,
+          "lora_rank": 16
+        }
+      ],
+      "expected": {
+        "anchor_request_id": "long",
+        "beneficiary_request_ids": ["short"]
+      }
+    },
+    {
+      "name": "homogeneous_service_cost",
+      "policy": {"phase2_min_hetero_ratio": 2.0},
+      "requests": [
+        {
+          "request_id": "request_a",
+          "scheduled_tokens": 512,
+          "remaining_tokens": 512,
+          "expected_chunk_tokens": 512,
+          "input_tokens": 512,
+          "arrival_s": null,
+          "is_short": false,
+          "lora_rank": 8
+        },
+        {
+          "request_id": "request_b",
+          "scheduled_tokens": 512,
+          "remaining_tokens": 512,
+          "expected_chunk_tokens": 512,
+          "input_tokens": 512,
+          "arrival_s": null,
+          "is_short": false,
+          "lora_rank": 8
+        }
+      ],
+      "expected": {
+        "anchor_request_id": "request_b",
+        "beneficiary_request_ids": []
+      }
+    }
+  ]
+}

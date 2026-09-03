@@ -1,0 +1,14 @@
+\begin{table}[t]
+\centering
+\caption{Hardware portability under equal-resource DistServe/CUCUMIS comparison. Ratios are DistServe/CUCUMIS; for latency and wall time, higher is better for CUCUMIS, while throughput below $1\times$ means CUCUMIS is faster.}
+\label{tab:hardware-portability}
+\begin{tabular}{lrrrrr}
+\toprule
+GPU & All TTFT p99 & Short TTFT p99 & Completion p99 & Wall time & Throughput \\
+\midrule
+A100 & 2.54x & 4.61x & 3.75x & 2.48x & 0.41x \\
+RTX 4090 & 1.34x & 3.33x & 2.09x & 1.61x & 0.79x \\
+RTX 5090 & 1.50x & 3.35x & 2.60x & 1.84x & 0.56x \\
+\bottomrule
+\end{tabular}
+\end{table}

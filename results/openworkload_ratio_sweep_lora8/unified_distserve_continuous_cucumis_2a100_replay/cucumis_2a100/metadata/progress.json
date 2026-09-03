@@ -1,0 +1,1802 @@
+[
+  {
+    "density": "mid_l10",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l10/baichuan2-7b-chat/round_robin/replica0.json"
+  },
+  {
+    "density": "mid_l10",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l10/baichuan2-7b-chat/round_robin/replica1.json"
+  },
+  {
+    "density": "mid_l10",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l10/baichuan2-7b-chat/least_backlog/replica0.json"
+  },
+  {
+    "density": "mid_l10",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l10/baichuan2-7b-chat/least_backlog/replica1.json"
+  },
+  {
+    "density": "mid_l30",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l30/baichuan2-7b-chat/round_robin/replica0.json"
+  },
+  {
+    "density": "mid_l30",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l30/baichuan2-7b-chat/round_robin/replica1.json"
+  },
+  {
+    "density": "mid_l30",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l30/baichuan2-7b-chat/least_backlog/replica0.json"
+  },
+  {
+    "density": "mid_l30",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l30/baichuan2-7b-chat/least_backlog/replica1.json"
+  },
+  {
+    "density": "mid_l50",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l50/baichuan2-7b-chat/round_robin/replica0.json"
+  },
+  {
+    "density": "mid_l50",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l50/baichuan2-7b-chat/round_robin/replica1.json"
+  },
+  {
+    "density": "mid_l50",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l50/baichuan2-7b-chat/least_backlog/replica0.json"
+  },
+  {
+    "density": "mid_l50",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l50/baichuan2-7b-chat/least_backlog/replica1.json"
+  },
+  {
+    "density": "mid_l70",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l70/baichuan2-7b-chat/round_robin/replica0.json"
+  },
+  {
+    "density": "mid_l70",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l70/baichuan2-7b-chat/round_robin/replica1.json"
+  },
+  {
+    "density": "mid_l70",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l70/baichuan2-7b-chat/least_backlog/replica0.json"
+  },
+  {
+    "density": "mid_l70",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l70/baichuan2-7b-chat/least_backlog/replica1.json"
+  },
+  {
+    "density": "mid_l90",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l90/baichuan2-7b-chat/round_robin/replica0.json"
+  },
+  {
+    "density": "mid_l90",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l90/baichuan2-7b-chat/round_robin/replica1.json"
+  },
+  {
+    "density": "mid_l90",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l90/baichuan2-7b-chat/least_backlog/replica0.json"
+  },
+  {
+    "density": "mid_l90",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l90/baichuan2-7b-chat/least_backlog/replica1.json"
+  },
+  {
+    "density": "high_l10",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l10/baichuan2-7b-chat/round_robin/replica0.json"
+  },
+  {
+    "density": "high_l10",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l10/baichuan2-7b-chat/round_robin/replica1.json"
+  },
+  {
+    "density": "high_l10",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l10/baichuan2-7b-chat/least_backlog/replica0.json"
+  },
+  {
+    "density": "high_l10",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l10/baichuan2-7b-chat/least_backlog/replica1.json"
+  },
+  {
+    "density": "high_l30",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l30/baichuan2-7b-chat/round_robin/replica0.json"
+  },
+  {
+    "density": "high_l30",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l30/baichuan2-7b-chat/round_robin/replica1.json"
+  },
+  {
+    "density": "high_l30",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l30/baichuan2-7b-chat/least_backlog/replica0.json"
+  },
+  {
+    "density": "high_l30",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l30/baichuan2-7b-chat/least_backlog/replica1.json"
+  },
+  {
+    "density": "high_l50",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l50/baichuan2-7b-chat/round_robin/replica0.json"
+  },
+  {
+    "density": "high_l50",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l50/baichuan2-7b-chat/round_robin/replica1.json"
+  },
+  {
+    "density": "high_l50",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l50/baichuan2-7b-chat/least_backlog/replica0.json"
+  },
+  {
+    "density": "high_l50",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l50/baichuan2-7b-chat/least_backlog/replica1.json"
+  },
+  {
+    "density": "high_l70",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l70/baichuan2-7b-chat/round_robin/replica0.json"
+  },
+  {
+    "density": "high_l70",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l70/baichuan2-7b-chat/round_robin/replica1.json"
+  },
+  {
+    "density": "high_l70",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l70/baichuan2-7b-chat/least_backlog/replica0.json"
+  },
+  {
+    "density": "high_l70",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l70/baichuan2-7b-chat/least_backlog/replica1.json"
+  },
+  {
+    "density": "high_l90",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l90/baichuan2-7b-chat/round_robin/replica0.json"
+  },
+  {
+    "density": "high_l90",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l90/baichuan2-7b-chat/round_robin/replica1.json"
+  },
+  {
+    "density": "high_l90",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l90/baichuan2-7b-chat/least_backlog/replica0.json"
+  },
+  {
+    "density": "high_l90",
+    "model_key": "baichuan2-7b-chat",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l90/baichuan2-7b-chat/least_backlog/replica1.json"
+  },
+  {
+    "density": "mid_l10",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l10/gemma-2-9b-it/round_robin/replica0.json"
+  },
+  {
+    "density": "mid_l10",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l10/gemma-2-9b-it/round_robin/replica1.json"
+  },
+  {
+    "density": "mid_l10",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l10/gemma-2-9b-it/least_backlog/replica0.json"
+  },
+  {
+    "density": "mid_l10",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l10/gemma-2-9b-it/least_backlog/replica1.json"
+  },
+  {
+    "density": "mid_l30",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l30/gemma-2-9b-it/round_robin/replica0.json"
+  },
+  {
+    "density": "mid_l30",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l30/gemma-2-9b-it/round_robin/replica1.json"
+  },
+  {
+    "density": "mid_l30",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l30/gemma-2-9b-it/least_backlog/replica0.json"
+  },
+  {
+    "density": "mid_l30",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l30/gemma-2-9b-it/least_backlog/replica1.json"
+  },
+  {
+    "density": "mid_l50",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l50/gemma-2-9b-it/round_robin/replica0.json"
+  },
+  {
+    "density": "mid_l50",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l50/gemma-2-9b-it/round_robin/replica1.json"
+  },
+  {
+    "density": "mid_l50",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l50/gemma-2-9b-it/least_backlog/replica0.json"
+  },
+  {
+    "density": "mid_l50",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l50/gemma-2-9b-it/least_backlog/replica1.json"
+  },
+  {
+    "density": "mid_l70",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l70/gemma-2-9b-it/round_robin/replica0.json"
+  },
+  {
+    "density": "mid_l70",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l70/gemma-2-9b-it/round_robin/replica1.json"
+  },
+  {
+    "density": "mid_l70",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l70/gemma-2-9b-it/least_backlog/replica0.json"
+  },
+  {
+    "density": "mid_l70",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l70/gemma-2-9b-it/least_backlog/replica1.json"
+  },
+  {
+    "density": "mid_l90",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l90/gemma-2-9b-it/round_robin/replica0.json"
+  },
+  {
+    "density": "mid_l90",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l90/gemma-2-9b-it/round_robin/replica1.json"
+  },
+  {
+    "density": "mid_l90",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l90/gemma-2-9b-it/least_backlog/replica0.json"
+  },
+  {
+    "density": "mid_l90",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l90/gemma-2-9b-it/least_backlog/replica1.json"
+  },
+  {
+    "density": "high_l10",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l10/gemma-2-9b-it/round_robin/replica0.json"
+  },
+  {
+    "density": "high_l10",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l10/gemma-2-9b-it/round_robin/replica1.json"
+  },
+  {
+    "density": "high_l10",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l10/gemma-2-9b-it/least_backlog/replica0.json"
+  },
+  {
+    "density": "high_l10",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l10/gemma-2-9b-it/least_backlog/replica1.json"
+  },
+  {
+    "density": "high_l30",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l30/gemma-2-9b-it/round_robin/replica0.json"
+  },
+  {
+    "density": "high_l30",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l30/gemma-2-9b-it/round_robin/replica1.json"
+  },
+  {
+    "density": "high_l30",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l30/gemma-2-9b-it/least_backlog/replica0.json"
+  },
+  {
+    "density": "high_l30",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l30/gemma-2-9b-it/least_backlog/replica1.json"
+  },
+  {
+    "density": "high_l50",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l50/gemma-2-9b-it/round_robin/replica0.json"
+  },
+  {
+    "density": "high_l50",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l50/gemma-2-9b-it/round_robin/replica1.json"
+  },
+  {
+    "density": "high_l50",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l50/gemma-2-9b-it/least_backlog/replica0.json"
+  },
+  {
+    "density": "high_l50",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l50/gemma-2-9b-it/least_backlog/replica1.json"
+  },
+  {
+    "density": "high_l70",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l70/gemma-2-9b-it/round_robin/replica0.json"
+  },
+  {
+    "density": "high_l70",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l70/gemma-2-9b-it/round_robin/replica1.json"
+  },
+  {
+    "density": "high_l70",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l70/gemma-2-9b-it/least_backlog/replica0.json"
+  },
+  {
+    "density": "high_l70",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l70/gemma-2-9b-it/least_backlog/replica1.json"
+  },
+  {
+    "density": "high_l90",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l90/gemma-2-9b-it/round_robin/replica0.json"
+  },
+  {
+    "density": "high_l90",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l90/gemma-2-9b-it/round_robin/replica1.json"
+  },
+  {
+    "density": "high_l90",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l90/gemma-2-9b-it/least_backlog/replica0.json"
+  },
+  {
+    "density": "high_l90",
+    "model_key": "gemma-2-9b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l90/gemma-2-9b-it/least_backlog/replica1.json"
+  },
+  {
+    "density": "mid_l10",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l10/gemma-7b-it/round_robin/replica0.json"
+  },
+  {
+    "density": "mid_l10",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l10/gemma-7b-it/round_robin/replica1.json"
+  },
+  {
+    "density": "mid_l10",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l10/gemma-7b-it/least_backlog/replica0.json"
+  },
+  {
+    "density": "mid_l10",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l10/gemma-7b-it/least_backlog/replica1.json"
+  },
+  {
+    "density": "mid_l30",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l30/gemma-7b-it/round_robin/replica0.json"
+  },
+  {
+    "density": "mid_l30",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l30/gemma-7b-it/round_robin/replica1.json"
+  },
+  {
+    "density": "mid_l30",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l30/gemma-7b-it/least_backlog/replica0.json"
+  },
+  {
+    "density": "mid_l30",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l30/gemma-7b-it/least_backlog/replica1.json"
+  },
+  {
+    "density": "mid_l50",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l50/gemma-7b-it/round_robin/replica0.json"
+  },
+  {
+    "density": "mid_l50",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l50/gemma-7b-it/round_robin/replica1.json"
+  },
+  {
+    "density": "mid_l50",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l50/gemma-7b-it/least_backlog/replica0.json"
+  },
+  {
+    "density": "mid_l50",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l50/gemma-7b-it/least_backlog/replica1.json"
+  },
+  {
+    "density": "mid_l70",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l70/gemma-7b-it/round_robin/replica0.json"
+  },
+  {
+    "density": "mid_l70",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l70/gemma-7b-it/round_robin/replica1.json"
+  },
+  {
+    "density": "mid_l70",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l70/gemma-7b-it/least_backlog/replica0.json"
+  },
+  {
+    "density": "mid_l70",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l70/gemma-7b-it/least_backlog/replica1.json"
+  },
+  {
+    "density": "mid_l90",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l90/gemma-7b-it/round_robin/replica0.json"
+  },
+  {
+    "density": "mid_l90",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l90/gemma-7b-it/round_robin/replica1.json"
+  },
+  {
+    "density": "mid_l90",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l90/gemma-7b-it/least_backlog/replica0.json"
+  },
+  {
+    "density": "mid_l90",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l90/gemma-7b-it/least_backlog/replica1.json"
+  },
+  {
+    "density": "high_l10",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l10/gemma-7b-it/round_robin/replica0.json"
+  },
+  {
+    "density": "high_l10",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l10/gemma-7b-it/round_robin/replica1.json"
+  },
+  {
+    "density": "high_l10",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l10/gemma-7b-it/least_backlog/replica0.json"
+  },
+  {
+    "density": "high_l10",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l10/gemma-7b-it/least_backlog/replica1.json"
+  },
+  {
+    "density": "high_l30",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l30/gemma-7b-it/round_robin/replica0.json"
+  },
+  {
+    "density": "high_l30",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l30/gemma-7b-it/round_robin/replica1.json"
+  },
+  {
+    "density": "high_l30",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l30/gemma-7b-it/least_backlog/replica0.json"
+  },
+  {
+    "density": "high_l30",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l30/gemma-7b-it/least_backlog/replica1.json"
+  },
+  {
+    "density": "high_l50",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l50/gemma-7b-it/round_robin/replica0.json"
+  },
+  {
+    "density": "high_l50",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l50/gemma-7b-it/round_robin/replica1.json"
+  },
+  {
+    "density": "high_l50",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l50/gemma-7b-it/least_backlog/replica0.json"
+  },
+  {
+    "density": "high_l50",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l50/gemma-7b-it/least_backlog/replica1.json"
+  },
+  {
+    "density": "high_l70",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l70/gemma-7b-it/round_robin/replica0.json"
+  },
+  {
+    "density": "high_l70",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l70/gemma-7b-it/round_robin/replica1.json"
+  },
+  {
+    "density": "high_l70",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l70/gemma-7b-it/least_backlog/replica0.json"
+  },
+  {
+    "density": "high_l70",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l70/gemma-7b-it/least_backlog/replica1.json"
+  },
+  {
+    "density": "high_l90",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l90/gemma-7b-it/round_robin/replica0.json"
+  },
+  {
+    "density": "high_l90",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l90/gemma-7b-it/round_robin/replica1.json"
+  },
+  {
+    "density": "high_l90",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l90/gemma-7b-it/least_backlog/replica0.json"
+  },
+  {
+    "density": "high_l90",
+    "model_key": "gemma-7b-it",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l90/gemma-7b-it/least_backlog/replica1.json"
+  },
+  {
+    "density": "mid_l10",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l10/mistral-7b-instruct-v0.2/round_robin/replica0.json"
+  },
+  {
+    "density": "mid_l10",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l10/mistral-7b-instruct-v0.2/round_robin/replica1.json"
+  },
+  {
+    "density": "mid_l10",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l10/mistral-7b-instruct-v0.2/least_backlog/replica0.json"
+  },
+  {
+    "density": "mid_l10",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l10/mistral-7b-instruct-v0.2/least_backlog/replica1.json"
+  },
+  {
+    "density": "mid_l30",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l30/mistral-7b-instruct-v0.2/round_robin/replica0.json"
+  },
+  {
+    "density": "mid_l30",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l30/mistral-7b-instruct-v0.2/round_robin/replica1.json"
+  },
+  {
+    "density": "mid_l30",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l30/mistral-7b-instruct-v0.2/least_backlog/replica0.json"
+  },
+  {
+    "density": "mid_l30",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l30/mistral-7b-instruct-v0.2/least_backlog/replica1.json"
+  },
+  {
+    "density": "mid_l50",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l50/mistral-7b-instruct-v0.2/round_robin/replica0.json"
+  },
+  {
+    "density": "mid_l50",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l50/mistral-7b-instruct-v0.2/round_robin/replica1.json"
+  },
+  {
+    "density": "mid_l50",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l50/mistral-7b-instruct-v0.2/least_backlog/replica0.json"
+  },
+  {
+    "density": "mid_l50",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l50/mistral-7b-instruct-v0.2/least_backlog/replica1.json"
+  },
+  {
+    "density": "mid_l70",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l70/mistral-7b-instruct-v0.2/round_robin/replica0.json"
+  },
+  {
+    "density": "mid_l70",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l70/mistral-7b-instruct-v0.2/round_robin/replica1.json"
+  },
+  {
+    "density": "mid_l70",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l70/mistral-7b-instruct-v0.2/least_backlog/replica0.json"
+  },
+  {
+    "density": "mid_l70",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l70/mistral-7b-instruct-v0.2/least_backlog/replica1.json"
+  },
+  {
+    "density": "mid_l90",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l90/mistral-7b-instruct-v0.2/round_robin/replica0.json"
+  },
+  {
+    "density": "mid_l90",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l90/mistral-7b-instruct-v0.2/round_robin/replica1.json"
+  },
+  {
+    "density": "mid_l90",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l90/mistral-7b-instruct-v0.2/least_backlog/replica0.json"
+  },
+  {
+    "density": "mid_l90",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l90/mistral-7b-instruct-v0.2/least_backlog/replica1.json"
+  },
+  {
+    "density": "high_l10",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l10/mistral-7b-instruct-v0.2/round_robin/replica0.json"
+  },
+  {
+    "density": "high_l10",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l10/mistral-7b-instruct-v0.2/round_robin/replica1.json"
+  },
+  {
+    "density": "high_l10",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l10/mistral-7b-instruct-v0.2/least_backlog/replica0.json"
+  },
+  {
+    "density": "high_l10",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l10/mistral-7b-instruct-v0.2/least_backlog/replica1.json"
+  },
+  {
+    "density": "high_l30",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l30/mistral-7b-instruct-v0.2/round_robin/replica0.json"
+  },
+  {
+    "density": "high_l30",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l30/mistral-7b-instruct-v0.2/round_robin/replica1.json"
+  },
+  {
+    "density": "high_l30",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l30/mistral-7b-instruct-v0.2/least_backlog/replica0.json"
+  },
+  {
+    "density": "high_l30",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l30/mistral-7b-instruct-v0.2/least_backlog/replica1.json"
+  },
+  {
+    "density": "high_l50",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l50/mistral-7b-instruct-v0.2/round_robin/replica0.json"
+  },
+  {
+    "density": "high_l50",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l50/mistral-7b-instruct-v0.2/round_robin/replica1.json"
+  },
+  {
+    "density": "high_l50",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l50/mistral-7b-instruct-v0.2/least_backlog/replica0.json"
+  },
+  {
+    "density": "high_l50",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l50/mistral-7b-instruct-v0.2/least_backlog/replica1.json"
+  },
+  {
+    "density": "high_l70",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l70/mistral-7b-instruct-v0.2/round_robin/replica0.json"
+  },
+  {
+    "density": "high_l70",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l70/mistral-7b-instruct-v0.2/round_robin/replica1.json"
+  },
+  {
+    "density": "high_l70",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l70/mistral-7b-instruct-v0.2/least_backlog/replica0.json"
+  },
+  {
+    "density": "high_l70",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l70/mistral-7b-instruct-v0.2/least_backlog/replica1.json"
+  },
+  {
+    "density": "high_l90",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l90/mistral-7b-instruct-v0.2/round_robin/replica0.json"
+  },
+  {
+    "density": "high_l90",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l90/mistral-7b-instruct-v0.2/round_robin/replica1.json"
+  },
+  {
+    "density": "high_l90",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l90/mistral-7b-instruct-v0.2/least_backlog/replica0.json"
+  },
+  {
+    "density": "high_l90",
+    "model_key": "mistral-7b-instruct-v0.2",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l90/mistral-7b-instruct-v0.2/least_backlog/replica1.json"
+  },
+  {
+    "density": "mid_l10",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l10/qwen2.5-7b-instruct/round_robin/replica0.json"
+  },
+  {
+    "density": "mid_l10",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l10/qwen2.5-7b-instruct/round_robin/replica1.json"
+  },
+  {
+    "density": "mid_l10",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l10/qwen2.5-7b-instruct/least_backlog/replica0.json"
+  },
+  {
+    "density": "mid_l10",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l10/qwen2.5-7b-instruct/least_backlog/replica1.json"
+  },
+  {
+    "density": "mid_l30",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l30/qwen2.5-7b-instruct/round_robin/replica0.json"
+  },
+  {
+    "density": "mid_l30",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l30/qwen2.5-7b-instruct/round_robin/replica1.json"
+  },
+  {
+    "density": "mid_l30",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l30/qwen2.5-7b-instruct/least_backlog/replica0.json"
+  },
+  {
+    "density": "mid_l30",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l30/qwen2.5-7b-instruct/least_backlog/replica1.json"
+  },
+  {
+    "density": "mid_l50",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l50/qwen2.5-7b-instruct/round_robin/replica0.json"
+  },
+  {
+    "density": "mid_l50",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l50/qwen2.5-7b-instruct/round_robin/replica1.json"
+  },
+  {
+    "density": "mid_l50",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l50/qwen2.5-7b-instruct/least_backlog/replica0.json"
+  },
+  {
+    "density": "mid_l50",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l50/qwen2.5-7b-instruct/least_backlog/replica1.json"
+  },
+  {
+    "density": "mid_l70",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l70/qwen2.5-7b-instruct/round_robin/replica0.json"
+  },
+  {
+    "density": "mid_l70",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l70/qwen2.5-7b-instruct/round_robin/replica1.json"
+  },
+  {
+    "density": "mid_l70",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l70/qwen2.5-7b-instruct/least_backlog/replica0.json"
+  },
+  {
+    "density": "mid_l70",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l70/qwen2.5-7b-instruct/least_backlog/replica1.json"
+  },
+  {
+    "density": "mid_l90",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l90/qwen2.5-7b-instruct/round_robin/replica0.json"
+  },
+  {
+    "density": "mid_l90",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l90/qwen2.5-7b-instruct/round_robin/replica1.json"
+  },
+  {
+    "density": "mid_l90",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l90/qwen2.5-7b-instruct/least_backlog/replica0.json"
+  },
+  {
+    "density": "mid_l90",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/mid_l90/qwen2.5-7b-instruct/least_backlog/replica1.json"
+  },
+  {
+    "density": "high_l10",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l10/qwen2.5-7b-instruct/round_robin/replica0.json"
+  },
+  {
+    "density": "high_l10",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l10/qwen2.5-7b-instruct/round_robin/replica1.json"
+  },
+  {
+    "density": "high_l10",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l10/qwen2.5-7b-instruct/least_backlog/replica0.json"
+  },
+  {
+    "density": "high_l10",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l10/qwen2.5-7b-instruct/least_backlog/replica1.json"
+  },
+  {
+    "density": "high_l30",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l30/qwen2.5-7b-instruct/round_robin/replica0.json"
+  },
+  {
+    "density": "high_l30",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l30/qwen2.5-7b-instruct/round_robin/replica1.json"
+  },
+  {
+    "density": "high_l30",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l30/qwen2.5-7b-instruct/least_backlog/replica0.json"
+  },
+  {
+    "density": "high_l30",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l30/qwen2.5-7b-instruct/least_backlog/replica1.json"
+  },
+  {
+    "density": "high_l50",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l50/qwen2.5-7b-instruct/round_robin/replica0.json"
+  },
+  {
+    "density": "high_l50",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l50/qwen2.5-7b-instruct/round_robin/replica1.json"
+  },
+  {
+    "density": "high_l50",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l50/qwen2.5-7b-instruct/least_backlog/replica0.json"
+  },
+  {
+    "density": "high_l50",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l50/qwen2.5-7b-instruct/least_backlog/replica1.json"
+  },
+  {
+    "density": "high_l70",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l70/qwen2.5-7b-instruct/round_robin/replica0.json"
+  },
+  {
+    "density": "high_l70",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l70/qwen2.5-7b-instruct/round_robin/replica1.json"
+  },
+  {
+    "density": "high_l70",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l70/qwen2.5-7b-instruct/least_backlog/replica0.json"
+  },
+  {
+    "density": "high_l70",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l70/qwen2.5-7b-instruct/least_backlog/replica1.json"
+  },
+  {
+    "density": "high_l90",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "round_robin",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l90/qwen2.5-7b-instruct/round_robin/replica0.json"
+  },
+  {
+    "density": "high_l90",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "round_robin",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l90/qwen2.5-7b-instruct/round_robin/replica1.json"
+  },
+  {
+    "density": "high_l90",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "least_backlog",
+    "replica_id": 0,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l90/qwen2.5-7b-instruct/least_backlog/replica0.json"
+  },
+  {
+    "density": "high_l90",
+    "model_key": "qwen2.5-7b-instruct",
+    "dispatcher": "least_backlog",
+    "replica_id": 1,
+    "status": "ok",
+    "returncode": 0,
+    "result_json": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_serial_cucumis_2a100_formal/cucumis_2a100/raw/high_l90/qwen2.5-7b-instruct/least_backlog/replica1.json"
+  }
+]

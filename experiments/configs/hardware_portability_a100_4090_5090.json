@@ -1,0 +1,85 @@
+{
+  "schema_version": "waveslice-hardware-portability-v1",
+  "suite_name": "hardware_portability_a100_4090_5090",
+  "status": "planned_server_runs",
+  "purpose": "Answer reviewer concern that CUCUMIS was evaluated on only one GPU type.",
+  "source_main_run": "results/openworkload_ratio_sweep_lora8/ratio_sweep_20step_5models_a100_overnight_main",
+  "out_root": "results/hardware_portability_a100_4090_5090",
+  "run_scope": {
+    "models": [
+      "baichuan2-7b-chat",
+      "gemma-2-9b-it",
+      "gemma-7b-it",
+      "mistral-7b-instruct-v0.2",
+      "qwen2.5-7b-instruct"
+    ],
+    "densities": [
+      "mid_l10",
+      "mid_l30",
+      "mid_l50",
+      "mid_l70",
+      "mid_l90",
+      "high_l10",
+      "high_l30",
+      "high_l50",
+      "high_l70",
+      "high_l90"
+    ],
+    "cucumis_dispatchers": [
+      "least_backlog"
+    ],
+    "output_tokens": 64
+  },
+  "methods": [
+    {
+      "name": "DistServe-2GPU",
+      "current_backend": "functional_reproduction_continuous_batching_replay",
+      "gpu_use": "two-GPU resource profile; current stage measurement uses the visible GPU runtime and replay exports P/D-separated metrics",
+      "run_order": 1
+    },
+    {
+      "name": "CUCUMIS-2GPU-LB",
+      "current_backend": "real_split_workload",
+      "gpu_use": "two CUCUMIS replicas bound to the two local CUDA devices via --parallel-replicas --replica-cuda-devices 0,1",
+      "run_order": 2
+    }
+  ],
+  "gpu_profiles": [
+    {
+      "key": "a100",
+      "label": "NVIDIA A100",
+      "paper_label": "A100",
+      "location": "server",
+      "default_cuda_visible_devices": "0,1",
+      "out_dir": "results/hardware_portability_a100_4090_5090/a100/unified_distserve_cucumis_2gpu_lb"
+    },
+    {
+      "key": "rtx4090",
+      "label": "NVIDIA GeForce RTX 4090",
+      "paper_label": "RTX 4090",
+      "location": "server",
+      "default_cuda_visible_devices": "0,1",
+      "out_dir": "results/hardware_portability_a100_4090_5090/rtx4090/unified_distserve_cucumis_2gpu_lb"
+    },
+    {
+      "key": "rtx5090",
+      "label": "NVIDIA GeForce RTX 5090",
+      "paper_label": "RTX 5090",
+      "location": "server",
+      "default_cuda_visible_devices": "0,1",
+      "out_dir": "results/hardware_portability_a100_4090_5090/rtx5090/unified_distserve_cucumis_2gpu_lb"
+    }
+  ],
+  "local_vs_server": {
+    "local": [
+      "run --dry-run to validate commands and metadata",
+      "run import/static tests",
+      "merge or regenerate summaries after server artifacts are copied back"
+    ],
+    "server": [
+      "full GPU execution for a100",
+      "full GPU execution for rtx4090",
+      "full GPU execution for rtx5090"
+    ]
+  }
+}

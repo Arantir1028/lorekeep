@@ -1,0 +1,327 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://waveslice.local/schemas/experiment-config.schema.json",
+  "title": "Maintained WaveSlice experiment configuration",
+  "oneOf": [
+    {"$ref": "#/$defs/openworkload"},
+    {"$ref": "#/$defs/resourceCatalog"},
+    {"$ref": "#/$defs/chapter5Pipeline"},
+    {"$ref": "#/$defs/baselineVariants"},
+    {"$ref": "#/$defs/distserveReplay"},
+    {"$ref": "#/$defs/hardwarePortability"},
+    {"$ref": "#/$defs/frozenEval"},
+    {"$ref": "#/$defs/chapter2Observations"},
+    {"$ref": "#/$defs/chapter2Study"}
+  ],
+  "$defs": {
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "not": {"pattern": "^(?:/|[A-Za-z]:[\\\\/])"}
+    },
+    "model": {
+      "oneOf": [
+        {"$ref": "#/$defs/nonEmptyString"},
+        {
+          "type": "object",
+          "properties": {
+            "key": {"type": "string"},
+            "model_id": {"type": "string"},
+            "lut_name": {"type": "string"},
+            "trust_remote_code": {"type": "boolean"},
+            "max_model_len_override": {"type": "integer", "minimum": 1},
+            "model_path_mode": {"type": "string"},
+            "label": {"type": "string"},
+            "reason": {"type": "string"}
+          },
+          "anyOf": [
+            {"required": ["key"]},
+            {"required": ["model_id"]}
+          ],
+          "additionalProperties": true
+        }
+      ]
+    },
+    "dataset": {
+      "type": "object",
+      "required": ["key", "dataset_id", "extractor"],
+      "properties": {
+        "key": {"$ref": "#/$defs/nonEmptyString"},
+        "dataset_id": {"$ref": "#/$defs/nonEmptyString"},
+        "split": {"type": "string"},
+        "extractor": {"$ref": "#/$defs/nonEmptyString"},
+        "streaming": {"type": "boolean"},
+        "configs": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/nonEmptyString"},
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "density": {
+      "type": "object",
+      "required": [
+        "name",
+        "phase1_arrival_rate",
+        "phase2_arrival_rate",
+        "phase1_short_count",
+        "phase1_long_count",
+        "phase2_short_count",
+        "phase2_long_count"
+      ],
+      "properties": {
+        "name": {"$ref": "#/$defs/nonEmptyString"},
+        "phase1_arrival_rate": {"type": "number", "minimum": 0},
+        "phase2_arrival_rate": {"type": "number", "minimum": 0},
+        "phase1_short_count": {"type": "integer", "minimum": 0},
+        "phase1_long_count": {"type": "integer", "minimum": 0},
+        "phase2_short_count": {"type": "integer", "minimum": 0},
+        "phase2_long_count": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": true
+    },
+    "openworkload": {
+      "type": "object",
+      "required": ["schema_version", "suite_name", "out_root", "workload", "eval"],
+      "properties": {
+        "schema_version": {"const": "waveslice-openworkload-v1"},
+        "suite_name": {"$ref": "#/$defs/nonEmptyString"},
+        "out_root": {"$ref": "#/$defs/relativePath"},
+        "resource_catalog_config": {"$ref": "#/$defs/relativePath"},
+        "models": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/model"}
+        },
+        "datasets": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/dataset"}
+        },
+        "workload": {
+          "type": "object",
+          "required": ["densities"],
+          "properties": {
+            "sample_count": {"type": "integer", "minimum": 1},
+            "densities": {
+              "type": "array",
+              "minItems": 1,
+              "items": {"$ref": "#/$defs/density"}
+            }
+          },
+          "additionalProperties": true
+        },
+        "eval": {"type": "object"},
+        "phase1": {"type": "object"},
+        "phase2": {"type": "object"}
+      },
+      "anyOf": [
+        {"required": ["resource_catalog_config"]},
+        {"required": ["models", "datasets"]}
+      ],
+      "additionalProperties": true
+    },
+    "resourceCatalog": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "suite_name",
+        "out_root",
+        "models",
+        "datasets",
+        "workload",
+        "eval"
+      ],
+      "properties": {
+        "schema_version": {"const": "waveslice-resource-catalog-v1"},
+        "suite_name": {"$ref": "#/$defs/nonEmptyString"},
+        "out_root": {"$ref": "#/$defs/relativePath"},
+        "models": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/model"}
+        },
+        "datasets": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/dataset"}
+        },
+        "workload": {
+          "type": "object",
+          "required": ["densities"],
+          "properties": {
+            "densities": {
+              "type": "array",
+              "minItems": 1,
+              "items": {"$ref": "#/$defs/density"}
+            }
+          },
+          "additionalProperties": true
+        },
+        "eval": {"type": "object"}
+      },
+      "additionalProperties": true
+    },
+    "chapter5Pipeline": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "suite_name",
+        "main_config",
+        "baseline_config",
+        "figures_out_root"
+      ],
+      "properties": {
+        "schema_version": {"const": "waveslice-chapter5-pipeline-v1"},
+        "suite_name": {"$ref": "#/$defs/nonEmptyString"},
+        "main_config": {"$ref": "#/$defs/relativePath"},
+        "baseline_config": {"$ref": "#/$defs/relativePath"},
+        "figures_out_root": {"$ref": "#/$defs/relativePath"},
+        "partial_figures": {
+          "oneOf": [
+            {"type": "boolean"},
+            {"type": "object"}
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "baselineVariants": {
+      "type": "object",
+      "required": ["schema_version", "suite_name", "out_root", "source_run_root", "variants"],
+      "properties": {
+        "schema_version": {"const": "waveslice-baseline-variants-v1"},
+        "suite_name": {"$ref": "#/$defs/nonEmptyString"},
+        "out_root": {"$ref": "#/$defs/relativePath"},
+        "source_run_root": {"type": "string"},
+        "variants": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["key"],
+            "properties": {
+              "key": {"$ref": "#/$defs/nonEmptyString"},
+              "enabled": {"type": "boolean"}
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "distserveReplay": {
+      "type": "object",
+      "required": ["schema_version", "suite_name", "models", "densities", "simulation"],
+      "properties": {
+        "schema_version": {"const": "waveslice-distserve-replay-v1"},
+        "suite_name": {"$ref": "#/$defs/nonEmptyString"},
+        "models": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/nonEmptyString"}
+        },
+        "densities": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/nonEmptyString"}
+        },
+        "simulation": {
+          "type": "object",
+          "required": ["resource_profiles", "kv_profiles"],
+          "properties": {
+            "resource_profiles": {"type": "array", "minItems": 1},
+            "kv_profiles": {"type": "array", "minItems": 1}
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "hardwarePortability": {
+      "type": "object",
+      "required": ["schema_version", "suite_name", "source_main_run", "out_root", "gpu_profiles"],
+      "properties": {
+        "schema_version": {"const": "waveslice-hardware-portability-v1"},
+        "suite_name": {"$ref": "#/$defs/nonEmptyString"},
+        "source_main_run": {"type": "string"},
+        "out_root": {"$ref": "#/$defs/relativePath"},
+        "gpu_profiles": {
+          "oneOf": [
+            {"type": "object", "minProperties": 1},
+            {"type": "array", "minItems": 1}
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "frozenEval": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "name",
+        "evaluator",
+        "model",
+        "workload",
+        "runtime",
+        "phase1",
+        "phase2"
+      ],
+      "properties": {
+        "schema_version": {"const": "waveslice-frozen-eval-v1"},
+        "name": {"$ref": "#/$defs/nonEmptyString"},
+        "evaluator": {"$ref": "#/$defs/relativePath"},
+        "model": {"type": "object"},
+        "workload": {"type": "object"},
+        "runtime": {"type": "object"},
+        "phase1": {"type": "object"},
+        "phase2": {"type": "object"}
+      },
+      "additionalProperties": true
+    },
+    "chapter2Observations": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "paths",
+        "resource_selection",
+        "model",
+        "evaluation",
+        "workload",
+        "observation1",
+        "observation2"
+      ],
+      "properties": {
+        "schema_version": {"const": "waveslice-chapter2-observations-v2"},
+        "paths": {"type": "object"},
+        "resource_selection": {"type": "object"},
+        "model": {"type": "object"},
+        "evaluation": {"type": "object"},
+        "workload": {"type": "object"},
+        "observation1": {"type": "object"},
+        "observation2": {"type": "object"}
+      },
+      "additionalProperties": true
+    },
+    "chapter2Study": {
+      "type": "object",
+      "required": ["schema_version", "paths", "resource_selection", "model"],
+      "properties": {
+        "schema_version": {"const": "waveslice-chapter2-study-v1"},
+        "paths": {"type": "object"},
+        "resource_selection": {"type": "object"},
+        "model": {"type": "object"}
+      },
+      "anyOf": [
+        {"required": ["evaluation", "workload", "observation2"]},
+        {"required": ["eval", "phase1", "phase2"]}
+      ],
+      "additionalProperties": true
+    }
+  }
+}

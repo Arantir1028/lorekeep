@@ -1,0 +1,225 @@
+{
+  "schema_version": "waveslice-openworkload-v1",
+  "suite_name": "openworkload_ratio_sweep_lora8",
+  "out_root": "results/openworkload_ratio_sweep_lora8",
+  "resource_catalog_config": "experiments/configs/openworkload_resources_full10.json",
+  "resource_selection": {
+    "model_mode": "local_all_runnable",
+    "dataset_mode": "local_supported_from_catalog",
+    "auto_download": true,
+    "offline": false,
+    "require_runtime_sanity": true,
+    "require_supported_extractors": true,
+    "require_lora_support": true,
+    "exclude_name_substrings": [
+      "llama"
+    ]
+  },
+  "real_world_scenario": {
+    "name": "V1 Open-Workload Request-Ratio Sensitivity Sweep",
+    "description": "This suite keeps the Chapter 5 shared-runtime setup fixed while sweeping the short/long request mix from short-heavy to long-heavy traffic. It targets Agent and RAG style deployments where the fraction of long-context requests can rise over time.",
+    "why_real": [
+      "UltraChat supplies short interactive prompts that resemble assistant turns and follow-up questions.",
+      "LongBench supplies long-context prompts such as report summarization and long-document QA.",
+      "Poisson arrivals provide a standard online-serving approximation for independent user arrivals with bursty overlap.",
+      "Keeping total request count near the Chapter 5 default while sweeping short/long composition isolates request heterogeneity as the controlled stress variable.",
+      "The density names encode the target long-request fraction, while paper figures should use the measured long fraction from request timings."
+    ]
+  },
+  "method_definition": {
+    "current_method": "phase1_chunk_boundary_plus_phase2_scheduler_priority_cashout",
+    "phase1": "Use chunk-size control to return from long prefills to the scheduler boundary earlier.",
+    "phase2": "Use scheduler-side priority cashout to defer lower-value work before the next scheduled window is formed.",
+    "adaptation": "Use runtime queue-pressure adaptation inside the scheduler; configured density only selects the workload, not the active chunk policy.",
+    "inactive_paths": [
+      "true_unbind",
+      "dual_stream"
+    ],
+    "pressure_scope": "runtime_queue_pressure",
+    "pressure_scope_note": "The active policy is chosen at each scheduler step from live queue length, waiting short count, wait urgency, long remaining tokens, and virtual-cap hit EMA."
+  },
+  "workload": {
+    "reuse_workload_pool_root": "results/dataset_workloads",
+    "preserve_density_request_counts": true,
+    "arrival_mode": "poisson",
+    "phase1_arrival_layout": "beneficiary_rich",
+    "phase2_arrival_layout": "beneficiary_rich",
+    "phase1_early_short_frac": 0.25,
+    "phase2_early_short_frac": 0.20,
+    "phase1_post_long_short_bias": 0.70,
+    "phase2_post_long_short_bias": 0.60,
+    "sample_count": 256,
+    "densities": [
+      {
+        "name": "mid_l10",
+        "phase1_arrival_rate": 6.0,
+        "phase2_arrival_rate": 6.0,
+        "phase1_short_count": 29,
+        "phase1_long_count": 3,
+        "phase2_short_count": 34,
+        "phase2_long_count": 2,
+        "scenario": "Balanced traffic, 10% long requests",
+        "reason": "Short-heavy Agent/RAG traffic point; target long-request fraction is encoded as l10."
+      },
+      {
+        "name": "mid_l30",
+        "phase1_arrival_rate": 6.0,
+        "phase2_arrival_rate": 6.0,
+        "phase1_short_count": 22,
+        "phase1_long_count": 10,
+        "phase2_short_count": 26,
+        "phase2_long_count": 10,
+        "scenario": "Balanced traffic, 30% long requests",
+        "reason": "Near the original Chapter 5 short-heavy region; target long-request fraction is encoded as l30."
+      },
+      {
+        "name": "mid_l50",
+        "phase1_arrival_rate": 6.0,
+        "phase2_arrival_rate": 6.0,
+        "phase1_short_count": 16,
+        "phase1_long_count": 16,
+        "phase2_short_count": 18,
+        "phase2_long_count": 18,
+        "scenario": "Balanced traffic, 50% long requests",
+        "reason": "Balanced short/long mix; target long-request fraction is encoded as l50."
+      },
+      {
+        "name": "mid_l70",
+        "phase1_arrival_rate": 6.0,
+        "phase2_arrival_rate": 6.0,
+        "phase1_short_count": 8,
+        "phase1_long_count": 24,
+        "phase2_short_count": 10,
+        "phase2_long_count": 26,
+        "scenario": "Balanced traffic, 70% long requests",
+        "reason": "Long-heavy Agent/RAG traffic point; target long-request fraction is encoded as l70."
+      },
+      {
+        "name": "mid_l90",
+        "phase1_arrival_rate": 6.0,
+        "phase2_arrival_rate": 6.0,
+        "phase1_short_count": 2,
+        "phase1_long_count": 31,
+        "phase2_short_count": 2,
+        "phase2_long_count": 34,
+        "scenario": "Balanced traffic, 90% long requests",
+        "reason": "Extreme long-heavy stress point; target long-request fraction is encoded as l90."
+      },
+      {
+        "name": "high_l10",
+        "phase1_arrival_rate": 8.0,
+        "phase2_arrival_rate": 8.0,
+        "phase1_short_count": 29,
+        "phase1_long_count": 3,
+        "phase2_short_count": 34,
+        "phase2_long_count": 2,
+        "scenario": "Persistent queueing, 10% long requests",
+        "reason": "High-density short-heavy traffic point; target long-request fraction is encoded as l10."
+      },
+      {
+        "name": "high_l30",
+        "phase1_arrival_rate": 8.0,
+        "phase2_arrival_rate": 8.0,
+        "phase1_short_count": 22,
+        "phase1_long_count": 10,
+        "phase2_short_count": 26,
+        "phase2_long_count": 10,
+        "scenario": "Persistent queueing, 30% long requests",
+        "reason": "High-density point near the original Chapter 5 short-heavy region; target long-request fraction is encoded as l30."
+      },
+      {
+        "name": "high_l50",
+        "phase1_arrival_rate": 8.0,
+        "phase2_arrival_rate": 8.0,
+        "phase1_short_count": 16,
+        "phase1_long_count": 16,
+        "phase2_short_count": 18,
+        "phase2_long_count": 18,
+        "scenario": "Persistent queueing, 50% long requests",
+        "reason": "High-density balanced short/long mix; target long-request fraction is encoded as l50."
+      },
+      {
+        "name": "high_l70",
+        "phase1_arrival_rate": 8.0,
+        "phase2_arrival_rate": 8.0,
+        "phase1_short_count": 8,
+        "phase1_long_count": 24,
+        "phase2_short_count": 10,
+        "phase2_long_count": 26,
+        "scenario": "Persistent queueing, 70% long requests",
+        "reason": "High-density long-heavy Agent/RAG traffic point; target long-request fraction is encoded as l70."
+      },
+      {
+        "name": "high_l90",
+        "phase1_arrival_rate": 8.0,
+        "phase2_arrival_rate": 8.0,
+        "phase1_short_count": 2,
+        "phase1_long_count": 31,
+        "phase2_short_count": 2,
+        "phase2_long_count": 34,
+        "scenario": "Persistent queueing, 90% long requests",
+        "reason": "High-density extreme long-heavy stress point; target long-request fraction is encoded as l90."
+      }
+    ]
+  },
+  "eval": {
+    "warmup_iters": 1,
+    "repeats": 2,
+    "timeout_sec": 240,
+    "gpu_guard_timeout_sec": 1800,
+    "gpu_guard_poll_interval_s": 5.0,
+    "max_new_tokens": 64,
+    "max_model_len": 3072,
+    "max_num_batched_tokens": 1536,
+    "gpu_memory_utilization": 0.6,
+    "queue_reorder_mode": "sjf",
+    "queue_reorder_aging_quantum_us": 20000
+  },
+  "phase1": {
+    "objective_mode": "fair_escape",
+    "baseline_mode": "both",
+    "gamma": 1.0,
+    "ingress_target_chunk": 768,
+    "ingress_direct_authoritative": true,
+    "ingress_exact_chunk": true,
+    "force_min_chunk": 128,
+    "target_long_fraction": 0.33
+  },
+  "adaptive_density_policy": {
+    "enabled": true,
+    "scope": "runtime_queue_pressure",
+    "pressure_source": "scheduler_queue_waiting_short_wait_us_long_remaining_cap_hit_ema",
+    "pressure_formula": "wall_pressure = weighted(queue, long_remaining, cap_hit, previous_wall); effective_pressure = wall_pressure * (1 - urgency_discount * short_urgency)",
+    "runtime_queue_pressure": true,
+    "description": "Runtime policy. Each scheduler step maps live pressure to chunk targets: short urgency pushes toward aggressive chunks, sustained wall pressure pushes toward conservative chunks.",
+    "runtime_aggressive_long_fraction": 0.33,
+    "runtime_conservative_long_fraction": 0.50,
+    "runtime_aggressive_ingress_target_chunk": 768,
+    "runtime_conservative_ingress_target_chunk": 1536,
+    "runtime_queue_high_watermark": 8,
+    "runtime_waiting_short_high_watermark": 4,
+    "runtime_wait_us_high_watermark": 1000000.0,
+    "runtime_long_high_watermark": 3072,
+    "runtime_urgency_discount": 0.55,
+    "runtime_ema_alpha": 0.35,
+    "runtime_low_pressure_min_hetero_ratio": 6.0,
+    "runtime_high_pressure_min_hetero_ratio": 4.0,
+    "runtime_low_pressure_min_pressure_ratio": 6.0,
+    "runtime_high_pressure_min_pressure_ratio": 4.0,
+    "runtime_low_pressure_min_long_prefill": 1024,
+    "runtime_high_pressure_min_long_prefill": 768
+  },
+  "phase12_soft_gate": {
+    "phase2_gate_mode": "soft",
+    "soft_min_long_prefill": 512,
+    "soft_allow_mixed_decode": true
+  },
+  "phase2": {
+    "dispatch_mode": "synchronized",
+    "enable_mixed_prefill_decode": false,
+    "min_hetero_ratio": 4.0,
+    "min_long_prefill": 768,
+    "min_pressure_ratio": 4.0,
+    "enable_scheduler_cashout": true
+  }
+}

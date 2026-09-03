@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "waveslice"
+version = "0.1.0"
+description = "WaveSlice: fairness-aware scheduling for vLLM LoRA serving."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+]
+
+[project.optional-dependencies]
+vllm = ["vllm"]
+experiments = [
+  "datasets>=4",
+  "huggingface-hub>=0.36",
+  "numpy>=2",
+  "peft>=0.18",
+  "safetensors>=0.5",
+  "torch>=2.1",
+  "tqdm>=4.67",
+  "transformers>=4.57",
+]
+dev = [
+  "build>=1.2",
+  "jsonschema>=4.23",
+  "pytest>=7",
+  "ruff>=0.8",
+]
+
+[project.entry-points."vllm.general_plugins"]
+waveslice = "waveslice.plugin:register"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["waveslice*"]
+
+[tool.setuptools.package-data]
+"waveslice.data.lut_tables" = ["*.json", "ablation/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E402", "E501"]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true

@@ -1,0 +1,56 @@
+{
+  "schema_version": "waveslice-openworkload-v1",
+  "suite_name": "openworkload_smoke",
+  "out_root": "results/development_smoke",
+  "resource_selection": {
+    "model_mode": "configured",
+    "dataset_mode": "configured",
+    "auto_download": false,
+    "offline": true
+  },
+  "models": [
+    {
+      "key": "mistral-7b-v0.1",
+      "label": "Mistral-7B-v0.1",
+      "reason": "Small deterministic dry-run selection."
+    }
+  ],
+  "datasets": [
+    {
+      "key": "ultrachat200k",
+      "dataset_id": "HuggingFaceH4/ultrachat_200k",
+      "split": "train_sft",
+      "extractor": "ultrachat",
+      "streaming": true,
+      "label": "UltraChat200k",
+      "role": "Short-request source",
+      "reason": "Exercises configured dataset resolution without downloading data."
+    }
+  ],
+  "workload": {
+    "arrival_mode": "poisson",
+    "sample_count": 8,
+    "densities": [
+      {
+        "name": "smoke",
+        "phase1_arrival_rate": 1.0,
+        "phase2_arrival_rate": 1.0,
+        "phase1_short_count": 2,
+        "phase1_long_count": 1,
+        "phase2_short_count": 2,
+        "phase2_long_count": 1,
+        "scenario": "Local dry-run",
+        "reason": "Checks config resolution and output layout only."
+      }
+    ]
+  },
+  "eval": {
+    "warmup_iters": 0,
+    "repeats": 1,
+    "timeout_sec": 30,
+    "max_new_tokens": 8,
+    "max_model_len": 512,
+    "max_num_batched_tokens": 512,
+    "gpu_memory_utilization": 0.5
+  }
+}

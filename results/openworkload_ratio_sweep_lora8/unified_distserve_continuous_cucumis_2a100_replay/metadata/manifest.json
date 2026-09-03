@@ -1,0 +1,10 @@
+{
+  "distserve_serial_dir": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_continuous_cucumis_2a100_replay/distserve_serial",
+  "cucumis_2a100_dir": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_continuous_cucumis_2a100_replay/cucumis_2a100",
+  "distserve_method_rows": 50,
+  "cucumis_method_rows": 100,
+  "comparison_rows": 100,
+  "method_metrics": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_continuous_cucumis_2a100_replay/unified_method_metrics.csv",
+  "request_metrics": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_continuous_cucumis_2a100_replay/unified_request_metrics.csv",
+  "equal_resource_comparison": "/home/onceas/Arantir/CUCUMIS-lorekeep/lorekeep/results/openworkload_ratio_sweep_lora8/unified_distserve_continuous_cucumis_2a100_replay/unified_equal_resource_comparison.csv"
+}

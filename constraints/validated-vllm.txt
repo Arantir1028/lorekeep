@@ -1,0 +1,12 @@
+# Runtime stack used for the current WaveSlice V1 implementation and tests.
+# Keep these pins out of the runtime code. Update them only after the CPU
+# contracts and a real-GPU engine smoke test pass together.
+torch==2.7.1
+vllm==0.10.1
+transformers==4.57.6
+datasets==4.8.4
+peft==0.18.1
+safetensors==0.5.3
+huggingface_hub==0.36.2
+numpy==2.2.6
+tqdm==4.67.1

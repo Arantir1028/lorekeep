@@ -1,0 +1,36 @@
+{
+  "passed": true,
+  "buckets": [
+    256,
+    512,
+    1024,
+    1536
+  ],
+  "solo_bucket_count": 4,
+  "ratio_count": 10,
+  "ratio_min": 0.9807329618597204,
+  "ratio_median": 1.0044904701442068,
+  "ratio_max": 1.0410842323328973,
+  "reasons": [],
+  "hardware_fingerprint": {
+    "schema_version": 1,
+    "fingerprint_id": "19bc4bec61a2a2e278de3fcd051057e0dc70a098aff94c19cc0223eb9bc1e8e4",
+    "components": {
+      "gpus": [
+        {
+          "name": "NVIDIA A100-SXM4-80GB",
+          "total_memory_bytes": 84987740160,
+          "capability": [
+            8,
+            0
+          ]
+        }
+      ],
+      "torch_version": "2.7.1+cu126",
+      "torch_cuda": "12.6",
+      "vllm_version": "0.10.1",
+      "driver_version": null,
+      "nvidia_smi_cuda_version": null
+    }
+  }
+}

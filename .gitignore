@@ -1,0 +1,29 @@
+__pycache__/
+*.py[cod]
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+build/
+*.egg-info/
+
+# Experiment runs are local by default. Keep only the compact, paper-facing
+# exports that are useful for reproducing figures and auditing conclusions.
+results/*
+!results/result_bundles.json
+!results/chapter5_exports/
+results/chapter5_exports/*
+!results/chapter5_exports/ratio_sweep_20step_5models_a100_overnight/
+!results/chapter5_exports/hardware_portability_a100_4090_5090/
+!results/openworkload_ratio_sweep_lora8/
+results/openworkload_ratio_sweep_lora8/*
+!results/openworkload_ratio_sweep_lora8/unified_distserve_continuous_cucumis_2a100_replay/
+
+# Local archives and generated model adapters are intentionally not source data.
+archived_results/
+chapter5-4090-baichuan2-7b/
+*.safetensors
+
+wave_slice_zero_padding_barrier.sqlite
+wave_slice_zero_padding_barrier.nsys-rep
